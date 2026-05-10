@@ -96,8 +96,53 @@ function TodayBanner({ selected }) {
     </div>
   );
 }
+function PatronModal({ onApply, onClose }) {
+  const [fecha, setFecha] = useState("2025-01-02");
+  const [trabajo, setTrabajo] = useState(1);
+  const [descanso, setDescanso] = useState(4);
+
+  const ejecutar = () => {
+    const [y, m, d] = fecha.split("-").map(Number);
+    const ciclo = [
+      ...Array(trabajo).fill("jornada"),
+      ...Array(descanso).fill("libre")
+    ];
+    onApply(y, m - 1, d, ciclo);
+  };
+
+  return (
+    <div className="modal">
+      <div className="card" style={{ width: "350px", padding: "25px" }}>
+        <h3 style={{ marginBottom: "20px" }}>⚙️ Configurar Patrón</h3>
+        
+        <div style={{ marginBottom: "15px" }}>
+          <label style={{ fontSize: "12px", display: "block", marginBottom: "5px" }}>Día de inicio (Primer día de trabajo):</label>
+          <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} style={{ width: "100%" }} />
+        </div>
+
+        <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: "12px" }}>Días Trabajo:</label>
+            <input type="number" value={trabajo} onChange={e => setTrabajo(+e.target.value)} style={{ width: "100%" }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: "12px" }}>Días Libre:</label>
+            <input type="number" value={descanso} onChange={e => setDescanso(+e.target.value)} style={{ width: "100%" }} />
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: "8px", background: "#F1F5F9" }}>Cancelar</button>
+          <button onClick={ejecutar} style={{ flex: 2, padding: "10px", borderRadius: "8px", background: "#7C3AED", color: "#fff", fontWeight: "bold" }}>Aplicar a todo el año</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
     function App() {
+const [showPatron, setShowPatron] = useState(false);
+
       const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_v6") || "{}"));
       const [edit, setEdit] = useState(null);
 
@@ -153,12 +198,13 @@ function TodayBanner({ selected }) {
             </div>
           </header>
 <TodayBanner selected={selected} />
-<button onClick={() => {
-    const { newSelected } = applyPattern(2025, 0, 2, ["jornada", "libre", "libre", "libre", "libre"]);
-    setSelected(prev => ({ ...prev, ...newSelected }));
-}} style={{ background: "#7C3AED", color: "#fff", padding: "10px", borderRadius: "8px", marginBottom: "15px", width: "100%", fontWeight: "bold" }}>
-    🔄 Aplicar Patrón (1 Trabajo / 4 Libres)
+<button 
+  onClick={() => setShowPatron(true)} 
+  style={{ background: "#7C3AED", color: "#fff", padding: "12px", borderRadius: "10px", marginBottom: "15px", width: "100%", fontWeight: "bold", fontSize: "14px" }}
+>
+  🔄 Configurar y Aplicar Ciclo de Turnos
 </button>
+
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
             {MESES.map((_, i) => renderMes(i))}
@@ -180,6 +226,17 @@ function TodayBanner({ selected }) {
               </div>
             </div>
           )}
+{showPatron && (
+  <PatronModal 
+    onClose={() => setShowPatron(false)} 
+    onApply={(y, m, d, ciclo) => {
+      const { newSelected } = applyPattern(y, m, d, ciclo);
+      setSelected(prev => ({ ...prev, ...newSelected }));
+      setShowPatron(false);
+    }} 
+  />
+)}
+
         </div>
       );
     }
