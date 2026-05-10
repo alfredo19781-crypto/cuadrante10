@@ -331,6 +331,7 @@ function PatronModal({ year, onClose, onApply }) {
   );
 }
 
+// ── Day Modal ─────────────────────────────────────────────────────────────
 // ── TimeRange ─────────────────────────────────────────────────────────────
 function TimeRange({ value = {}, onChange, color }) {
   const inp = { background:"#F8FAFC", border:`1.5px solid ${color}55`, borderRadius:8, padding:"5px 8px", color:"#1E293B", fontSize:13, fontWeight:600, outline:"none", width:80, colorScheme:"light" };
@@ -350,11 +351,14 @@ function FlexTipoRow({ tipo: t, hours, remaining, onChange, maxH = 24, horario, 
   const h = hours[t.id] || 0;
   const active = h > 0;
 
+  // Jornada y libre NO se borran — coexisten con estos tipos
+  // El remaining se calcula solo sobre los "otros tipos", independiente de jornada
   const sinJornada = getTotalHours(hours) - (hours.jornada || 0) - (hours.libre || 0);
   const efectivoRemaining = 24 - sinJornada;
 
   const selCompleta = () => {
     setModo("completa");
+    // NO eliminamos jornada — solo añadimos este tipo
     onChange(p => ({ ...p, [t.id]: maxH }));
   };
   const selHoras = () => {
@@ -403,286 +407,346 @@ function FlexTipoRow({ tipo: t, hours, remaining, onChange, maxH = 24, horario, 
 }
 
 function DayModal({ dateKey, dayData, dayMeta, onClose, onSave, asuntosUsados, excesoBruto, sindicalMesUsado, patronDia }) {
-  const [hours, setHours] = useState(() => { const h = { ...dayData }; delete h.libre; return h; });
+  // Exclude "libre" from editable hours — libre is just a background marker from the pattern
+  const [hours, setHours] = useState(() => {
+    const h = { ...dayData };
+    delete h.libre;
+    return h;
+  });
   const [meta, setMeta] = useState({ ...dayMeta });
   const [horario, setHorario] = useState(dayMeta.horario || {});
+
   const setTipoHorario = (id, val) => setHorario(prev => ({ ...prev, [id]: val }));
+
   const total = getTotalHours(hours);
   const remaining = 24 - total;
+
   const parts = dateKey.split("-");
   const d = new Date(+parts[0], +parts[1]-1, +parts[2]);
   const dow = d.getDay() === 0 ? 6 : d.getDay() - 1;
   const dateLabel = `${DIAS_FULL[dow]}, ${+parts[2]} de ${MESES[+parts[1]-1]} de ${parts[0]}`;
+
   const handleH = (v) => setHours(prev => typeof v === "function" ? v(prev) : v);
 
-  const jorT = TIPOS[0]; const jorH = hours.jornada||0; const isCompleta = meta.jornada_completa===true; const jorActive = jorH>0||isCompleta;
-  const selCompleta = () => { setMeta(m=>({...m,jornada_completa:true})); setHours({jornada:24}); };
-  const selHoras = () => { setMeta(m=>({...m,jornada_completa:false})); setHours(p=>{const n={...p};delete n.jornada;return n;}); };
-  const changeJorH = (delta) => { if(isCompleta) return; handleH(p=>{const cur=p.jornada||0;const nx=Math.max(0,cur+delta);if(getTotalHours(p)-cur+nx>24)return p;const u={...p,jornada:nx};if(!u.jornada)delete u.jornada;return u;}); };
+  // Jornada Control
+  const jorT = TIPOS[0];
+  const jorH = hours.jornada||0;
+  const isCompleta = meta.jornada_completa===true;
+  const jorActive = jorH>0||isCompleta;
 
-  const asT=TIPOS[2]; const asH=hours.asuntos||0; const asActive=asH>0; const asRestantes=(ASUNTOS_TOTAL*8)-(asuntosUsados-(dayData.asuntos||0));
-  const changeAsH=(delta)=>handleH(p=>{const cur=p.asuntos||0;const nx=Math.max(0,Math.min(asRestantes,cur+delta));if(getTotalHours(p)-cur+nx>24)return p;const u={...p,asuntos:nx};if(!u.asuntos)delete u.asuntos;return u;});
+  const selCompleta = () => {
+    setMeta(m=>({...m,jornada_completa:true}));
+    setHours({jornada:24});
+  };
+  const selHoras = () => {
+    setMeta(m=>({...m,jornada_completa:false}));
+    setHours(p=>{const n={...p};delete n.jornada;return n;});
+  };
+  const changeJorH = (delta) => {
+    if(isCompleta) return;
+    handleH(p=>{
+      const cur=p.jornada||0;
+      const nx=Math.max(0,cur+delta);
+      if(getTotalHours(p)-cur+nx>24)return p;
+      const u={...p,jornada:nx};
+      if(!u.jornada)delete u.jornada;
+      return u;
+    });
+  };
 
-  const exT=TIPOS[3]; const exH=hours.excesos||0; const exActive=exH>0; const horasExcesosDisp=excesoBruto*8;
-  const changeExH=(delta)=>handleH(p=>{const cur=p.excesos||0;const nx=Math.max(0,Math.min(horasExcesosDisp,cur+delta));if(getTotalHours(p)-cur+nx>24)return p;const u={...p,excesos:nx};if(!u.excesos)delete u.excesos;return u;});
-
-  const otrosTipos=TIPOS.filter(t=>!["jornada","asuntos","excesos","vacaciones"].includes(t.id));
+  const asT=TIPOS[2]; const asH=hours.asuntos||0;
+  const exT=TIPOS[3]; const exH=hours.excesos||0;
+  const siT=TIPOS[4]; const siH=hours.sindical||0;
 
   return (
-    <div style={{ position:"fixed",inset:0,zIndex:1000,background:"rgba(15,23,42,0.6)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:16 }} onClick={onClose}>
-      <div style={{ background:"#fff",borderRadius:22,width:"100%",maxWidth:490,border:"1px solid #E2E8F0",boxShadow:"0 24px 60px rgba(0,0,0,0.18)",maxHeight:"92vh",display:"flex",flexDirection:"column" }} onClick={e=>e.stopPropagation()}>
-        <div style={{ padding:"16px 20px 12px",background:"#F8FAFC",borderBottom:"1px solid #E2E8F0",flexShrink:0 }}>
-          <div style={{ fontSize:10,color:"#94A3B8",letterSpacing:3,textTransform:"uppercase",marginBottom:3 }}>Asignar jornada</div>
-          <div style={{ fontSize:17,fontWeight:800,color:"#0F172A" }}>{dateLabel}</div>
+    <div style={{ position:"fixed", inset:0, zIndex:1001, background:"rgba(15,23,42,0.7)", backdropFilter:"blur(12px)", display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={onClose}>
+      <div style={{ background:"#fff", borderRadius:28, width:"100%", maxWidth:480, maxHeight:"94vh", display:"flex", flexDirection:"column", border:"1px solid #E2E8F0", boxShadow:"0 30px 70px rgba(0,0,0,0.3)" }} onClick={e=>e.stopPropagation()}>
+        <div style={{ padding:"24px 28px 16px", borderBottom:"1px solid #F1F5F9" }}>
+          <div style={{ fontSize:10, color:"#94A3B8", letterSpacing:3, textTransform:"uppercase", fontWeight:800, marginBottom:4 }}>Detalles del día</div>
+          <div style={{ fontSize:22, fontWeight:900, color:"#1E293B" }}>{dateLabel}</div>
+          <div style={{ display:"flex", gap:8, marginTop:10 }}>
+             <span style={{ fontSize:11, fontWeight:700, padding:"4px 10px", borderRadius:20, background:patronDia==="jornada"?"#FEF2F2":"#F0FDF4", color:patronDia==="jornada"?"#DC2626":"#16A34A", border:`1px solid ${patronDia==="jornada"?"#FECACA":"#86EFAC"}` }}>
+               Patrón: {patronDia==="jornada"?"Trabajo":"Descanso"}
+             </span>
+             {total>0 && <span style={{ fontSize:11, fontWeight:700, padding:"4px 10px", borderRadius:20, background:"#F1F5F9", color:"#475569", border:"1px solid #E2E8F0" }}>Total: {total}h</span>}
+          </div>
         </div>
 
-        <div style={{ padding:20, overflowY:"auto", flex:1 }}>
-          {/* Jornada Principal */}
-          <div style={{ borderRadius:16, border:`2px solid ${jorActive?jorT.color:"#E2E8F0"}`, background:jorActive?jorT.bg:"#FAFAFA", overflow:"hidden", marginBottom:14 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:8, padding:"12px 16px" }}>
-              <span style={{ fontSize:20 }}>{jorT.emoji}</span>
-              <div style={{ flex:1 }}><div style={{ fontSize:14, fontWeight:800, color:jorActive?jorT.text:"#94A3B8" }}>{jorT.label}</div></div>
-              {jorActive && <button onClick={()=>{setMeta(m=>({...m,jornada_completa:false})); handleH(p=>{const n={...p};delete n.jornada;return n;});}} style={{ background:"#FEE2E2", color:"#DC2626", border:"none", borderRadius:6, padding:"4px 10px", fontSize:11, fontWeight:700, cursor:"pointer" }}>✕ Borrar</button>}
-            </div>
-            {!jorActive ? (
-              <div style={{ display:"flex", margin:"0 16px 16px", borderRadius:10, overflow:"hidden", border:"1px solid #E2E8F0" }}>
-                <button onClick={selCompleta} style={{ flex:1, padding:"10px 0", border:"none", cursor:"pointer", fontSize:12, fontWeight:700, background:"#fff", color:jorT.color, borderRight:"1px solid #E2E8F0" }}>✓ Día completo (24h)</button>
-                <button onClick={selHoras} style={{ flex:1, padding:"10px 0", border:"none", cursor:"pointer", fontSize:12, fontWeight:700, background:"#fff", color:jorT.color }}>🕐 Por horas</button>
-              </div>
-            ) : isCompleta ? (
-              <div style={{ padding:"0 16px 16px", fontSize:12, color:jorT.text, fontWeight:600 }}>Día completo registrado (24h)</div>
-            ) : (
-              <div style={{ display:"flex", alignItems:"center", gap:10, padding:"0 16px 16px" }}>
-                <button onClick={()=>changeJorH(-1)} style={cBtn(jorT.color, jorH>0)}>−</button>
-                <input type="number" value={jorH} onChange={e=>changeJorH((parseInt(e.target.value)||0)-jorH)} style={{ width:50, textAlign:"center", background:"#fff", border:`2px solid ${jorT.color}`, borderRadius:10, color:jorT.text, fontSize:16, fontWeight:800, padding:5 }} />
-                <span style={{ fontSize:12, color:"#94A3B8", fontWeight:700 }}>horas</span>
-                <button onClick={()=>changeJorH(1)} disabled={remaining<=0} style={cBtn(jorT.color, remaining>0)}>+</button>
-              </div>
-            )}
-            {jorActive && <TimeRange value={horario.jornada} onChange={v=>setTipoHorario("jornada",v)} color={jorT.color} />}
-          </div>
-
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
-            {/* Asuntos */}
-            <div style={{ borderRadius:14, border:`1.5px solid ${asActive?asT.color:"#E2E8F0"}`, background:asActive?asT.bg:"#fff", padding:12 }}>
-              <div style={{ display:"flex", gap:6, alignItems:"center", marginBottom:8 }}><span style={{fontSize:16}}>{asT.emoji}</span><span style={{fontSize:12,fontWeight:700,color:asActive?asT.text:"#94A3B8"}}>{asT.label}</span></div>
-              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                <button onClick={()=>changeAsH(-1)} style={cBtn(asT.color, asActive)}>−</button>
-                <span style={{flex:1, textAlign:"center", fontSize:14, fontWeight:900, color:asActive?asT.text:"#CBD5E1"}}>{asH}h</span>
-                <button onClick={()=>changeAsH(1)} disabled={remaining<=0 || asRestantes<=0} style={cBtn(asT.color, remaining>0 && asRestantes>0)}>+</button>
-              </div>
-              <div style={{ fontSize:9, color:asT.color, marginTop:4, fontWeight:600 }}>Disp: {asRestantes}h</div>
-            </div>
-            {/* Excesos */}
-            <div style={{ borderRadius:14, border:`1.5px solid ${exActive?exT.color:"#E2E8F0"}`, background:exActive?exT.bg:"#fff", padding:12 }}>
-              <div style={{ display:"flex", gap:6, alignItems:"center", marginBottom:8 }}><span style={{fontSize:16}}>{exT.emoji}</span><span style={{fontSize:12,fontWeight:700,color:exActive?exT.text:"#94A3B8"}}>{exT.label}</span></div>
-              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                <button onClick={()=>changeExH(-1)} style={cBtn(exT.color, exActive)}>−</button>
-                <span style={{flex:1, textAlign:"center", fontSize:14, fontWeight:900, color:exActive?exT.text:"#CBD5E1"}}>{exH}h</span>
-                <button onClick={()=>changeExH(1)} disabled={remaining<=0 || horasExcesosDisp<=0} style={cBtn(exT.color, remaining>0 && horasExcesosDisp>0)}>+</button>
-              </div>
-              <div style={{ fontSize:9, color:exT.color, marginTop:4, fontWeight:600 }}>Acum: {horasExcesosDisp.toFixed(1)}h</div>
+        <div style={{ padding:"20px 28px", overflowY:"auto", flex:1 }}>
+          
+          {/* SECCIÓN JORNADA — SIEMPRE VISIBLE */}
+          <div style={{ marginBottom:20 }}>
+            <div style={{ fontSize:11, color:"#94A3B8", fontWeight:800, textTransform:"uppercase", marginBottom:10 }}>Configuración de Jornada</div>
+            <div style={{ borderRadius:16, border:`2px solid ${jorActive?jorT.color:"#E2E8F0"}`, background:jorActive?jorT.bg:"#FAFAFA", overflow:"hidden" }}>
+               <div style={{ padding:"14px 18px", display:"flex", alignItems:"center", gap:10 }}>
+                  <span style={{ fontSize:20 }}>{jorT.emoji}</span>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:14, fontWeight:800, color:jorActive?jorT.text:"#94A3B8" }}>{jorT.label}</div>
+                    {jorActive && <div style={{ fontSize:11, color:jorT.color }}>{isCompleta?"Día completo (Calcula como 3 jornadas)":`${jorH}h asignadas`}</div>}
+                  </div>
+                  {jorActive && <button onClick={()=>setHours(p=>{const n={...p};delete n.jornada;return n;})} style={{ background:"#FEE2E2", border:"none", color:"#DC2626", borderRadius:8, width:30, height:30, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>}
+               </div>
+               {!jorActive && (
+                 <div style={{ display:"flex", borderTop:"1px solid #E2E8F0" }}>
+                   <button onClick={selCompleta} style={{ flex:1, padding:"12px 0", border:"none", background:"#fff", color:jorT.color, fontSize:12, fontWeight:700, cursor:"pointer", borderRight:"1px solid #E2E8F0" }}>✓ Completa (24h)</button>
+                   <button onClick={selHoras} style={{ flex:1, padding:"12px 0", border:"none", background:"#fff", color:jorT.color, fontSize:12, fontWeight:700, cursor:"pointer" }}>🕐 Por horas</button>
+                 </div>
+               )}
+               {jorActive && !isCompleta && (
+                 <div style={{ display:"flex", alignItems:"center", gap:12, padding:"0 18px 14px" }}>
+                   <span style={{ fontSize:11, color:"#94A3B8", flex:1 }}>Ajustar horas:</span>
+                   <button onClick={()=>changeJorH(-1)} style={cBtn(jorT.color, jorH>0)}>−</button>
+                   <div style={{ fontSize:16, fontWeight:900, color:jorT.text, width:30, textAlign:"center" }}>{jorH}</div>
+                   <button onClick={()=>changeJorH(1)} style={cBtn(jorT.color, total<24)}>+</button>
+                 </div>
+               )}
             </div>
           </div>
 
-          <div style={{ fontSize:11, color:"#94A3B8", letterSpacing:2, textTransform: "uppercase", marginBottom:10, fontWeight:700 }}>Otros tipos de jornada</div>
-          {otrosTipos.map(t => (
-            <FlexTipoRow key={t.id} tipo={t} hours={hours} remaining={remaining} onChange={setHours} maxH={t.id==="sindical"?Math.min(24, (SINDICAL_MAX_MES*8)-sindicalMesUsado):24} horario={horario[t.id]} onHorarioChange={v=>setTipoHorario(t.id,v)} />
+          <div style={{ fontSize:11, color:"#94A3B8", fontWeight:800, textTransform:"uppercase", marginBottom:10 }}>Otros conceptos / Ausencias</div>
+          {TIPOS.slice(1).filter(t=>t.id!=="libre").map(t=>(
+            <FlexTipoRow 
+              key={t.id} 
+              tipo={t} 
+              hours={hours} 
+              remaining={remaining} 
+              onChange={setHours} 
+              horario={horario[t.id]}
+              onHorarioChange={(v)=>setTipoHorario(t.id, v)}
+            />
           ))}
+
+          {total > 24 && (
+            <div style={{ marginTop:12, padding:10, borderRadius:12, background:"#FEF2F2", color:"#DC2626", fontSize:12, fontWeight:700, textAlign:"center", border:"1px solid #FECACA" }}>
+              ⚠️ Has superado las 24h en un solo día.
+            </div>
+          )}
         </div>
 
-        <div style={{ padding:"14px 20px", borderTop:"1px solid #E2E8F0", background:"#fff", display:"flex", gap:10, alignItems:"center" }}>
-          <div style={{ flex:1 }}>
-            <div style={{ fontSize:10, color:"#94A3B8", fontWeight:700 }}>TOTAL DÍA</div>
-            <div style={{ fontSize:18, fontWeight:900, color:total>24?"#DC2626":"#1E293B" }}>{total} <span style={{ fontSize:12, fontWeight:600, color:"#94A3B8" }}>/ 24h</span></div>
-          </div>
-          <button onClick={onClose} style={{ padding:"10px 18px", borderRadius:10, border:"1px solid #E2E8F0", background:"#F8FAFC", color:"#64748B", cursor:"pointer", fontSize:13, fontWeight:600 }}>Cerrar</button>
-          <button onClick={()=>onSave(hours, {...meta, horario})} disabled={total>24} style={{ padding:"10px 24px", borderRadius:10, border:"none", background:total>24?"#E2E8F0":"linear-gradient(135deg,#2563EB,#7C3AED)", color:"#fff", cursor:total>24?"not-allowed":"pointer", fontSize:13, fontWeight:700 }}>Guardar</button>
+        <div style={{ padding:"20px 28px 24px", borderTop:"1px solid #F1F5F9", display:"flex", gap:12, background:"#fff", borderBottomLeftRadius:28, borderBottomRightRadius:28 }}>
+          <button onClick={onClose} style={{ flex:1, padding:"14px", borderRadius:14, border:"1.5px solid #E2E8F0", background:"#F8FAFC", color:"#64748B", cursor:"pointer", fontSize:14, fontWeight:700 }}>Cancelar</button>
+          <button onClick={() => onSave(hours, meta, horario)} disabled={total>24} style={{ flex:2, padding:"14px", borderRadius:14, border:"none", background:total>24?"#E2E8F0":"linear-gradient(135deg,#2563EB,#7C3AED)", color:"#fff", cursor:total>24?"not-allowed":"pointer", fontSize:14, fontWeight:800, boxShadow:total>24?"none":"0 8px 20px rgba(37,99,235,0.3)" }}>✓ Guardar cambios</button>
         </div>
       </div>
     </div>
   );
 }
 
-// ── App ───────────────────────────────────────────────────────────────────
-function App() {
-  const year = 2025;
+// ── Main App ──────────────────────────────────────────────────────────────
+function Cuadrante() {
+  const [view, setView] = useState("annual");
+  const [viewMonth, setViewMonth] = useState(new Date().getMonth());
+  const [year] = useState(2025);
+  const [modal, setModal] = useState(null);
+  const [patronModal, setPatronModal] = useState(false);
+  const [vacationModal, setVacationModal] = useState(false);
 
-  // --- PERSISTENCIA: Carga inicial de datos ---
+  // ——————————————————————————————————————————————————————————————————————
+  // LÓGICA DE PERSISTENCIA (LOCALSTORAGE)
+  // ——————————————————————————————————————————————————————————————————————
+  
+  // 1. Carga inicial
   const [selected, setSelected] = useState(() => {
-    const saved = localStorage.getItem("cuadrante_data_2025");
+    const saved = localStorage.getItem('cuadrante_selected');
     return saved ? JSON.parse(saved) : {};
   });
   const [meta, setMeta] = useState(() => {
-    const saved = localStorage.getItem("cuadrante_meta_2025");
+    const saved = localStorage.getItem('cuadrante_meta');
     return saved ? JSON.parse(saved) : {};
   });
 
-  // --- PERSISTENCIA: Guardado automático ---
+  // 2. Guardado automático cada vez que cambian los datos
   useEffect(() => {
-    localStorage.setItem("cuadrante_data_2025", JSON.stringify(selected));
-    localStorage.setItem("cuadrante_meta_2025", JSON.stringify(meta));
+    localStorage.setItem('cuadrante_selected', JSON.stringify(selected));
+    localStorage.setItem('cuadrante_meta', JSON.stringify(meta));
   }, [selected, meta]);
 
-  const [view, setView] = useState("annual");
-  const [viewMonth, setViewMonth] = useState(new Date().getMonth());
-  const [modal, setModal] = useState(null);
-  const [showVac, setShowVac] = useState(false);
-  const [showPat, setShowPat] = useState(false);
-  const [blink, setBlink] = useState(true);
+  // ——————————————————————————————————————————————————————————————————————
 
-  useEffect(() => {
-    const t = setInterval(() => setBlink(b => !b), 700);
-    return () => clearInterval(t);
-  }, []);
+  const stats = useMemo(() => {
+    let jorH = 0, asH = 0, exH = 0, vacD = 0, sinH = 0;
+    const monthly = Array(12).fill(0).map(() => ({ j: 0, s: 0 }));
+    Object.keys(selected).forEach(dk => {
+      const d = selected[dk], m = parseKey(dk).m;
+      const j = d.jornada || 0;
+      const isC = meta[dk]?.jornada_completa === true;
+      const val = isC ? 3 : j / 8;
+      jorH += val; monthly[m].j += val;
+      if (d.asuntos) asH += d.asuntos;
+      if (d.excesos) exH += d.excesos;
+      if (d.sindical) { sinH += d.sindical; monthly[m].s += d.sindical; }
+      if (d.vacaciones) vacD++;
+    });
+    return { jorH, asH, exH, vacD, sinH, monthly };
+  }, [selected, meta]);
 
-  const handleSaveDay = (dk, h, m) => {
-    setSelected(prev => { const n = { ...prev, [dk]: h }; if (getTotalHours(h) === 0) delete n[dk]; return n; });
-    setMeta(prev => { const n = { ...prev, [dk]: m }; if (getTotalHours(h) === 0) delete n[dk]; return n; });
+  const handleSaveDay = (h, m, hor) => {
+    setSelected(p => { const n = { ...p, [modal.dk]: h }; if (Object.keys(h).length === 0) delete n[modal.dk]; return n; });
+    setMeta(p => { const n = { ...p, [modal.dk]: { ...m, horario: hor } }; if (Object.keys(n[modal.dk]).length === 0) delete n[modal.dk]; return n; });
     setModal(null);
   };
 
-  const applyVacations = (ranges) => {
-    const newS = { ...selected }, newM = { ...meta };
+  const handleApplyPattern = (cycle, sm, sd) => {
+    const { newSelected, newMeta } = applyPattern(year, sm, sd, cycle);
+    setSelected(p => ({ ...p, ...newSelected }));
+    setMeta(p => ({ ...p, ...newMeta }));
+    setPatronModal(false);
+  };
+
+  const handleApplyVacations = (ranges) => {
+    const newSel = { ...selected }, newMeta = { ...meta };
     ranges.forEach(rng => {
       let cur = new Date(year, rng.sm, rng.sd);
       const end = new Date(year, rng.em, Math.min(rng.ed, getDaysInMonth(year, rng.em)));
       while (cur <= end) {
         const dk = toDateKey(year, cur.getMonth(), cur.getDate());
-        if ((selected[dk]?.jornada || 0) > 0) {
-          newS[dk] = { ...selected[dk], vacaciones: 24 };
-          delete newS[dk].jornada;
-          newM[dk] = { ...meta[dk] }; delete newM[dk].jornada_completa;
+        if ((newSel[dk]?.jornada || 0) > 0 || newMeta[dk]?.jornada_completa) {
+          newSel[dk] = { vacaciones: 24 };
+          newMeta[dk] = { ...(newMeta[dk] || {}), jornada_completa: false };
         }
         cur.setDate(cur.getDate() + 1);
       }
     });
-    setSelected(newS); setMeta(newM); setShowVac(false);
+    setSelected(newSel); setMeta(newMeta); setVacationModal(false);
   };
 
-  const stats = useMemo(() => {
-    const s = { jornada: 0, vacaciones: 0, asuntos: 0, excesos: 0, sindical: 0, guardia: 0, refuerzo: 0, permiso: 0, baja: 0, festivo: 0, libre: 0 };
-    const mes = Array(12).fill(0).map(() => ({ ...s }));
-    Object.keys(selected).forEach(dk => {
-      const { m } = parseKey(dk);
-      Object.keys(selected[dk]).forEach(id => {
-        const val = selected[dk][id];
-        s[id] += val;
-        mes[m][id] += val;
-      });
-    });
-    const jTotal = s.jornada / 8;
-    return { global: s, mensual: mes, jornadasReales: Math.round(jTotal) };
-  }, [selected]);
-
-  const tKey = todayKey();
+  const clearAll = () => { if (confirm("¿Borrar todos los datos del año?")) { setSelected({}); setMeta({}); localStorage.clear(); } };
 
   return (
-    <div style={{ background: "#F1F5F9", minHeight: "100vh", padding: "14px 14px 40px" }}>
-      <header style={{ maxWidth: 1100, margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+    <div style={{ background: "#F1F5F9", minHeight: "100vh", padding: "14px 10px 80px" }}>
+      {/* Header */}
+      <div style={{ maxWidth: 1100, margin: "0 auto 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 900, color: "#0F172A", letterSpacing: -0.5 }}>Mi Cuadrante <span style={{ color: "#2563EB" }}>{year}</span></h1>
-          <div style={{ fontSize: 11, color: "#64748B", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Control de Jornadas y Turnos</div>
+          <h1 style={{ fontSize: 24, fontWeight: 900, color: "#1E293B", letterSpacing: -0.5 }}>Cuadrante <span style={{ color: "#2563EB" }}>{year}</span></h1>
+          <p style={{ fontSize: 12, color: "#64748B", fontWeight: 600 }}>Gestión de jornadas y ausencias</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => setShowPat(true)} style={{ background: "#fff", border: "1px solid #E2E8F0", padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>🔄 Ciclo</button>
-          <button onClick={() => setShowVac(true)} style={{ background: "#fff", border: "1px solid #E2E8F0", padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>🏖️ Vacaciones</button>
-        </div>
-      </header>
-
-      <div style={{ maxWidth: 1100, margin: "0 auto 16px", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-        <div style={{ ...card, padding: 12, borderLeft: "4px solid #EF4444" }}>
-          <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 800 }}>JORNADAS REALES</div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: "#EF4444" }}>{stats.jornadasReales} <span style={{ fontSize: 13, color: "#CBD5E1" }}>/ {OBJETIVO_JORNADAS}</span></div>
-        </div>
-        <div style={{ ...card, padding: 12, borderLeft: "4px solid #2563EB" }}>
-          <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 800 }}>DÍAS ASUNTOS</div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: "#2563EB" }}>{(stats.global.asuntos / 8).toFixed(1)} <span style={{ fontSize: 13, color: "#CBD5E1" }}>/ {ASUNTOS_TOTAL}</span></div>
-        </div>
-        <div style={{ ...card, padding: 12, borderLeft: "4px solid #16A34A" }}>
-          <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 800 }}>TOTAL HORAS</div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: "#16A34A" }}>{getTotalHours(stats.global)}<span style={{ fontSize: 13 }}>h</span></div>
+          <button onClick={() => setPatronModal(true)} style={{ background: "#fff", border: "1px solid #E2E8F0", padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", color: "#2563EB" }}>🔄 Ciclo</button>
+          <button onClick={() => setVacationModal(true)} style={{ background: "#fff", border: "1px solid #E2E8F0", padding: "8px 14px", borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", color: "#CA8A04" }}>🏖️ Vacaciones</button>
+          <button onClick={clearAll} style={{ background: "#FEE2E2", border: "1px solid #FECACA", padding: "8px 12px", borderRadius: 10, fontSize: 12, color: "#DC2626", cursor: "pointer" }}>🗑️</button>
         </div>
       </div>
 
       <TodayBanner selected={selected} meta={meta} />
 
+      {/* Stats Cards */}
+      <div style={{ maxWidth: 1100, margin: "0 auto 24px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
+        <div style={{ ...card, padding: 14, textAlign: "center" }}>
+          <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 800, textTransform: "uppercase", marginBottom: 4 }}>Jornadas</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: stats.jorH > OBJETIVO_JORNADAS ? "#DC2626" : "#2563EB" }}>{stats.jorH.toFixed(1)}</div>
+          <div style={{ fontSize: 10, color: "#94A3B8" }}>Objetivo: {OBJETIVO_JORNADAS}</div>
+        </div>
+        <div style={{ ...card, padding: 14, textAlign: "center", background: "#F0FDF4" }}>
+          <div style={{ fontSize: 10, color: "#16A34A", fontWeight: 800, textTransform: "uppercase", marginBottom: 4 }}>Diferencia</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: "#16A34A" }}>{(stats.jorH - OBJETIVO_JORNADAS).toFixed(1)}</div>
+          <div style={{ fontSize: 10, color: "#16A34A" }}>{stats.jorH > OBJETIVO_JORNADAS ? "Exceso" : "Déficit"}</div>
+        </div>
+        <div style={{ ...card, padding: 14, textAlign: "center" }}>
+          <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 800, textTransform: "uppercase", marginBottom: 4 }}>Asuntos</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: "#7C3AED" }}>{stats.asH}h</div>
+          <div style={{ fontSize: 10, color: "#94A3B8" }}>Max: {ASUNTOS_TOTAL * 8}h</div>
+        </div>
+        <div style={{ ...card, padding: 14, textAlign: "center" }}>
+          <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 800, textTransform: "uppercase", marginBottom: 4 }}>Vacaciones</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: "#CA8A04" }}>{stats.vacD}</div>
+          <div style={{ fontSize: 10, color: "#94A3B8" }}>Días naturales</div>
+        </div>
+      </div>
+
+      {/* View Switcher */}
+      <div style={{ maxWidth: 1100, margin: "0 auto 20px", background: "#E2E8F0", padding: 4, borderRadius: 12, display: "flex", gap: 4 }}>
+        <button onClick={() => setView("annual")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: "none", background: view === "annual" ? "#fff" : "transparent", fontSize: 12, fontWeight: 700, color: view === "annual" ? "#1E293B" : "#64748B", cursor: "pointer" }}>Vista Anual</button>
+        <button onClick={() => setView("monthly")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: "none", background: view === "monthly" ? "#fff" : "transparent", fontSize: 12, fontWeight: 700, color: view === "monthly" ? "#1E293B" : "#64748B", cursor: "pointer" }}>Vista Mensual</button>
+        <button onClick={() => setView("summary")} style={{ flex: 1, padding: "8px", borderRadius: 8, border: "none", background: view === "summary" ? "#fff" : "transparent", fontSize: 12, fontWeight: 700, color: view === "summary" ? "#1E293B" : "#64748B", cursor: "pointer" }}>Resumen</button>
+      </div>
+
+      {/* Main Content Area */}
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        {view === "annual" ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 14 }}>
-            {MESES.map((mes, mIdx) => (
-              <div key={mes} style={{ ...card, padding: 12, cursor: "pointer" }} onClick={() => { setViewMonth(mIdx); setView("monthly"); }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, alignItems: "center" }}>
-                  <h3 style={{ fontSize: 15, fontWeight: 800, color: "#1E293B" }}>{mes}</h3>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", background: "#F1F5F9", padding: "2px 8px", borderRadius: 6 }}>{Math.round(stats.mensual[mIdx].jornada / 8)} jor.</div>
-                </div>
+        {view === "annual" && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+            {MESES.map((m, mi) => (
+              <div key={mi} style={{ ...card, padding: 12 }}>
+                <button onClick={() => { setViewMonth(mi); setView("monthly"); }} style={{ width: "100%", background: "none", border: "none", textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <span style={{ fontSize: 14, fontWeight: 900, color: "#1E293B" }}>{m}</span>
+                  <span style={{ fontSize: 11, color: "#2563EB", fontWeight: 700 }}>{stats.monthly[mi].j.toFixed(1)} jor.</span>
+                </button>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
-                  {DIAS_LABEL.map(l => <div key={l} style={{ fontSize: 8, textAlign: "center", fontWeight: 800, color: "#CBD5E1", marginBottom: 2 }}>{l}</div>)}
-                  {Array(getFirstDay(year, mIdx)).fill(null).map((_, i) => <div key={i} />)}
-                  {Array.from({ length: getDaysInMonth(year, mIdx) }, (_, i) => i + 1).map(dia => {
-                    const dk = toDateKey(year, mIdx, dia);
-                    return <DayCell key={dia} day={dia} dk={dk} dayData={selected[dk] || {}} dayMeta={meta[dk] || {}} isWeekend={new Date(year, mIdx, dia).getDay() % 6 === 0} isToday={dk === tKey} blink={blink} size="small" onClick={(e) => { e.stopPropagation(); setModal(dk); }} />;
+                  {DIAS_LABEL.map(l => <div key={l} style={{ fontSize: 9, fontWeight: 800, color: "#CBD5E1", textAlign: "center", marginBottom: 2 }}>{l}</div>)}
+                  {Array(getFirstDay(year, mi)).fill(0).map((_, i) => <div key={i} />)}
+                  {Array.from({ length: getDaysInMonth(year, mi) }, (_, i) => i + 1).map(d => {
+                    const dk = toDateKey(year, mi, d);
+                    return <DayCell key={dk} day={d} dk={dk} dayData={selected[dk] || {}} dayMeta={meta[dk] || {}} isWeekend={new Date(year, mi, d).getDay() % 6 === 0} isToday={dk === todayKey()} onClick={() => setModal({ dk, data: selected[dk] || {}, meta: meta[dk] || {} })} />;
                   })}
                 </div>
               </div>
             ))}
           </div>
-        ) : (
+        )}
+
+        {view === "monthly" && (
           <div style={{ ...card, padding: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
-              <button onClick={() => setView("annual")} style={{ background: "#F1F5F9", border: "none", padding: "8px 12px", borderRadius: 10, cursor: "pointer", fontWeight: 700, color: "#475569" }}>← Volver</button>
-              <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 10 }}>
-                <button onClick={() => setViewMonth(m => Math.max(0, m - 1))} style={cBtn("#2563EB", viewMonth > 0)}>‹</button>
-                <h2 style={{ fontSize: 20, fontWeight: 900, color: "#0F172A", width: 140, textAlign: "center" }}>{MESES[viewMonth]}</h2>
-                <button onClick={() => setViewMonth(m => Math.min(11, m + 1))} style={cBtn("#2563EB", viewMonth < 11)}>›</button>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 800 }}>JORNADAS MES</div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: "#2563EB" }}>{Math.round(stats.mensual[viewMonth].jornada / 8)}</div>
-              </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <button onClick={() => setViewMonth(m => Math.max(0, m - 1))} style={cBtn("#2563EB", viewMonth > 0)}>←</button>
+              <h2 style={{ fontSize: 20, fontWeight: 900 }}>{MESES[viewMonth]} {year}</h2>
+              <button onClick={() => setViewMonth(m => Math.min(11, m + 1))} style={cBtn("#2563EB", viewMonth < 11)}>→</button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 10 }}>
-              {DIAS_LABEL.map(l => <div key={l} style={{ fontSize: 11, textAlign: "center", fontWeight: 800, color: "#94A3B8", marginBottom: 5 }}>{l}</div>)}
-              {Array(getFirstDay(year, viewMonth)).fill(null).map((_, i) => <div key={i} />)}
-              {Array.from({ length: getDaysInMonth(year, viewMonth) }, (_, i) => i + 1).map(dia => {
-                const dk = toDateKey(year, viewMonth, dia);
-                return <DayCell key={dia} day={dia} dk={dk} dayData={selected[dk] || {}} dayMeta={meta[dk] || {}} isWeekend={new Date(year, viewMonth, dia).getDay() % 6 === 0} isToday={dk === tKey} blink={blink} size="large" onClick={() => setModal(dk)} />;
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}>
+              {DIAS_LABEL.map(l => <div key={l} style={{ fontSize: 12, fontWeight: 800, color: "#94A3B8", textAlign: "center", marginBottom: 10 }}>{l}</div>)}
+              {Array(getFirstDay(year, viewMonth)).fill(0).map((_, i) => <div key={i} />)}
+              {Array.from({ length: getDaysInMonth(year, viewMonth) }, (_, i) => i + 1).map(d => {
+                const dk = toDateKey(year, viewMonth, d);
+                return <DayCell key={dk} day={d} dk={dk} dayData={selected[dk] || {}} dayMeta={meta[dk] || {}} size="large" isWeekend={new Date(year, viewMonth, d).getDay() % 6 === 0} isToday={dk === todayKey()} onClick={() => setModal({ dk, data: selected[dk] || {}, meta: meta[dk] || {} })} />;
               })}
             </div>
           </div>
         )}
+
+        {view === "summary" && (
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(300px, 1fr))", gap:16 }}>
+            {TIPOS.filter(t=>t.id!=="libre").map(t => {
+              const dias = Object.keys(selected).filter(dk => (selected[dk][t.id] || 0) > 0).map(dk => ({ dk, horas: selected[dk][t.id] }));
+              if (dias.length === 0) return null;
+              return (
+                <div key={t.id} style={{ ...card, padding:20 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16 }}>
+                    <span style={{ fontSize:24 }}>{t.emoji}</span>
+                    <div>
+                      <div style={{ fontSize:16, fontWeight:900 }}>{t.label}</div>
+                      <div style={{ fontSize:12, color:t.text, fontWeight:700 }}>{dias.length} registros</div>
+                    </div>
+                  </div>
+                  <div style={{ background:t.bg, borderRadius:10, padding:"10px 12px", border:`1px solid ${t.border}` }}>
+                    <div style={{ fontSize:10, color:t.text, letterSpacing:2, textTransform:"uppercase", marginBottom:7, fontWeight:700 }}>Días registrados</div>
+                    <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
+                      {dias.sort((a,b)=>a.dk.localeCompare(b.dk)).map(({dk,horas:h})=> (
+                        <span key={dk} onClick={()=>{const {m}=parseKey(dk);setViewMonth(m);setView("monthly");}} style={{ background:"#fff", border:`1px solid ${t.border}`, borderRadius:7, padding:"3px 10px", fontSize:11, color:t.text, fontWeight:700, cursor:"pointer" }}>
+                          {formatDate(dk)} · {h}h{meta[dk]?.horario?.[t.id]?.from ? ` · ${meta[dk].horario[t.id].from}-${meta[dk].horario[t.id].to||"?"}` : ""}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {modal && (
-        <DayModal
-          dateKey={modal}
-          dayData={selected[modal] || {}}
-          dayMeta={meta[modal] || {}}
-          onClose={() => setModal(null)}
-          onSave={(h, m) => handleSaveDay(modal, h, m)}
-          asuntosUsados={stats.global.asuntos}
-          excesoBruto={(stats.global.jornada / 8) - OBJETIVO_JORNADAS}
-          sindicalMesUsado={stats.mensual[parseKey(modal).m].sindical}
-        />
-      )}
-
-      {showVac && <VacacionesModal year={year} selected={selected} onClose={() => setShowVac(false)} onApply={applyVacations} />}
-      {showPat && <PatronModal year={year} onClose={() => setShowPat(false)} onApply={(cycle, sm, sd) => { const { newSelected, newMeta } = applyPattern(year, sm, sd, cycle); setSelected(prev => ({ ...prev, ...newSelected })); setMeta(prev => ({ ...prev, ...newMeta })); setShowPat(false); }} />}
-
-      <footer style={{ maxWidth: 1100, margin: "30px auto 0", textAlign: "center" }}>
-        <button
-          onClick={() => { if (confirm("¿Estás seguro de que quieres borrar TODOS los datos del año?")) { setSelected({}); setMeta({}); localStorage.clear(); } }}
-          style={{ background: "none", border: "1px solid #FECACA", color: "#EF4444", padding: "10px 20px", borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
-        >
-          🗑️ Borrar todos los datos del año
-        </button>
-      </footer>
+      {/* Modals */}
+      {modal && <DayModal dateKey={modal.dk} dayData={modal.data} dayMeta={modal.meta} asuntosUsados={stats.asH} sindicalMesUsado={stats.monthly[parseKey(modal.dk).m].s} patronDia={(selected[modal.dk]?.libre || 0) > 0 ? "libre" : "jornada"} onClose={() => setModal(null)} onSave={handleSaveDay} />}
+      {patronModal && <PatronModal year={year} onClose={() => setPatronModal(false)} onApply={handleApplyPattern} />}
+      {vacationModal && <VacacionesModal year={year} selected={selected} onClose={() => setVacationModal(false)} onApply={handleApplyVacations} />}
+      
+      <div style={{ textAlign: "center", marginTop: 12, color: "#CBD5E1", fontSize: 10 }}>
+        Toca el mes → vista mensual · Toca un día → vista semanal · El punto azul 🔵 indica hoy
+      </div>
     </div>
   );
 }
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<App />);
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<Cuadrante />);
   </script>
 </body>
 </html>
