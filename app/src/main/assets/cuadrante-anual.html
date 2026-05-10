@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cuadrante v2026</title>
+  <title>Cuadrante Pro 2026</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -14,10 +14,11 @@
     .grid-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
     button { cursor: pointer; border: none; transition: 0.2s; }
     .modal { position: fixed; inset: 0; background: rgba(15,23,42,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 15px; }
-    input { border-radius: 8px; border: 1px solid #CBD5E1; padding: 8px; outline: none; }
+    input, textarea { border-radius: 8px; border: 1px solid #CBD5E1; padding: 8px; outline: none; font-family: inherit; }
     .btn-primary { background: #2563EB; color: white; padding: 10px; border-radius: 8px; font-weight: bold; width: 100%; }
     .btn-sec { background: #F1F5F9; color: #64748B; padding: 10px; border-radius: 8px; font-weight: bold; width: 100%; }
     .year-display { background: #2563EB; color: white; padding: 5px 15px; border-radius: 10px; font-weight: bold; font-size: 1.2rem; }
+    .dot-nota { width: 5px; height: 5px; background: #64748B; border-radius: 50%; margin-top: 2px; }
   </style>
 </head>
 <body>
@@ -28,7 +29,7 @@
     const TIPOS = [
       { id: "jornada", label: "Jornada", emoji: "💼", color: "#DC2626", bg: "#FEF2F2", text: "#991B1B", border: "#FECACA" },
       { id: "vacaciones", label: "Vacaciones", emoji: "🏖️", color: "#CA8A04", bg: "#FEFCE8", text: "#713F12", border: "#FDE047" },
-      { id: "asuntos", label: "Asuntos propios", emoji: "📋", color: "#7C3AED", bg: "#F5F3FF", text: "#4C1D95", border: "#DDD6FE" },
+      { id: "asuntos", label: "Asuntos Propios", emoji: "📋", color: "#7C3AED", bg: "#F5F3FF", text: "#4C1D95", border: "#DDD6FE" },
       { id: "excesos", label: "Excesos", emoji: "⏱️", color: "#0891B2", bg: "#ECFEFF", text: "#164E63", border: "#A5F3FC" },
       { id: "libre", label: "Libre", emoji: "☕", color: "#16A34A", bg: "#F0FDF4", text: "#14532D", border: "#86EFAC" },
       { id: "guardia", label: "Guardia", emoji: "🛡️", color: "#D97706", bg: "#FFFBEB", text: "#92400E", border: "#FDE68A" }
@@ -61,12 +62,12 @@
       const hoyKey = toDateKey(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
       const diasSemana = getWeekDays(hoy);
       return (
-        <div style={{ background: "linear-gradient(135deg, #1E293B 0%, #334155 100%)", padding: "15px", borderRadius: "15px", marginBottom: "20px", color: "white", border: "1px solid rgba(255,255,255,0.1)" }}>
+        <div style={{ background: "linear-gradient(135deg, #1E293B 0%, #334155 100%)", padding: "15px", borderRadius: "15px", marginBottom: "20px", color: "white" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "5px" }}>
             {diasSemana.map((dk) => {
               const isHoy = dk === hoyKey;
               const data = selected[dk] || {};
-              const t = TIPOS.find(x => x.id === Object.keys(data).find(k => data[k] > 0));
+              const t = TIPOS.find(x => data[x.id] > 0);
               return (
                 <div key={dk} style={{ textAlign: "center", padding: "8px 2px", borderRadius: "10px", background: isHoy ? (blink ? "#2563EB" : "rgba(255,255,255,0.1)") : "rgba(255,255,255,0.05)", border: isHoy ? "1px solid white" : "none" }}>
                   <div style={{ fontSize: "10px", opacity: 0.8 }}>{DIAS_L[new Date(dk).getDay() === 0 ? 6 : new Date(dk).getDay()-1]}</div>
@@ -81,13 +82,12 @@
     }
 
     function App() {
-      // FORZAMOS 2026 POR DEFECTO
       const [year, setYear] = useState(2026);
-      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_v2026") || "{}"));
+      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_pro_v1") || "{}"));
       const [edit, setEdit] = useState(null);
       const [showPatron, setShowPatron] = useState(false);
 
-      useEffect(() => { localStorage.setItem("cuad_v2026", JSON.stringify(selected)); }, [selected]);
+      useEffect(() => { localStorage.setItem("cuad_pro_v1", JSON.stringify(selected)); }, [selected]);
 
       const stats = useMemo(() => {
         let j=0, v=0, e=0, g=0, a=0;
@@ -101,15 +101,17 @@
 
       return (
         <div style={{ maxWidth: "1200px", margin: "auto" }}>
-          <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", gap: "10px" }}>
+          <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", gap: "10px", flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <button onClick={() => setYear(y => y - 1)} style={{ padding: "10px" }}>◀</button>
               <div className="year-display">{year}</div>
               <button onClick={() => setYear(y => y + 1)} style={{ padding: "10px" }}>▶</button>
             </div>
-            <div style={{ display: "flex", gap: "5px" }}>
-               <div className="card" style={{ padding: "5px 8px", fontSize: "12px" }}>💼 <b>{stats.j.toFixed(1)}</b></div>
-               <div className="card" style={{ padding: "5px 8px", fontSize: "12px" }}>⏱️ <b>{stats.e}h</b></div>
+            <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
+               <div className="card" style={{ padding: "5px 8px", fontSize: "11px", borderLeft: "3px solid #DC2626" }}>💼 <b>{stats.j.toFixed(1)}</b></div>
+               <div className="card" style={{ padding: "5px 8px", fontSize: "11px", borderLeft: "3px solid #0891B2" }}>⏱️ <b>{stats.e}h</b></div>
+               <div className="card" style={{ padding: "5px 8px", fontSize: "11px", borderLeft: "3px solid #7C3AED" }}>📋 <b>{stats.a}</b></div>
+               <div className="card" style={{ padding: "5px 8px", fontSize: "11px", borderLeft: "3px solid #D97706" }}>🛡️ <b>{stats.g}</b></div>
             </div>
           </header>
 
@@ -130,10 +132,20 @@
                     {Array.from({ length: totalDias }, (_, i) => i + 1).map(d => {
                       const dk = toDateKey(year, mi, d);
                       const data = selected[dk] || {};
-                      const t = TIPOS.find(x => x.id === Object.keys(data).find(k => data[k] > 0));
+                      // CAMBIO 4: Prioridad de color en el calendario
+                      const priority = ["vacaciones", "asuntos", "guardia", "jornada", "libre"];
+                      const tipoId = priority.find(p => data[p] > 0);
+                      const t = TIPOS.find(x => x.id === tipoId);
+                      
                       return (
-                        <button key={dk} onClick={() => setEdit({ dk, data })} style={{ aspectRatio: "1", borderRadius: "8px", background: t ? t.bg : "#fff", border: `1px solid ${t ? t.border : "#E2E8F0"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <span style={{ fontSize: "11px", fontWeight: t ? "bold" : "normal" }}>{d}</span>
+                        <button key={dk} onClick={() => setEdit({ dk, data })} style={{ 
+                          aspectRatio: "1", borderRadius: "8px", 
+                          background: t ? t.bg : "#fff", 
+                          border: `1px solid ${t ? t.border : "#E2E8F0"}`, 
+                          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative" 
+                        }}>
+                          <span style={{ fontSize: "11px", fontWeight: t ? "bold" : "normal", color: t ? t.text : "#1E293B" }}>{d}</span>
+                          {data.nota && <div className="dot-nota" title="Tiene una nota"></div>}
                         </button>
                       );
                     })}
@@ -157,12 +169,20 @@
                   </div>
                 </div>
 
-                {TIPOS.map(t => (
-                  <div key={t.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-                    <span>{t.emoji} {t.label}</span>
-                    <input type="number" value={edit.data[t.id] || 0} onChange={e => setEdit({...edit, data: {...edit.data, [t.id]: parseInt(e.target.value) || 0 }})} style={{ width: "60px" }} />
-                  </div>
-                ))}
+                <div style={{ maxHeight: "200px", overflowY: "auto", paddingRight: "5px" }}>
+                  {TIPOS.map(t => (
+                    <div key={t.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", alignItems: "center" }}>
+                      <span style={{ fontSize: "13px" }}>{t.emoji} {t.label}</span>
+                      <input type="number" value={edit.data[t.id] || 0} onChange={e => setEdit({...edit, data: {...edit.data, [t.id]: parseInt(e.target.value) || 0 }})} style={{ width: "60px" }} />
+                    </div>
+                  ))}
+                </div>
+
+                {/* CAMBIO 2: NOTAS */}
+                <div style={{ marginTop: "10px" }}>
+                  <label style={{ fontSize: "11px", fontWeight: "bold", color: "#64748B" }}>📝 NOTA O RECORDATORIO</label>
+                  <textarea value={edit.data.nota || ""} onChange={e => setEdit({...edit, data: {...edit.data, nota: e.target.value}})} style={{ width: "100%", height: "50px", marginTop: "5px", fontSize: "12px" }} placeholder="Ej: Cambio de turno..." />
+                </div>
 
                 <div style={{ marginTop: "15px", display: "flex", gap: "10px" }}>
                   <button className="btn-sec" onClick={() => setEdit(null)}>Cerrar</button>
@@ -193,6 +213,19 @@
               </div>
             </div>
           )}
+
+          {/* CAMBIO 1: BACKUP */}
+          <footer style={{ marginTop: "40px", paddingBottom: "20px", display: "flex", gap: "10px" }}>
+            <button onClick={() => {
+              const data = JSON.stringify(selected);
+              navigator.clipboard.writeText(data);
+              alert("✅ Datos copiados al portapapeles.");
+            }} style={{ flex: 1, padding: "10px", fontSize: "10px", borderRadius: "8px", background: "#E2E8F0" }}>📤 EXPORTAR</button>
+            <button onClick={() => {
+              const backup = prompt("Pega aquí tus datos:");
+              if(backup) { setSelected(JSON.parse(backup)); window.location.reload(); }
+            }} style={{ flex: 1, padding: "10px", fontSize: "10px", borderRadius: "8px", background: "#E2E8F0" }}>📥 IMPORTAR</button>
+          </footer>
         </div>
       );
     }
