@@ -9,10 +9,11 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: "Segoe UI", system-ui, sans-serif; background: #f1f5f9; }
+    body { font-family: "Segoe UI", system-ui, sans-serif; background: #f8fafc; color: #1e293b; }
     input[type=number]::-webkit-inner-spin-button,
     input[type=number]::-webkit-outer-spin-button { opacity: 1; }
     select option { background: #fff; color: #1E293B; }
+    .scroll-hide::-webkit-scrollbar { display: none; }
   </style>
 </head>
 <body>
@@ -35,75 +36,103 @@
     ];
 
     const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    const MESES_CORTO = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
     const DIAS_LABEL = ["L","M","X","J","V","S","D"];
+    const DIAS_FULL = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"];
+    const JORNADAS_POR_DIA = 3;
+    const OBJETIVO_JORNADAS = 192;
+    const ASUNTOS_TOTAL = 8;
+
     function getDaysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
     function getFirstDay(y, m) { const d = new Date(y, m, 1).getDay(); return d === 0 ? 6 : d - 1; }
+    function getTotalHours(d) { return Object.values(d || {}).reduce((a, b) => a + b, 0); }
     function toDateKey(y, m, d) { return `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`; }
+    function parseKey(dk) { const [y,m,d] = dk.split("-").map(Number); return { y, m: m-1, d }; }
+    function getWeekStart(date) { const d = new Date(date); const dow = d.getDay() === 0 ? 6 : d.getDay() - 1; d.setDate(d.getDate() - dow); return d; }
 
+    // --- COMPONENTES AUXILIARES ---
+    const card = { background: "#FFFFFF", borderRadius: 16, border: "1px solid #E2E8F0", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" };
+    const cBtn = (color, active) => ({ width: 28, height: 28, borderRadius: "50%", border: `1.5px solid ${active ? color : "#E2E8F0"}`, background: active ? `${color}18` : "#F8FAFC", color: active ? color : "#CBD5E1", cursor: active ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", border: "none", fontSize: "18px" });
+
+    // --- APP PRINCIPAL ---
     function App() {
       const year = 2025;
 
-      // --- AQUÍ ESTÁ LA MEMORIA ---
+      // CARGA DE MEMORIA (LocalStorage)
       const [selected, setSelected] = useState(() => {
-        const saved = localStorage.getItem("datos_cuadrante");
+        const saved = localStorage.getItem("cuadrante_data_v1");
         return saved ? JSON.parse(saved) : {};
       });
-
       const [meta, setMeta] = useState(() => {
-        const saved = localStorage.getItem("meta_cuadrante");
+        const saved = localStorage.getItem("cuadrante_meta_v1");
         return saved ? JSON.parse(saved) : {};
       });
 
-      // Guardado automático cada vez que cambia algo
+      // GUARDADO AUTOMÁTICO
       useEffect(() => {
-        localStorage.setItem("datos_cuadrante", JSON.stringify(selected));
-        localStorage.setItem("meta_cuadrante", JSON.stringify(meta));
+        localStorage.setItem("cuadrante_data_v1", JSON.stringify(selected));
+        localStorage.setItem("cuadrante_meta_v1", JSON.stringify(meta));
       }, [selected, meta]);
 
-      // Funciones básicas para que la app no rompa
-      const handleSaveDay = (dk, hours, dMeta) => {
-        setSelected(prev => ({ ...prev, [dk]: hours }));
-        setMeta(prev => ({ ...prev, [dk]: dMeta }));
-      };
+      // ESTADOS DE UI
+      const [view, setView] = useState("annual");
+      const [modalDate, setModalDate] = useState(null);
 
-      const setFullPattern = (newSelected, newMeta) => {
-        setSelected(newSelected);
-        setMeta(newMeta);
-      };
+      // CÁLCULOS GLOBALES
+      const stats = useMemo(() => {
+        let hTotal = 0, asTotal = 0;
+        Object.keys(selected).forEach(k => {
+          hTotal += selected[k].jornada || 0;
+          asTotal += selected[k].asuntos || 0;
+        });
+        return { jornadas: Math.round(hTotal / 8), asuntos: Math.round(asTotal / 8) };
+      }, [selected]);
 
       return (
-        <div style={{ padding: "20px", maxWidth: "1200px", margin: "0 auto" }}>
-          <header style={{ marginBottom: "20px", textAlign: "center" }}>
-            <h1 style={{ color: "#1e293b" }}>📅 Mi Cuadrante {year}</h1>
-            <p style={{ color: "#64748b", fontSize: "14px" }}>Los cambios se guardan automáticamente</p>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "16px" }}>
+          <header style={{ marginBottom: 20, textAlign: "center" }}>
+            <h1 style={{ fontSize: 24, fontWeight: 900 }}>📅 Mi Cuadrante {year}</h1>
+            <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 10 }}>
+              <div style={{ ...card, padding: "8px 16px" }}>
+                <div style={{ fontSize: 10, color: "#64748b" }}>JORNADAS</div>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>{stats.jornadas} / {OBJETIVO_JORNADAS}</div>
+              </div>
+              <div style={{ ...card, padding: "8px 16px" }}>
+                <div style={{ fontSize: 10, color: "#64748b" }}>ASUNTOS</div>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>{stats.asuntos} / {ASUNTOS_TOTAL}</div>
+              </div>
+            </div>
           </header>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "20px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 20 }}>
             {MESES.map((mes, mIdx) => (
-              <div key={mes} style={{ background: "#fff", padding: "15px", borderRadius: "12px", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}>
-                <h3 style={{ marginBottom: "10px", color: "#334155" }}>{mes}</h3>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "5px", fontSize: "12px", textAlign: "center" }}>
-                  {DIAS_LABEL.map(d => <div key={d} style={{ fontWeight: "bold", color: "#94a3b8" }}>{d}</div>)}
+              <div key={mes} style={{ ...card, padding: 16 }}>
+                <h3 style={{ marginBottom: 12, fontSize: 16 }}>{mes}</h3>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
+                  {DIAS_LABEL.map(d => <div key={d} style={{ fontSize: 10, textAlign: "center", color: "#94a3b8", fontWeight: 800 }}>{d}</div>)}
                   {Array(getFirstDay(year, mIdx)).fill(null).map((_, i) => <div key={i} />)}
                   {Array.from({ length: getDaysInMonth(year, mIdx) }, (_, i) => i + 1).map(dia => {
                     const dk = toDateKey(year, mIdx, dia);
                     const dayData = selected[dk] || {};
-                    const hasData = Object.keys(dayData).length > 0;
+                    const hasWork = (dayData.jornada || 0) > 0;
                     return (
-                      <div key={dia} style={{ 
-                        padding: "8px 0", 
-                        borderRadius: "6px", 
-                        background: hasData ? "#f8fafc" : "transparent",
-                        border: hasData ? "1px solid #e2e8f0" : "1px solid #f1f5f9",
-                        fontSize: "11px"
-                      }}>
+                      <button 
+                        key={dia}
+                        onClick={() => {
+                          const current = selected[dk]?.jornada || 0;
+                          const next = current === 24 ? 0 : 24;
+                          setSelected(prev => ({ ...prev, [dk]: { ...prev[dk], jornada: next } }));
+                        }}
+                        style={{ 
+                          aspectRatio: "1", border: "1px solid #e2e8f0", borderRadius: 8,
+                          background: hasWork ? "#fee2e2" : "#fff",
+                          color: hasWork ? "#991b1b" : "#475569",
+                          fontSize: 12, fontWeight: hasWork ? 800 : 400, cursor: "pointer"
+                        }}
+                      >
                         {dia}
-                        {Object.keys(dayData).map(tipoId => (
-                          <div key={tipoId} style={{ fontSize: "8px" }}>
-                            {TIPOS.find(t => t.id === tipoId)?.emoji}
-                          </div>
-                        ))}
-                      </div>
+                        {hasWork && <div style={{ fontSize: 8 }}>💼</div>}
+                      </button>
                     );
                   })}
                 </div>
@@ -111,14 +140,14 @@
             ))}
           </div>
 
-          <div style={{ marginTop: "30px", padding: "20px", background: "#fff", borderRadius: "12px", textAlign: "center" }}>
-             <button 
-                onClick={() => { if(confirm("¿Borrar todo?")) { setSelected({}); setMeta({}); localStorage.clear(); }}}
-                style={{ background: "#fee2e2", color: "#dc2626", border: "none", padding: "10px 20px", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}
-             >
-               🗑️ Resetear todo el año
-             </button>
-          </div>
+          <footer style={{ marginTop: 40, textAlign: "center", padding: 20, borderTop: "1px solid #e2e8f0" }}>
+            <button 
+              onClick={() => { if(confirm("¿Borrar todos los datos?")) { setSelected({}); localStorage.clear(); }}}
+              style={{ background: "#fff", border: "1px solid #fecaca", color: "#dc2626", padding: "8px 16px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}
+            >
+              🗑️ Limpiar datos
+            </button>
+          </footer>
         </div>
       );
     }
