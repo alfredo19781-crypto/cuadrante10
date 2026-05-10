@@ -32,6 +32,70 @@
     const DIAS_L = ["L","M","X","J","V","S","D"];
 
     const toDateKey = (y, m, d) => `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+function getWeekStart(date) {
+  const d = new Date(date);
+  const dow = d.getDay() === 0 ? 6 : d.getDay() - 1;
+  d.setDate(d.getDate() - dow);
+  return d;
+}
+
+function applyPattern(year, sm, sd, cycle) {
+  const res = {}, resMeta = {};
+  let cur = new Date(year, sm, sd), pos = 0;
+  const end = new Date(year, 11, 31);
+  while (cur <= end) {
+    const dk = toDateKey(year, cur.getMonth(), cur.getDate());
+    if (cycle[pos % cycle.length] === "jornada") { 
+        res[dk] = { jornada: 24 }; 
+        resMeta[dk] = { jornada_completa: true }; 
+    } else { 
+        res[dk] = { libre: 24 }; 
+        resMeta[dk] = {}; 
+    }
+    pos++; cur.setDate(cur.getDate() + 1);
+  }
+  return { newSelected: res, newMeta: resMeta };
+}
+function TodayBanner({ selected }) {
+  const [blink, setBlink] = useState(true);
+  useEffect(() => {
+    const t = setInterval(() => setBlink(b => !b), 700);
+    return () => clearInterval(t);
+  }, []);
+
+  const today = new Date();
+  const todayDk = toDateKey(today.getFullYear(), today.getMonth(), today.getDate());
+  const weekStart = getWeekStart(today);
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart); d.setDate(d.getDate() + i);
+    return { d, dk: toDateKey(d.getFullYear(), d.getMonth(), d.getDate()), dow: i };
+  });
+
+  return (
+    <div style={{ background: "linear-gradient(135deg,#EFF6FF,#F5F3FF)", padding: "15px", borderRadius: "16px", marginBottom: "20px", border: "1px solid #E2E8F0" }}>
+      <div style={{ fontSize: "11px", fontWeight: "800", color: "#2563EB", marginBottom: "10px", textTransform: "uppercase" }}>📅 Semana Actual</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "8px" }}>
+        {weekDays.map(({ d, dk, dow }) => {
+          const isToday = dk === todayDk;
+          const dayData = selected[dk] || {};
+          const hasJornada = (dayData.jornada || 0) > 0;
+          return (
+            <div key={dk} style={{ 
+              padding: "8px", borderRadius: "12px", textAlign: "center",
+              background: isToday ? (blink ? "#2563EB" : "#fff") : (hasJornada ? "#FEF2F2" : "#fff"),
+              color: isToday && blink ? "#fff" : "#1E293B",
+              border: isToday ? "2px solid #2563EB" : "1px solid #E2E8F0"
+            }}>
+              <div style={{ fontSize: "10px", opacity: 0.8 }}>{DIAS_L[dow]}</div>
+              <div style={{ fontSize: "16px", fontWeight: "900" }}>{d.getDate()}</div>
+              {hasJornada && <div style={{ fontSize: "10px" }}>💼</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
     function App() {
       const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_v6") || "{}"));
@@ -88,6 +152,13 @@
               <div className="card" style={{ padding: "8px 15px" }}>⏱️ <b>{stats.e}h</b> exc.</div>
             </div>
           </header>
+<TodayBanner selected={selected} />
+<button onClick={() => {
+    const { newSelected } = applyPattern(2025, 0, 2, ["jornada", "libre", "libre", "libre", "libre"]);
+    setSelected(prev => ({ ...prev, ...newSelected }));
+}} style={{ background: "#7C3AED", color: "#fff", padding: "10px", borderRadius: "8px", marginBottom: "15px", width: "100%", fontWeight: "bold" }}>
+    🔄 Aplicar Patrón (1 Trabajo / 4 Libres)
+</button>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
             {MESES.map((_, i) => renderMes(i))}
