@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mi Cuadrante Dinámico</title>
+  <title>Cuadrante v2026</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -13,11 +13,11 @@
     .card { background: #fff; border-radius: 12px; border: 1px solid #E2E8F0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 12px; }
     .grid-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
     button { cursor: pointer; border: none; transition: 0.2s; }
-    .modal { position: fixed; inset: 0; background: rgba(15,23,42,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 15px; }
+    .modal { position: fixed; inset: 0; background: rgba(15,23,42,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 15px; }
     input { border-radius: 8px; border: 1px solid #CBD5E1; padding: 8px; outline: none; }
     .btn-primary { background: #2563EB; color: white; padding: 10px; border-radius: 8px; font-weight: bold; width: 100%; }
     .btn-sec { background: #F1F5F9; color: #64748B; padding: 10px; border-radius: 8px; font-weight: bold; width: 100%; }
-    .year-nav { display: flex; align-items: center; gap: 15px; background: white; padding: 5px 15px; border-radius: 20px; border: 1px solid #E2E8F0; }
+    .year-display { background: #2563EB; color: white; padding: 5px 15px; border-radius: 10px; font-weight: bold; font-size: 1.2rem; }
   </style>
 </head>
 <body>
@@ -61,16 +61,16 @@
       const hoyKey = toDateKey(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
       const diasSemana = getWeekDays(hoy);
       return (
-        <div style={{ background: "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)", padding: "15px", borderRadius: "15px", marginBottom: "20px", color: "white" }}>
+        <div style={{ background: "linear-gradient(135deg, #1E293B 0%, #334155 100%)", padding: "15px", borderRadius: "15px", marginBottom: "20px", color: "white", border: "1px solid rgba(255,255,255,0.1)" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "5px" }}>
             {diasSemana.map((dk) => {
               const isHoy = dk === hoyKey;
               const data = selected[dk] || {};
               const t = TIPOS.find(x => x.id === Object.keys(data).find(k => data[k] > 0));
               return (
-                <div key={dk} style={{ textAlign: "center", padding: "8px 2px", borderRadius: "10px", background: isHoy ? (blink ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.4)") : "rgba(255,255,255,0.15)", color: isHoy && blink ? "#4338ca" : "white" }}>
-                  <div style={{ fontSize: "10px", fontWeight: "bold" }}>{DIAS_L[new Date(dk).getDay() === 0 ? 6 : new Date(dk).getDay()-1]}</div>
-                  <div style={{ fontSize: "14px", fontWeight: "900" }}>{dk.split("-")[2]}</div>
+                <div key={dk} style={{ textAlign: "center", padding: "8px 2px", borderRadius: "10px", background: isHoy ? (blink ? "#2563EB" : "rgba(255,255,255,0.1)") : "rgba(255,255,255,0.05)", border: isHoy ? "1px solid white" : "none" }}>
+                  <div style={{ fontSize: "10px", opacity: 0.8 }}>{DIAS_L[new Date(dk).getDay() === 0 ? 6 : new Date(dk).getDay()-1]}</div>
+                  <div style={{ fontSize: "14px", fontWeight: "bold" }}>{dk.split("-")[2]}</div>
                   <div style={{ fontSize: "10px" }}>{t ? t.emoji : "·"}</div>
                 </div>
               );
@@ -81,12 +81,13 @@
     }
 
     function App() {
-      const [year, setYear] = useState(new Date().getFullYear());
-      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_vFinal") || "{}"));
+      // FORZAMOS 2026 POR DEFECTO
+      const [year, setYear] = useState(2026);
+      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_v2026") || "{}"));
       const [edit, setEdit] = useState(null);
       const [showPatron, setShowPatron] = useState(false);
 
-      useEffect(() => { localStorage.setItem("cuad_vFinal", JSON.stringify(selected)); }, [selected]);
+      useEffect(() => { localStorage.setItem("cuad_v2026", JSON.stringify(selected)); }, [selected]);
 
       const stats = useMemo(() => {
         let j=0, v=0, e=0, g=0, a=0;
@@ -100,22 +101,21 @@
 
       return (
         <div style={{ maxWidth: "1200px", margin: "auto" }}>
-          <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", flexWrap: "wrap", gap: "10px" }}>
-            <div className="year-nav">
-              <button onClick={() => setYear(y => y - 1)} style={{ background: "none", fontSize: "18px" }}>◀</button>
-              <h2 style={{ minWidth: "80px", textAlign: "center" }}>{year}</h2>
-              <button onClick={() => setYear(y => y + 1)} style={{ background: "none", fontSize: "18px" }}>▶</button>
+          <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <button onClick={() => setYear(y => y - 1)} style={{ padding: "10px" }}>◀</button>
+              <div className="year-display">{year}</div>
+              <button onClick={() => setYear(y => y + 1)} style={{ padding: "10px" }}>▶</button>
             </div>
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              <div className="card" style={{ padding: "5px 10px", fontSize: "12px", borderLeft: "3px solid red" }}>💼 <b>{stats.j.toFixed(1)}</b></div>
-              <div className="card" style={{ padding: "5px 10px", fontSize: "12px", borderLeft: "3px solid cyan" }}>⏱️ <b>{stats.e}h</b></div>
-              <div className="card" style={{ padding: "5px 10px", fontSize: "12px", borderLeft: "3px solid orange" }}>🛡️ <b>{stats.g}</b></div>
+            <div style={{ display: "flex", gap: "5px" }}>
+               <div className="card" style={{ padding: "5px 8px", fontSize: "12px" }}>💼 <b>{stats.j.toFixed(1)}</b></div>
+               <div className="card" style={{ padding: "5px 8px", fontSize: "12px" }}>⏱️ <b>{stats.e}h</b></div>
             </div>
           </header>
 
           <BannerSemanal selected={selected} />
 
-          <button onClick={() => setShowPatron(true)} style={{ width: "100%", background: "#7C3AED", color: "#fff", padding: "12px", borderRadius: "10px", marginBottom: "20px", fontWeight: "bold" }}>🔄 Configurar Patrón en {year}</button>
+          <button onClick={() => setShowPatron(true)} style={{ width: "100%", background: "#0F172A", color: "#fff", padding: "12px", borderRadius: "10px", marginBottom: "20px", fontWeight: "bold" }}>🔄 Configurar Turnos {year}</button>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "15px" }}>
             {MESES.map((nombre, mi) => {
@@ -146,27 +146,25 @@
           {edit && (
             <div className="modal" onClick={() => setEdit(null)}>
               <div className="card" style={{ width: "320px" }} onClick={e => e.stopPropagation()}>
-                <h3 style={{ marginBottom: "15px" }}>Día: {edit.dk}</h3>
+                <h3 style={{ marginBottom: "15px" }}>Edición: {edit.dk}</h3>
                 
                 <div style={{ background: "#F8FAFC", padding: "12px", borderRadius: "10px", marginBottom: "15px", border: "1px solid #E2E8F0" }}>
                   <div style={{ fontSize: "11px", fontWeight: "bold", color: "#64748B", marginBottom: "8px", textAlign: "center" }}>⌚ HORARIO</div>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <input type="time" value={edit.data.inicio || "08:00"} onChange={e => setEdit({...edit, data: {...edit.data, inicio: e.target.value}})} style={{ width: "100%", padding: "5px", borderRadius: "5px", border: "1px solid #CBD5E1" }} />
+                    <input type="time" value={edit.data.inicio || "08:00"} onChange={e => setEdit({...edit, data: {...edit.data, inicio: e.target.value}})} style={{ width: "100%" }} />
                     <span>a</span>
-                    <input type="time" value={edit.data.fin || "15:00"} onChange={e => setEdit({...edit, data: {...edit.data, fin: e.target.value}})} style={{ width: "100%", padding: "5px", borderRadius: "5px", border: "1px solid #CBD5E1" }} />
+                    <input type="time" value={edit.data.fin || "15:00"} onChange={e => setEdit({...edit, data: {...edit.data, fin: e.target.value}})} style={{ width: "100%" }} />
                   </div>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  {TIPOS.map(t => (
-                    <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: "14px" }}>{t.emoji} {t.label}</span>
-                      <input type="number" value={edit.data[t.id] || 0} onChange={e => setEdit({...edit, data: {...edit.data, [t.id]: parseInt(e.target.value) || 0 }})} style={{ width: "50px" }} />
-                    </div>
-                  ))}
-                </div>
+                {TIPOS.map(t => (
+                  <div key={t.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                    <span>{t.emoji} {t.label}</span>
+                    <input type="number" value={edit.data[t.id] || 0} onChange={e => setEdit({...edit, data: {...edit.data, [t.id]: parseInt(e.target.value) || 0 }})} style={{ width: "60px" }} />
+                  </div>
+                ))}
 
-                <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
+                <div style={{ marginTop: "15px", display: "flex", gap: "10px" }}>
                   <button className="btn-sec" onClick={() => setEdit(null)}>Cerrar</button>
                   <button className="btn-primary" onClick={() => { setSelected({...selected, [edit.dk]: edit.data}); setEdit(null); }}>Guardar</button>
                 </div>
@@ -177,32 +175,28 @@
           {showPatron && (
             <div className="modal" onClick={() => setShowPatron(false)}>
               <div className="card" style={{ width: "320px" }} onClick={e => e.stopPropagation()}>
-                <h3>⚙️ Configurar Patrón en {year}</h3>
-                <p style={{ fontSize: "12px", margin: "10px 0", color: "#64748B" }}>Se aplicará 1 día trabajado / 4 libres en el año {year} actual.</p>
-                <div style={{ marginBottom: "15px" }}>
-                   <label style={{ fontSize: "11px" }}>Fecha Inicio:</label>
-                   <input type="date" id="startPatron" defaultValue={`${year}-01-02`} style={{ width: "100%", marginTop: "5px" }} />
+                <h3>⚙️ Patrón en {year}</h3>
+                <div style={{ margin: "15px 0" }}>
+                   <label style={{ fontSize: "11px" }}>Día de inicio (Jornada):</label>
+                   <input type="date" id="startP" defaultValue={`${year}-01-02`} style={{ width: "100%" }} />
                 </div>
                 <button onClick={() => {
-                  const startVal = document.getElementById("startPatron").value;
-                  let cur = new Date(startVal);
+                  const val = document.getElementById("startP").value;
+                  let cur = new Date(val);
                   let newS = {...selected};
                   while(cur.getFullYear() === year) {
-                    const dk = toDateKey(year, cur.getMonth(), cur.getDate());
-                    newS[dk] = { jornada: 24 }; 
+                    newS[toDateKey(year, cur.getMonth(), cur.getDate())] = { jornada: 24 }; 
                     cur.setDate(cur.getDate() + 5); 
                   }
                   setSelected(newS); setShowPatron(false);
-                }} style={{ width: "100%", background: "#7C3AED", color: "#fff", padding: "10px", borderRadius: "8px", fontWeight: "bold" }}>Aplicar Ciclo 1/4</button>
-                <button onClick={() => setShowPatron(false)} style={{ width: "100%", marginTop: "10px", color: "#64748B" }}>Cancelar</button>
+                }} className="btn-primary">Aplicar Ciclo 1/4</button>
               </div>
             </div>
           )}
         </div>
       );
     }
-    const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(<App />);
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
   </script>
 </body>
 </html>
