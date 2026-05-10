@@ -210,22 +210,43 @@ const [showPatron, setShowPatron] = useState(false);
             {MESES.map((_, i) => renderMes(i))}
           </div>
 
-          {edit && (
-            <div className="modal" onClick={() => setEdit(null)}>
-              <div className="card" style={{ width: "320px" }} onClick={e => e.stopPropagation()}>
-                <h2 style={{ marginBottom: "15px" }}>Editar {edit.dk}</h2>
-                {TIPOS.map(t => (
-                  <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                    <span>{t.emoji} {t.label}</span>
-                    <input type="number" value={edit.data[t.id] || 0} 
-                      onChange={e => setEdit({...edit, data: {...edit.data, [t.id]: parseInt(e.target.value) || 0}})} />
-                  </div>
-                ))}
-                <button style={{ width: "100%", background: "#2563EB", color: "#fff", padding: "12px", borderRadius: "8px", marginTop: "10px", fontWeight: "bold" }}
-                  onClick={() => { setSelected({...selected, [edit.dk]: edit.data}); setEdit(null); }}>Guardar Cambios</button>
-              </div>
+         {edit && (
+  <div className="modal" onClick={() => setEdit(null)}>
+    <div className="card" style={{ width: "350px", padding: "20px" }} onClick={e => e.stopPropagation()}>
+      <h2 style={{ marginBottom: "15px", fontSize: "18px" }}>📅 Editar: {edit.dk}</h2>
+      
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        {TIPOS.map(t => (
+          <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px", background: "#F8FAFC", borderRadius: "10px" }}>
+            <span style={{ fontSize: "14px" }}>{t.emoji} {t.label}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+              <input 
+                type="number" 
+                value={edit.data[t.id] || 0} 
+                onChange={e => setEdit({...edit, data: {...edit.data, [t.id]: parseInt(e.target.value) || 0 }})} 
+                style={{ width: "60px", border: "1px solid #CBD5E1" }}
+              />
+              <span style={{ fontSize: "12px", color: "#94A3B8" }}>h</span>
             </div>
-          )}
+          </div>
+        ))}
+      </div>
+
+      <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
+        <button className="btn-sec" style={{ flex: 1, padding: "10px", borderRadius: "8px" }} onClick={() => setEdit(null)}>Cancelar</button>
+        <button 
+          style={{ flex: 2, background: "#2563EB", color: "#fff", padding: "10px", borderRadius: "8px", fontWeight: "bold" }}
+          onClick={() => { 
+            setSelected({...selected, [edit.dk]: edit.data}); 
+            setEdit(null); 
+          }}
+        >
+          Guardar Cambios
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 {showPatron && (
   <PatronModal 
     onClose={() => setShowPatron(false)} 
