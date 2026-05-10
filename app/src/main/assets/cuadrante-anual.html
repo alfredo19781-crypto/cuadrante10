@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cuadrante Anual Laboral - Corregido</title>
+  <title>Cuadrante Anual Laboral</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: "Segoe UI", system-ui, sans-serif; background: #f1f5f9; }
-    input[type=number]::-webkit-inner-spin-button,
-    input[type=number]::-webkit-outer-spin-button { opacity: 1; }
-    select option { background: #fff; color: #1E293B; }
+    body { font-family: "Segoe UI", system-ui, sans-serif; background: #F8FAFC; color: #1E293B; }
+    button { cursor: pointer; border: none; transition: all 0.2s; }
+    .card { background: #fff; border-radius: 16px; border: 1px solid #E2E8F0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .grid-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    select, input { border-radius: 8px; border: 1px solid #CBD5E1; padding: 8px; outline: none; }
   </style>
 </head>
 <body>
@@ -22,122 +23,110 @@
 
     const TIPOS = [
       { id: "jornada",    label: "Jornada",           emoji: "💼", color: "#DC2626", bg: "#FEF2F2", text: "#991B1B", border: "#FECACA" },
-      { id: "vacaciones", label: "Vacaciones",         emoji: "🏖️", color: "#CA8A04", bg: "#FEFCE8", text: "#713F12", border: "#FDE047", diaCompleto: true },
-      { id: "asuntos",    label: "Asuntos propios",    emoji: "📋", color: "#7C3AED", bg: "#F5F3FF", text: "#4C1D95", border: "#DDD6FE" },
+      { id: "vacaciones", label: "Vacaciones",         emoji: "🏖️", color: "#CA8A04", bg: "#FEFCE8", text: "#713F12", border: "#FDE047" },
+      { id: "asuntos",    label: "Asuntos",           emoji: "📋", color: "#7C3AED", bg: "#F5F3FF", text: "#4C1D95", border: "#DDD6FE" },
       { id: "excesos",    label: "Excesos",            emoji: "⏱️", color: "#0891B2", bg: "#ECFEFF", text: "#164E63", border: "#A5F3FC" },
-      { id: "sindical",   label: "Días Sindicales",    emoji: "✊", color: "#9333EA", bg: "#FAF5FF", text: "#581C87", border: "#E9D5FF" },
-      { id: "guardia",    label: "Guardia",            emoji: "🛡️", color: "#D97706", bg: "#FFFBEB", text: "#92400E", border: "#FDE68A" },
-      { id: "refuerzo",   label: "Refuerzo",           emoji: "⚡", color: "#B45309", bg: "#FEF3C7", text: "#78350F", border: "#FDE68A" },
-      { id: "permiso",    label: "Permiso",            emoji: "📝", color: "#DB2777", bg: "#FDF2F8", text: "#9D174D", border: "#FBCFE8" },
-      { id: "baja",       label: "Baja médica",        emoji: "🏥", color: "#EA580C", bg: "#FFF7ED", text: "#9A3412", border: "#FED7AA" },
-      { id: "festivo",    label: "Festivo",            emoji: "🎉", color: "#0891B2", bg: "#ECFEFF", text: "#164E63", border: "#A5F3FC" },
-      { id: "libre",      label: "Libre / Descanso",   emoji: "☕", color: "#16A34A", bg: "#F0FDF4", text: "#14532D", border: "#86EFAC" },
+      { id: "libre",      label: "Libre",              emoji: "☕", color: "#16A34A", bg: "#F0FDF4", text: "#14532D", border: "#86EFAC" },
     ];
 
-    // Funciones auxiliares
-    const getDaysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
-    const toDateKey = (y, m, d) => `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    const DIAS_LAB = ["L","M","X","J","V","S","D"];
 
-    // --- COMPONENTE PRINCIPAL ---
-    function App() {
-      const [year] = useState(2024);
-      const [selected, setSelected] = useState({});
-      const [meta, setMeta] = useState({});
-      const [showVacaciones, setShowVacaciones] = useState(false);
+    function toDateKey(y, m, d) { return `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`; }
+    function getDaysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
+    function getFirstDay(y, m) { const d = new Date(y, m, 1).getDay(); return d === 0 ? 6 : d - 1; }
 
-      // CORRECCIÓN LÓGICA VACACIONES: Marca todos los días del rango
-      const aplicarVacaciones = (ranges) => {
-        const newSelected = { ...selected };
-        const newMeta = { ...meta };
-
-        ranges.forEach(rng => {
-          let cur = new Date(year, rng.sm, rng.sd);
-          const end = new Date(year, rng.em, rng.ed);
-          
-          while (cur <= end) {
-            const dk = toDateKey(year, cur.getMonth(), cur.getDate());
-            // Guardamos si originalmente era día de trabajo para el conteo de jornadas
-            const eraTrabajo = (newSelected[dk]?.jornada || 0) > 0;
-            
-            newSelected[dk] = { ...newSelected[dk], vacaciones: 24 };
-            newMeta[dk] = { ...newMeta[dk], era_trabajo: eraTrabajo };
-            
-            // Si es vacaciones, quitamos la jornada laboral visualmente
-            delete newSelected[dk].jornada;
-            
-            cur.setDate(cur.getDate() + 1);
-          }
-        });
-
-        setSelected(newSelected);
-        setMeta(newMeta);
-        setShowVacaciones(false);
-      };
-
-      // Simulación de guardado de excesos corregido en el modal de día
-      const guardarDia = (dk, horasDia, metaDia) => {
-        setSelected(prev => ({ ...prev, [dk]: horasDia }));
-        setMeta(prev => ({ ...prev, [dk]: metaDia }));
-      };
-
+    // --- COMPONENTES ---
+    const DayCell = ({ day, dk, data, isToday, onClick }) => {
+      const main = Object.keys(data).filter(k => data[k] > 0)[0];
+      const tipo = TIPOS.find(t => t.id === main);
       return (
-        <div style={{ padding: 20 }}>
-          <h1>Cuadrante Laboral</h1>
-          <button onClick={() => setShowVacaciones(true)} style={{ padding: 10, margin: "10px 0", cursor: "pointer" }}>
-            🏖️ Planificar Vacaciones
-          </button>
-
-          {showVacaciones && (
-            <VacacionesModal 
-              year={year} 
-              selected={selected} 
-              onClose={() => setShowVacaciones(false)} 
-              onApply={aplicarVacaciones} 
-            />
-          )}
-          
-          <p>Días con datos: {Object.keys(selected).length}</p>
-          {/* Aquí iría el resto del calendario */}
-        </div>
+        <button onClick={onClick} style={{ aspectRatio: "1", borderRadius: 8, background: tipo ? tipo.bg : "#fff", border: isToday ? "2px solid #2563EB" : `1px solid ${tipo ? tipo.border : "#E2E8F0"}`, position: "relative" }}>
+          <span style={{ fontSize: 11, fontWeight: isToday ? 900 : 400, color: tipo ? tipo.text : "#64748B" }}>{day}</span>
+          {tipo && <div style={{ position: "absolute", bottom: 2, left: "50%", transform: "translateX(-50%)", fontSize: 8 }}>{tipo.emoji}</div>}
+        </button>
       );
-    }
+    };
 
-    // --- MODAL DE VACACIONES ---
-    function VacacionesModal({ year, selected, onClose, onApply }) {
-      const [ranges, setRanges] = useState([{ sm: 0, sd: 1, em: 0, ed: 7 }]);
-      
-      const upd = (i, k, v) => setRanges(r => r.map((rng, idx) => idx === i ? { ...rng, [k]: +v } : rng));
-
+    const Modal = ({ date, data, onClose, onSave }) => {
+      const [h, setH] = useState(data);
       return (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ background: "#fff", padding: 24, borderRadius: 16, width: 400 }}>
-            <h3>Planificar Periodo</h3>
-            {ranges.map((rng, i) => (
-              <div key={i} style={{ marginBottom: 15, borderBottom: "1px solid #eee", paddingBottom: 10 }}>
-                <label>Desde:</label>
-                <input type="number" value={rng.sd} onChange={e => upd(i, "sd", e.target.value)} style={{ width: 50 }} />
-                <label> Mes: </label>
-                <input type="number" value={rng.sm + 1} onChange={e => upd(i, "sm", e.target.value - 1)} style={{ width: 50 }} />
-                <br/>
-                <label>Hasta:</label>
-                <input type="number" value={rng.ed} onChange={e => upd(i, "ed", e.target.value)} style={{ width: 50 }} />
-                <label> Mes: </label>
-                <input type="number" value={rng.em + 1} onChange={e => upd(i, "em", e.target.value - 1)} style={{ width: 50 }} />
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:100 }}>
+          <div className="card" style={{ padding:20, width:300 }}>
+            <h3>Día {date}</h3>
+            {TIPOS.map(t => (
+              <div key={t.id} style={{ display:"flex", justifyContent:"space-between", margin:"10px 0" }}>
+                <span>{t.emoji} {t.label}</span>
+                <input type="number" value={h[t.id]||0} onChange={e => setH({...h, [t.id]: +e.target.value})} style={{ width:50 }} />
               </div>
             ))}
-            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button onClick={onClose}>Cancelar</button>
-              <button onClick={() => onApply(ranges)} style={{ background: "#CA8A04", color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8 }}>
-                Aplicar a todos los días
-              </button>
-            </div>
+            <button onClick={() => onSave(h)} style={{ width:"100%", background:"#2563EB", color:"#fff", padding:10, borderRadius:8, marginTop:10 }}>Guardar</button>
+            <button onClick={onClose} style={{ width:"100%", marginTop:5 }}>Cancelar</button>
           </div>
         </div>
       );
+    };
+
+    // --- APP PRINCIPAL ---
+    function App() {
+      const [year] = useState(2025);
+      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_v2") || "{}"));
+      const [edit, setEdit] = useState(null);
+
+      useEffect(() => { localStorage.setItem("cuad_v2", JSON.stringify(selected)); }, [selected]);
+
+      const stats = useMemo(() => {
+        let j = 0, v = 0;
+        Object.values(selected).forEach(d => { if(d.jornada) j += d.jornada/8; if(d.vacaciones) v++; });
+        return { j, v };
+      }, [selected]);
+
+      const planVaca = () => {
+        const start = prompt("Mes inicio (1-12)");
+        const end = prompt("Mes fin (1-12)");
+        if (!start || !end) return;
+        const newSel = { ...selected };
+        for (let m = start-1; m < end; m++) {
+          for (let d = 1; d <= getDaysInMonth(year, m); d++) {
+            newSel[toDateKey(year, m, d)] = { vacaciones: 24 };
+          }
+        }
+        setSelected(newSel);
+      };
+
+      return (
+        <div style={{ padding: 15, maxWidth: 1000, margin: "auto" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+            <h1>Cuadrante {year}</h1>
+            <button onClick={planVaca} style={{ background: "#CA8A04", color: "#fff", padding: "8px 15px", borderRadius: 10 }}>🏖️ Planear Rango</button>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
+            <div className="card" style={{ padding: 15, textAlign: "center" }}><b>Jornadas:</b> {stats.j.toFixed(1)}</div>
+            <div className="card" style={{ padding: 15, textAlign: "center" }}><b>Vacaciones:</b> {stats.v} días</div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 15 }}>
+            {MESES.map((m, mi) => (
+              <div key={mi} className="card" style={{ padding: 10 }}>
+                <h4 style={{ marginBottom: 10 }}>{m}</h4>
+                <div className="grid-cal">
+                  {DIAS_LAB.map(l => <div key={l} style={{ textAlign: "center", fontSize: 10, color: "#94A3B8" }}>{l}</div>)}
+                  {Array(getFirstDay(year, mi)).fill(0).map((_, i) => <div key={i} />)}
+                  {Array.from({ length: getDaysInMonth(year, mi) }, (_, i) => i + 1).map(d => {
+                    const dk = toDateKey(year, mi, d);
+                    return <DayCell key={dk} day={d} dk={dk} data={selected[dk]||{}} isToday={dk === toDateKey(2025, 4, 10)} onClick={() => setEdit({ dk, data: selected[dk]||{} })} />;
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+          {edit && <Modal date={edit.dk} data={edit.data} onClose={() => setEdit(null)} onSave={(h) => { setSelected({...selected, [edit.dk]: h}); setEdit(null); }} />}
+        </div>
+      );
     }
 
-    const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(<App />);
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
   </script>
 </body>
 </html>
