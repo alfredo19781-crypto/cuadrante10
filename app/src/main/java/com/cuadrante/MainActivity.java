@@ -13,30 +13,17 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         webView = new WebView(this);
         setContentView(webView);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
-        settings.setAllowFileAccessFromFileURLs(true);
-        settings.setAllowUniversalAccessFromFileURLs(true);
+        settings.setDomStorageEnabled(true); // <--- ESTO ES VITAL PARA GUARDAR
         settings.setDatabaseEnabled(true);
-        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setAllowFileAccess(true);
 
         webView.setWebViewClient(new WebViewClient());
         webView.setWebChromeClient(new WebChromeClient());
-
         webView.loadUrl("file:///android_asset/cuadrante-anual.html");
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (webView.canGoBack()) {
-            webView.goBack();
-        } else {
-            super.onBackPressed();
-        }
     }
 }
