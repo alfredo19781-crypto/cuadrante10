@@ -1,19 +1,23 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cuadrante 2025</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mi Cuadrante Dinámico</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: "Segoe UI", sans-serif; background: #F1F5F9; color: #1E293B; padding: 15px; }
+    body { font-family: "Segoe UI", system-ui, sans-serif; background: #F1F5F9; color: #1E293B; padding: 15px; }
     .card { background: #fff; border-radius: 12px; border: 1px solid #E2E8F0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 12px; }
     .grid-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-    button { cursor: pointer; border: none; }
-    .modal { position: fixed; inset: 0; background: rgba(15,23,42,0.7); display: flex; align-items: center; justifyContent: center; z-index: 1000; padding: 15px; }
-    input { border-radius: 8px; border: 1px solid #CBD5E1; padding: 6px; width: 60px; text-align: center; }
+    button { cursor: pointer; border: none; transition: 0.2s; }
+    .modal { position: fixed; inset: 0; background: rgba(15,23,42,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 15px; }
+    input { border-radius: 8px; border: 1px solid #CBD5E1; padding: 8px; outline: none; }
+    .btn-primary { background: #2563EB; color: white; padding: 10px; border-radius: 8px; font-weight: bold; width: 100%; }
+    .btn-sec { background: #F1F5F9; color: #64748B; padding: 10px; border-radius: 8px; font-weight: bold; width: 100%; }
+    .year-nav { display: flex; align-items: center; gap: 15px; background: white; padding: 5px 15px; border-radius: 20px; border: 1px solid #E2E8F0; }
   </style>
 </head>
 <body>
@@ -35,7 +39,6 @@
 
     const toDateKey = (y, m, d) => `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
 
-    // --- LÓGICA DEL BANNER SEMANAL ---
     const getWeekDays = (date) => {
       const start = new Date(date);
       const day = start.getDay();
@@ -78,6 +81,7 @@
     }
 
     function App() {
+      const [year, setYear] = useState(new Date().getFullYear());
       const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_vFinal") || "{}"));
       const [edit, setEdit] = useState(null);
       const [showPatron, setShowPatron] = useState(false);
@@ -86,32 +90,37 @@
 
       const stats = useMemo(() => {
         let j=0, v=0, e=0, g=0, a=0;
-        Object.values(selected).forEach(d => {
-          if(d.jornada) j += d.jornada/8; if(d.vacaciones) v++; if(d.excesos) e += d.excesos; if(d.guardia) g++; if(d.asuntos) a++;
+        Object.entries(selected).forEach(([key, d]) => {
+          if(key.startsWith(year.toString())) {
+            if(d.jornada) j += d.jornada/8; if(d.vacaciones) v++; if(d.excesos) e += d.excesos; if(d.guardia) g++; if(d.asuntos) a++;
+          }
         });
         return { j, v, e, g, a };
-      }, [selected]);
+      }, [selected, year]);
 
       return (
         <div style={{ maxWidth: "1200px", margin: "auto" }}>
-          <header style={{ display: "flex", justifyContent: "space-between", marginBottom: "15px", flexWrap: "wrap", gap: "10px" }}>
-            <h2>Cuadrante 2025</h2>
+          <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", flexWrap: "wrap", gap: "10px" }}>
+            <div className="year-nav">
+              <button onClick={() => setYear(y => y - 1)} style={{ background: "none", fontSize: "18px" }}>◀</button>
+              <h2 style={{ minWidth: "80px", textAlign: "center" }}>{year}</h2>
+              <button onClick={() => setYear(y => y + 1)} style={{ background: "none", fontSize: "18px" }}>▶</button>
+            </div>
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              <div className="card" style={{ padding: "5px 10px", fontSize: "12px" }}>💼 <b>{stats.j.toFixed(1)}</b></div>
-              <div className="card" style={{ padding: "5px 10px", fontSize: "12px" }}>⏱️ <b>{stats.e}h</b></div>
-              <div className="card" style={{ padding: "5px 10px", fontSize: "12px" }}>🛡️ <b>{stats.g}</b></div>
+              <div className="card" style={{ padding: "5px 10px", fontSize: "12px", borderLeft: "3px solid red" }}>💼 <b>{stats.j.toFixed(1)}</b></div>
+              <div className="card" style={{ padding: "5px 10px", fontSize: "12px", borderLeft: "3px solid cyan" }}>⏱️ <b>{stats.e}h</b></div>
+              <div className="card" style={{ padding: "5px 10px", fontSize: "12px", borderLeft: "3px solid orange" }}>🛡️ <b>{stats.g}</b></div>
             </div>
           </header>
 
           <BannerSemanal selected={selected} />
 
-          <button onClick={() => setShowPatron(true)} style={{ width: "100%", background: "#7C3AED", color: "#fff", padding: "12px", borderRadius: "10px", marginBottom: "20px", fontWeight: "bold" }}>🔄 Aplicar Ciclo de Turnos</button>
+          <button onClick={() => setShowPatron(true)} style={{ width: "100%", background: "#7C3AED", color: "#fff", padding: "12px", borderRadius: "10px", marginBottom: "20px", fontWeight: "bold" }}>🔄 Configurar Patrón en {year}</button>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "15px" }}>
             {MESES.map((nombre, mi) => {
-              const y = 2025;
-              const totalDias = new Date(y, mi + 1, 0).getDate();
-              const offset = new Date(y, mi, 1).getDay() === 0 ? 6 : new Date(y, mi, 1).getDay() - 1;
+              const totalDias = new Date(year, mi + 1, 0).getDate();
+              const offset = new Date(year, mi, 1).getDay() === 0 ? 6 : new Date(year, mi, 1).getDay() - 1;
               return (
                 <div key={mi} className="card">
                   <h4 style={{ color: "#2563EB", marginBottom: "10px" }}>{nombre}</h4>
@@ -119,12 +128,12 @@
                     {DIAS_L.map(l => <div key={l} style={{ textAlign: "center", fontSize: "10px", color: "#94A3B8" }}>{l}</div>)}
                     {Array(offset).fill(0).map((_, i) => <div key={i} />)}
                     {Array.from({ length: totalDias }, (_, i) => i + 1).map(d => {
-                      const dk = toDateKey(y, mi, d);
+                      const dk = toDateKey(year, mi, d);
                       const data = selected[dk] || {};
                       const t = TIPOS.find(x => x.id === Object.keys(data).find(k => data[k] > 0));
                       return (
-                        <button key={dk} onClick={() => setEdit({ dk, data })} style={{ aspectRatio: "1", borderRadius: "8px", background: t ? t.bg : "#fff", border: `1px solid ${t ? t.border : "#E2E8F0"}` }}>
-                          <span style={{ fontSize: "11px" }}>{d}</span>
+                        <button key={dk} onClick={() => setEdit({ dk, data })} style={{ aspectRatio: "1", borderRadius: "8px", background: t ? t.bg : "#fff", border: `1px solid ${t ? t.border : "#E2E8F0"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <span style={{ fontSize: "11px", fontWeight: t ? "bold" : "normal" }}>{d}</span>
                         </button>
                       );
                     })}
@@ -137,10 +146,9 @@
           {edit && (
             <div className="modal" onClick={() => setEdit(null)}>
               <div className="card" style={{ width: "320px" }} onClick={e => e.stopPropagation()}>
-                <h3 style={{ marginBottom: "15px" }}>Editar {edit.dk}</h3>
+                <h3 style={{ marginBottom: "15px" }}>Día: {edit.dk}</h3>
                 
-                {/* PUNTO 2: RELOJES DE HORARIO */}
-                <div style={{ background: "#F8FAFC", padding: "10px", borderRadius: "10px", marginBottom: "15px", border: "1px solid #E2E8F0" }}>
+                <div style={{ background: "#F8FAFC", padding: "12px", borderRadius: "10px", marginBottom: "15px", border: "1px solid #E2E8F0" }}>
                   <div style={{ fontSize: "11px", fontWeight: "bold", color: "#64748B", marginBottom: "8px", textAlign: "center" }}>⌚ HORARIO</div>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <input type="time" value={edit.data.inicio || "08:00"} onChange={e => setEdit({...edit, data: {...edit.data, inicio: e.target.value}})} style={{ width: "100%", padding: "5px", borderRadius: "5px", border: "1px solid #CBD5E1" }} />
@@ -149,38 +157,52 @@
                   </div>
                 </div>
 
-                {TIPOS.map(t => (
-                  <div key={t.id} style={{ display: "flex", justifyContent: "space-between", margin: "10px 0" }}>
-                    <span>{t.emoji} {t.label}</span>
-                    <input type="number" value={edit.data[t.id] || 0} onChange={e => setEdit({...edit, data: {...edit.data, [t.id]: parseInt(e.target.value) || 0 }})} />
-                  </div>
-                ))}
-                <button onClick={() => { setSelected({...selected, [edit.dk]: edit.data}); setEdit(null); }} style={{ width: "100%", background: "#2563EB", color: "#fff", padding: "10px", borderRadius: "8px", fontWeight: "bold", marginTop: "10px" }}>Guardar Cambios</button>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {TIPOS.map(t => (
+                    <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: "14px" }}>{t.emoji} {t.label}</span>
+                      <input type="number" value={edit.data[t.id] || 0} onChange={e => setEdit({...edit, data: {...edit.data, [t.id]: parseInt(e.target.value) || 0 }})} style={{ width: "50px" }} />
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
+                  <button className="btn-sec" onClick={() => setEdit(null)}>Cerrar</button>
+                  <button className="btn-primary" onClick={() => { setSelected({...selected, [edit.dk]: edit.data}); setEdit(null); }}>Guardar</button>
+                </div>
               </div>
             </div>
           )}
 
           {showPatron && (
-            <div className="modal">
-              <div className="card" style={{ width: "320px" }}>
-                <h3>⚙️ Configurar Patrón</h3>
+            <div className="modal" onClick={() => setShowPatron(false)}>
+              <div className="card" style={{ width: "320px" }} onClick={e => e.stopPropagation()}>
+                <h3>⚙️ Configurar Patrón en {year}</h3>
+                <p style={{ fontSize: "12px", margin: "10px 0", color: "#64748B" }}>Se aplicará 1 día trabajado / 4 libres en el año {year} actual.</p>
+                <div style={{ marginBottom: "15px" }}>
+                   <label style={{ fontSize: "11px" }}>Fecha Inicio:</label>
+                   <input type="date" id="startPatron" defaultValue={`${year}-01-02`} style={{ width: "100%", marginTop: "5px" }} />
+                </div>
                 <button onClick={() => {
-                  let cur = new Date(2025, 0, 2), pos = 0, newS = {...selected};
-                  while(cur.getFullYear() === 2025) {
-                    const dk = toDateKey(2025, cur.getMonth(), cur.getDate());
-                    newS[dk] = { ["jornada"]: 24 }; // Ejemplo 1/4 simplificado
-                    cur.setDate(cur.getDate() + 5);
+                  const startVal = document.getElementById("startPatron").value;
+                  let cur = new Date(startVal);
+                  let newS = {...selected};
+                  while(cur.getFullYear() === year) {
+                    const dk = toDateKey(year, cur.getMonth(), cur.getDate());
+                    newS[dk] = { jornada: 24 }; 
+                    cur.setDate(cur.getDate() + 5); 
                   }
                   setSelected(newS); setShowPatron(false);
-                }} style={{ width: "100%", background: "#7C3AED", color: "#fff", padding: "10px", borderRadius: "8px", marginTop: "15px" }}>Aplicar 1/4 desde 2 Enero</button>
-                <button onClick={() => setShowPatron(false)} style={{ width: "100%", marginTop: "10px" }}>Cerrar</button>
+                }} style={{ width: "100%", background: "#7C3AED", color: "#fff", padding: "10px", borderRadius: "8px", fontWeight: "bold" }}>Aplicar Ciclo 1/4</button>
+                <button onClick={() => setShowPatron(false)} style={{ width: "100%", marginTop: "10px", color: "#64748B" }}>Cancelar</button>
               </div>
             </div>
           )}
         </div>
       );
     }
-    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
   </script>
 </body>
 </html>
