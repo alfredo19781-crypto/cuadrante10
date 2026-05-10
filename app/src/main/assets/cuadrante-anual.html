@@ -148,16 +148,17 @@ const [showPatron, setShowPatron] = useState(false);
 
       useEffect(() => { localStorage.setItem("cuad_v6", JSON.stringify(selected)); }, [selected]);
 
-      const stats = useMemo(() => {
-        let j = 0, v = 0, e = 0;
+     const stats = useMemo(() => {
+        let j = 0, v = 0, e = 0, g = 0, a = 0;
         Object.values(selected).forEach(d => {
           if(d.jornada) j += d.jornada / 8;
           if(d.vacaciones) v += 1;
           if(d.excesos) e += d.excesos;
+          if(d.guardia) g += 1; // Cuenta días de guardia
+          if(d.asuntos) a += 1; // Cuenta días de asuntos propios
         });
-        return { j, v, e };
+        return { j, v, e, g, a };
       }, [selected]);
-
       const renderMes = (mi) => {
         const y = 2025;
         const totalDias = new Date(y, mi + 1, 0).getDate();
@@ -177,9 +178,21 @@ const [showPatron, setShowPatron] = useState(false);
                 const t = TIPOS.find(x => x.id === active);
                 return (
                   <button key={dk} onClick={() => setEdit({ dk, data })} 
-                    style={{ aspectRatio: "1", borderRadius: "8px", background: t ? t.bg : "#fff", border: `1px solid ${t ? t.color : "#E2E8F0"}`, position: "relative" }}>
-                    <span style={{ fontSize: "12px", fontWeight: t ? "bold" : "normal" }}>{d}</span>
-                    {t && <div style={{ position: "absolute", bottom: 1, left: "50%", transform: "translateX(-50%)", fontSize: "10px" }}>{t.emoji}</div>}
+                   <button key={dk} onClick={() => setEdit({ dk, data })} 
+                    style={{ 
+                      aspectRatio: "1", 
+                      borderRadius: "8px", 
+                      background: t ? t.bg : "#fff", 
+                      border: `1px solid ${t ? t.border || t.color : "#E2E8F0"}`, 
+                      position: "relative",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity: t?.id === "libre" ? 0.6 : 1 // Los libres se ven más suaves
+                    }}>
+                    <span style={{ fontSize: "12px", fontWeight: t ? "bold" : "normal", color: t ? t.text : "#1E293B" }}>{d}</span>
+                    {t && t.id !== "libre" && <div style={{ fontSize: "10px" }}>{t.emoji}</div>}
                   </button>
                 );
               })}
@@ -190,11 +203,13 @@ const [showPatron, setShowPatron] = useState(false);
 
       return (
         <div style={{ maxWidth: "1200px", margin: "auto" }}>
-          <header style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
+        <header style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
             <h1>Cuadrante 2025</h1>
-            <div style={{ display: "flex", gap: "15px" }}>
-              <div className="card" style={{ padding: "8px 15px" }}>💼 <b>{stats.j.toFixed(1)}</b> jor.</div>
-              <div className="card" style={{ padding: "8px 15px" }}>⏱️ <b>{stats.e}h</b> exc.</div>
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              <div className="card" style={{ padding: "8px 12px", borderLeft: "4px solid #DC2626" }}>💼 <b>{stats.j.toFixed(1)}</b> jor.</div>
+              <div className="card" style={{ padding: "8px 12px", borderLeft: "4px solid #0891B2" }}>⏱️ <b>{stats.e}h</b> exc.</div>
+              <div className="card" style={{ padding: "8px 12px", borderLeft: "4px solid #D97706" }}>🛡️ <b>{stats.g}</b> guar.</div>
+              <div className="card" style={{ padding: "8px 12px", borderLeft: "4px solid #7C3AED" }}>📋 <b>{stats.a}</b> asun.</div>
             </div>
           </header>
 <TodayBanner selected={selected} />
