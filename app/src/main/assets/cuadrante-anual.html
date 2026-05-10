@@ -35,21 +35,43 @@
 
     const toDateKey = (y, m, d) => `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
 
-    function PatronModal({ onApply, onClose }) {
-      const [fecha, setFecha] = useState("2025-01-02");
+    // --- LÓGICA DEL BANNER SEMANAL ---
+    const getWeekDays = (date) => {
+      const start = new Date(date);
+      const day = start.getDay();
+      const diff = start.getDate() - day + (day === 0 ? -6 : 1);
+      start.setDate(diff);
+      return Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        return toDateKey(d.getFullYear(), d.getMonth(), d.getDate());
+      });
+    };
+
+    function BannerSemanal({ selected }) {
+      const [blink, setBlink] = useState(true);
+      useEffect(() => {
+        const interval = setInterval(() => setBlink(b => !b), 800);
+        return () => clearInterval(interval);
+      }, []);
+      const hoy = new Date();
+      const hoyKey = toDateKey(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+      const diasSemana = getWeekDays(hoy);
       return (
-        <div className="modal">
-          <div className="card" style={{ width: "320px" }}>
-            <h3>⚙️ Configurar Patrón</h3>
-            <div style={{ margin: "15px 0" }}>
-              <label style={{ fontSize: "12px" }}>Fecha Inicio:</label>
-              <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} style={{ width: "100%" }} />
-            </div>
-            <button onClick={() => {
-              const [y, m, d] = fecha.split("-").map(Number);
-              onApply(y, m - 1, d, ["jornada", "libre", "libre", "libre", "libre"]);
-            }} style={{ width: "100%", background: "#7C3AED", color: "#fff", padding: "10px", borderRadius: "8px" }}>Aplicar 1/4</button>
-            <button onClick={onClose} style={{ width: "100%", marginTop: "10px" }}>Cancelar</button>
+        <div style={{ background: "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)", padding: "15px", borderRadius: "15px", marginBottom: "20px", color: "white" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "5px" }}>
+            {diasSemana.map((dk) => {
+              const isHoy = dk === hoyKey;
+              const data = selected[dk] || {};
+              const t = TIPOS.find(x => x.id === Object.keys(data).find(k => data[k] > 0));
+              return (
+                <div key={dk} style={{ textAlign: "center", padding: "8px 2px", borderRadius: "10px", background: isHoy ? (blink ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.4)") : "rgba(255,255,255,0.15)", color: isHoy && blink ? "#4338ca" : "white" }}>
+                  <div style={{ fontSize: "10px", fontWeight: "bold" }}>{DIAS_L[new Date(dk).getDay() === 0 ? 6 : new Date(dk).getDay()-1]}</div>
+                  <div style={{ fontSize: "14px", fontWeight: "900" }}>{dk.split("-")[2]}</div>
+                  <div style={{ fontSize: "10px" }}>{t ? t.emoji : "·"}</div>
+                </div>
+              );
+            })}
           </div>
         </div>
       );
@@ -80,6 +102,8 @@
               <div className="card" style={{ padding: "5px 10px", fontSize: "12px" }}>🛡️ <b>{stats.g}</b></div>
             </div>
           </header>
+
+          <BannerSemanal selected={selected} />
 
           <button onClick={() => setShowPatron(true)} style={{ width: "100%", background: "#7C3AED", color: "#fff", padding: "12px", borderRadius: "10px", marginBottom: "20px", fontWeight: "bold" }}>🔄 Aplicar Ciclo de Turnos</button>
 
@@ -112,29 +136,46 @@
 
           {edit && (
             <div className="modal" onClick={() => setEdit(null)}>
-              <div className="card" style={{ width: "300px" }} onClick={e => e.stopPropagation()}>
-                <h3>Editar {edit.dk}</h3>
+              <div className="card" style={{ width: "320px" }} onClick={e => e.stopPropagation()}>
+                <h3 style={{ marginBottom: "15px" }}>Editar {edit.dk}</h3>
+                
+                {/* PUNTO 2: RELOJES DE HORARIO */}
+                <div style={{ background: "#F8FAFC", padding: "10px", borderRadius: "10px", marginBottom: "15px", border: "1px solid #E2E8F0" }}>
+                  <div style={{ fontSize: "11px", fontWeight: "bold", color: "#64748B", marginBottom: "8px", textAlign: "center" }}>⌚ HORARIO</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <input type="time" value={edit.data.inicio || "08:00"} onChange={e => setEdit({...edit, data: {...edit.data, inicio: e.target.value}})} style={{ width: "100%", padding: "5px", borderRadius: "5px", border: "1px solid #CBD5E1" }} />
+                    <span>a</span>
+                    <input type="time" value={edit.data.fin || "15:00"} onChange={e => setEdit({...edit, data: {...edit.data, fin: e.target.value}})} style={{ width: "100%", padding: "5px", borderRadius: "5px", border: "1px solid #CBD5E1" }} />
+                  </div>
+                </div>
+
                 {TIPOS.map(t => (
                   <div key={t.id} style={{ display: "flex", justifyContent: "space-between", margin: "10px 0" }}>
                     <span>{t.emoji} {t.label}</span>
                     <input type="number" value={edit.data[t.id] || 0} onChange={e => setEdit({...edit, data: {...edit.data, [t.id]: parseInt(e.target.value) || 0 }})} />
                   </div>
                 ))}
-                <button onClick={() => { setSelected({...selected, [edit.dk]: edit.data}); setEdit(null); }} style={{ width: "100%", background: "#2563EB", color: "#fff", padding: "10px", borderRadius: "8px" }}>Guardar</button>
+                <button onClick={() => { setSelected({...selected, [edit.dk]: edit.data}); setEdit(null); }} style={{ width: "100%", background: "#2563EB", color: "#fff", padding: "10px", borderRadius: "8px", fontWeight: "bold", marginTop: "10px" }}>Guardar Cambios</button>
               </div>
             </div>
           )}
 
           {showPatron && (
-            <PatronModal onClose={() => setShowPatron(false)} onApply={(y, m, d, ciclo) => {
-              let cur = new Date(y, m, d), pos = 0, newS = {...selected};
-              while(cur.getFullYear() === 2025) {
-                const dk = toDateKey(2025, cur.getMonth(), cur.getDate());
-                newS[dk] = { [ciclo[pos % ciclo.length]]: 24 };
-                pos++; cur.setDate(cur.getDate() + 1);
-              }
-              setSelected(newS); setShowPatron(false);
-            }} />
+            <div className="modal">
+              <div className="card" style={{ width: "320px" }}>
+                <h3>⚙️ Configurar Patrón</h3>
+                <button onClick={() => {
+                  let cur = new Date(2025, 0, 2), pos = 0, newS = {...selected};
+                  while(cur.getFullYear() === 2025) {
+                    const dk = toDateKey(2025, cur.getMonth(), cur.getDate());
+                    newS[dk] = { ["jornada"]: 24 }; // Ejemplo 1/4 simplificado
+                    cur.setDate(cur.getDate() + 5);
+                  }
+                  setSelected(newS); setShowPatron(false);
+                }} style={{ width: "100%", background: "#7C3AED", color: "#fff", padding: "10px", borderRadius: "8px", marginTop: "15px" }}>Aplicar 1/4 desde 2 Enero</button>
+                <button onClick={() => setShowPatron(false)} style={{ width: "100%", marginTop: "10px" }}>Cerrar</button>
+              </div>
+            </div>
           )}
         </div>
       );
