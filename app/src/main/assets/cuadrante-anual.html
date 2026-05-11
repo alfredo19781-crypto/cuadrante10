@@ -3,29 +3,42 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cuadrante Alfredo V8</title>
+  <title>Cuadrante Alfredo V9</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
-    :root { --primary: #2563EB; --danger: #EF4444; --success: #22C55E; --dark: #1E293B; --bg: #F8FAFC; }
+    :root { --primary: #2563EB; --danger: #EF4444; --success: #22C55E; --dark: #1E293B; --bg: #F1F5F9; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--dark); padding: 10px; }
-    .card { background: white; border-radius: 16px; border: 1px solid #E2E8F0; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    
+    .card { background: white; border-radius: 16px; border: 1px solid #E2E8F0; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     .grid-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-    button { cursor: pointer; border: none; transition: 0.3s; }
+    button { cursor: pointer; border: none; transition: 0.2s; }
+    
+    /* Modal Ajustado para Móvil */
     .modal { position: fixed; inset: 0; background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 10px; }
-    .modal-content { background: white; border-radius: 20px; padding: 20px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
-    select, input { border-radius: 8px; border: 1px solid #CBD5E1; padding: 8px; font-size: 14px; background: #FDFDFD; }
-    label { font-size: 10px; font-weight: 700; color: #64748B; text-transform: uppercase; display: block; margin-bottom: 2px; }
-    .btn-primary { background: var(--primary); color: white; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; }
-    .dia-btn { aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; border: 1px solid #F1F5F9; background: white; position: relative; }
-    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #F1F5F9; padding-bottom: 5px; }
-    .vaca-row { display: flex; align-items: flex-end; gap: 4px; background: #F8FAFC; padding: 10px; border-radius: 10px; margin-bottom: 8px; border: 1px solid #E2E8F0; }
-    .vaca-group { display: flex; flex-direction: column; flex: 1; }
-    .btn-mini-del { background: var(--danger); color: white; width: 30px; height: 35px; border-radius: 6px; }
-    .btn-mini-apply { background: var(--success); color: white; padding: 0 10px; height: 35px; border-radius: 6px; font-size: 11px; font-weight: bold; }
+    .modal-content { background: white; border-radius: 20px; padding: 15px; width: 100%; max-width: 450px; max-height: 90vh; overflow-y: auto; }
+    
+    /* Inputs y Selects */
+    select, input { border-radius: 8px; border: 1px solid #CBD5E1; padding: 10px; font-size: 14px; width: 100%; }
+    label { font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; margin-bottom: 4px; display: block; }
+    
+    /* Botones */
+    .btn-primary { background: var(--primary); color: white; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; margin-top: 5px; }
+    .btn-apply-vaca { background: var(--success); color: white; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: bold; flex: 1; }
+    .btn-del-vaca { background: var(--danger); color: white; width: 35px; border-radius: 8px; font-size: 14px; }
+    
+    /* Fila de Vacaciones Optimizada */
+    .vaca-row { background: #F8FAFC; padding: 12px; border-radius: 12px; border: 1px solid #E2E8F0; margin-bottom: 10px; }
+    .vaca-inputs { display: flex; align-items: center; gap: 5px; margin-bottom: 10px; }
+    .vaca-controls { display: flex; gap: 8px; }
+    .vaca-block { flex: 1; display: flex; gap: 3px; }
+    .vaca-block select { flex: 2; padding: 6px; font-size: 13px; }
+    .vaca-block input { flex: 1; padding: 6px; text-align: center; }
+
+    .dia-btn { aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; border: 1px solid #F1F5F9; background: white; }
   </style>
 </head>
 <body>
@@ -33,19 +46,19 @@
   <script type="text/babel">
     const { useState, useMemo, useEffect } = React;
 
-    const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
     const DIAS_L = ["L","M","X","J","V","S","D"];
     const toDateKey = (y, m, d) => `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
 
     function App() {
       const [year, setYear] = useState(2026);
-      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v8") || "{}"));
-      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v8") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[]}'));
+      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v9") || "{}"));
+      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v9") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[]}'));
       const [showGear, setShowGear] = useState(false);
       const [edit, setEdit] = useState(null);
 
-      useEffect(() => { localStorage.setItem("cuad_alfredo_v8", JSON.stringify(selected)); }, [selected]);
-      useEffect(() => { localStorage.setItem("user_alfredo_v8", JSON.stringify(user)); }, [user]);
+      useEffect(() => { localStorage.setItem("cuad_alfredo_v9", JSON.stringify(selected)); }, [selected]);
+      useEffect(() => { localStorage.setItem("user_alfredo_v9", JSON.stringify(user)); }, [user]);
 
       const antiguedad = year - user.ingreso;
       const extraVacas = antiguedad >= 30 ? 4 : antiguedad >= 25 ? 3 : antiguedad >= 20 ? 2 : antiguedad >= 15 ? 1 : 0;
@@ -79,7 +92,6 @@
         let newS = {...selected};
         let curr = new Date(start);
         while(curr.getFullYear() <= year) {
-          const dk = toDateKey(year, curr.getMonth(), curr.getDate());
           if(curr.getFullYear() === year) {
             for(let i=0; i<dw; i++){ 
                const d = toDateKey(year, curr.getMonth(), curr.getDate());
@@ -94,34 +106,34 @@
           } else { curr.setDate(curr.getDate()+1); }
         }
         setSelected(newS);
-        alert("Patrón aplicado");
+        alert("Ciclo aplicado correctamente.");
       };
 
       return (
         <div>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px'}}>
             <h1 style={{fontSize:'18px'}}>📅 Cuadrante {user.nombre}</h1>
-            <button onClick={() => setShowGear(true)} style={{fontSize:'20px', background:'none'}}><i className="fa-solid fa-gear"></i></button>
+            <button onClick={() => setShowGear(true)} style={{fontSize:'22px', background:'none'}}><i className="fa-solid fa-cog"></i></button>
           </div>
 
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'10px', marginBottom:'15px'}}>
-            <div className="card" style={{margin:0, textAlign:'center'}}>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px', marginBottom:'12px'}}>
+            <div className="card" style={{margin:0, textAlign:'center', padding:'8px'}}>
               <label>Objetivo</label><b>{jornadasObj}</b>
             </div>
-            <div className="card" style={{margin:0, textAlign:'center'}}>
+            <div className="card" style={{margin:0, textAlign:'center', padding:'8px'}}>
               <label>Real</label><b>{jTotal.toFixed(1)}</b>
             </div>
-            <div className="card" style={{margin:0, textAlign:'center', background: (jTotal-jornadasObj)>=0 ? '#DCFCE7':'#FEE2E2'}}>
+            <div className="card" style={{margin:0, textAlign:'center', padding:'8px', background: (jTotal-jornadasObj)>=0 ? '#DCFCE7':'#FEE2E2'}}>
               <label>Balance</label><b>{(jTotal - jornadasObj).toFixed(1)}</b>
             </div>
           </div>
 
-          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(300px, 1fr))', gap:'10px'}}>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:'10px'}}>
             {MESES.map((nombre, mi) => (
               <div key={mi} className="card">
-                <h4 style={{color:'var(--primary)', marginBottom:'5px'}}>{nombre}</h4>
+                <h4 style={{color:'var(--primary)', marginBottom:'5px', fontSize:'14px'}}>{nombre.toUpperCase()} 2026</h4>
                 <div className="grid-cal">
-                  {DIAS_L.map(l => <div key={l} style={{fontSize:'10px', opacity:0.4, textAlign:'center'}}>{l}</div>)}
+                  {DIAS_L.map(l => <div key={l} style={{fontSize:'10px', opacity:0.4, textAlign:'center', fontWeight:'bold'}}>{l}</div>)}
                   {Array(new Date(year, mi, 1).getDay() === 0 ? 6 : new Date(year, mi, 1).getDay() - 1).fill(0).map((_, i) => <div key={i} />)}
                   {Array.from({ length: new Date(year, mi + 1, 0).getDate() }, (_, i) => i + 1).map(d => {
                     const dk = toDateKey(year, mi, d);
@@ -131,7 +143,7 @@
                     return (
                       <button key={dk} className="dia-btn" style={{background: bg}} onClick={() => setEdit({dk, data})}>
                         {d}
-                        {data.jornada > 0 && !vacas && <span style={{fontSize:'8px', color:'red'}}>{data.jornada}h</span>}
+                        {data.jornada > 0 && !vacas && <span style={{fontSize:'8px', color:'red', fontWeight:'bold'}}>{data.jornada}h</span>}
                       </button>
                     );
                   })}
@@ -143,60 +155,65 @@
           {showGear && (
             <div className="modal" onClick={() => setShowGear(false)}>
               <div className="modal-content" onClick={e => e.stopPropagation()}>
-                <div className="section-header"><h2>Configuración</h2><button onClick={() => setShowGear(false)}>X</button></div>
+                <div style={{display:'flex', justifyContent:'space-between', borderBottom:'1px solid #eee', paddingBottom:'10px', marginBottom:'15px'}}>
+                  <h2 style={{fontSize:'18px'}}>Configuración</h2>
+                  <button onClick={() => setShowGear(false)} style={{fontSize:'20px'}}>✕</button>
+                </div>
                 
-                {/* FICHA */}
+                {/* 1. FICHA */}
                 <div className="card">
-                  <label>Nombre</label>
-                  <input type="text" value={user.nombre} onChange={e => setUser({...user, nombre: e.target.value})} />
-                  <label>Año de Ingreso</label>
-                  <input type="number" value={user.ingreso} onChange={e => setUser({...user, ingreso: parseInt(e.target.value)})} />
+                  <div style={{marginBottom:'10px'}}>
+                    <label>Nombre del Usuario</label>
+                    <input type="text" value={user.nombre} onChange={e => setUser({...user, nombre: e.target.value})} />
+                  </div>
+                  <div>
+                    <label>Año de Ingreso (Defecto: 2008)</label>
+                    <input type="number" value={user.ingreso} onChange={e => setUser({...user, ingreso: parseInt(e.target.value)})} />
+                  </div>
                 </div>
 
-                {/* VACACIONES */}
+                {/* 2. CICLO TRABAJO */}
                 <div className="card">
-                  <div className="section-header"><span style={{fontWeight:'bold'}}>🏖️ VACACIONES</span></div>
+                  <label style={{color: 'var(--dark)', marginBottom:'10px'}}><i className="fa-solid fa-sync"></i> Ciclo de Trabajo</label>
+                  <input type="date" id="cStart" defaultValue={`${year}-01-02`} style={{marginBottom:'8px'}} />
+                  <div style={{display:'flex', gap:'5px', marginBottom:'8px'}}>
+                    <select id="cHoras" style={{flex:1}}><option value="24">24h</option><option value="12">12h</option></select>
+                    <input type="number" id="cDW" placeholder="Trab." defaultValue="1" style={{flex:1}} />
+                    <input type="number" id="cDD" placeholder="Desc." defaultValue="4" style={{flex:1}} />
+                  </div>
+                  <button className="btn-primary" style={{background: var(--dark)}} onClick={aplicarCiclo}>APLICAR CICLO</button>
+                </div>
+
+                {/* 3. VACACIONES */}
+                <div className="card">
+                  <label style={{color: 'var(--dark)', marginBottom:'10px'}}><i className="fa-solid fa-umbrella-beach"></i> Vacaciones</label>
                   {user.periodos.map(p => (
                     <div key={p.id} className="vaca-row">
-                      <div className="vaca-group">
-                        <label>Inicio</label>
-                        <div style={{display:'flex', gap:'2px'}}>
+                      <div className="vaca-inputs">
+                        <div className="vaca-block">
                           <select value={p.mIni} onChange={e => updatePeriodo(p.id, 'mIni', e.target.value)}>
-                            {MESES.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
+                            {MESES.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
                           </select>
-                          <input type="number" style={{width:'45px'}} value={p.dIni} onChange={e => updatePeriodo(p.id, 'dIni', e.target.value)} />
+                          <input type="number" value={p.dIni} onChange={e => updatePeriodo(p.id, 'dIni', e.target.value)} />
                         </div>
-                      </div>
-                      <div style={{paddingBottom:'10px'}}>A</div>
-                      <div className="vaca-group">
-                        <label>Fin</label>
-                        <div style={{display:'flex', gap:'2px'}}>
+                        <span style={{fontWeight:'bold'}}>-</span>
+                        <div className="vaca-block">
                           <select value={p.mFin} onChange={e => updatePeriodo(p.id, 'mFin', e.target.value)}>
-                            {MESES.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
+                            {MESES.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
                           </select>
-                          <input type="number" style={{width:'45px'}} value={p.dFin} onChange={e => updatePeriodo(p.id, 'dFin', e.target.value)} />
+                          <input type="number" value={p.dFin} onChange={e => updatePeriodo(p.id, 'dFin', e.target.value)} />
                         </div>
                       </div>
-                      <button className="btn-mini-apply" onClick={() => { alert("Periodo guardado. El calendario se actualizará."); setShowGear(false); }}>APLICAR</button>
-                      <button className="btn-mini-del" onClick={() => setUser({...user, periodos: user.periodos.filter(x => x.id !== p.id)})}>X</button>
+                      <div className="vaca-controls">
+                        <button className="btn-apply-vaca" onClick={() => {alert("Periodo guardado"); setShowGear(false);}}>APLICAR</button>
+                        <button className="btn-del-vaca" onClick={() => setUser({...user, periodos: user.periodos.filter(x => x.id !== p.id)})}><i className="fa-solid fa-trash"></i></button>
+                      </div>
                     </div>
                   ))}
-                  <button className="btn-primary" style={{fontSize:'12px'}} onClick={() => setUser({...user, periodos: [...user.periodos, {id:Date.now(), dIni:1, mIni:8, dFin:31, mFin:8}]})}>+ AÑADIR PERIODO</button>
+                  <button className="btn-primary" onClick={() => setUser({...user, periodos: [...user.periodos, {id:Date.now(), dIni:1, mIni:8, dFin:31, mFin:8}]})}>+ AÑADIR PERIODO</button>
                 </div>
 
-                {/* CICLO */}
-                <div className="card">
-                  <div className="section-header"><span style={{fontWeight:'bold'}}>🔄 CICLO TRABAJO</span></div>
-                  <input type="date" id="cStart" defaultValue={`${year}-01-02`} />
-                  <div style={{display:'flex', gap:'5px', marginTop:'5px'}}>
-                    <select id="cHoras"><option value="24">24h</option><option value="12">12h</option></select>
-                    <input type="number" id="cDW" placeholder="Trab." defaultValue="1" />
-                    <input type="number" id="cDD" placeholder="Desc." defaultValue="4" />
-                  </div>
-                  <button className="btn-primary" style={{marginTop:'10px', background: 'var(--dark)'}} onClick={aplicarCiclo}>APLICAR CICLO</button>
-                </div>
-
-                <button className="btn-primary" onClick={() => setShowGear(false)} style={{marginTop:'10px'}}>CERRAR</button>
+                <button className="btn-primary" onClick={() => setShowGear(false)} style={{marginTop:'10px', background:'#64748B'}}>CERRAR AJUSTES</button>
               </div>
             </div>
           )}
