@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cuadrante 2026</title>
+  <title>Cuadrante Alfredo</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -17,12 +17,10 @@
     input, textarea { border-radius: 8px; border: 1px solid #CBD5E1; padding: 8px; outline: none; font-family: inherit; width: 100%; }
     .btn-primary { background: #2563EB; color: white; padding: 12px; border-radius: 8px; font-weight: bold; width: 100%; }
     .btn-sec { background: #F1F5F9; color: #64748B; padding: 10px; border-radius: 8px; font-weight: bold; width: 100%; }
-    .year-display { background: #1E293B; color: white; padding: 5px 15px; border-radius: 10px; font-weight: bold; font-size: 1.2rem; }
-    .dot-nota { width: 4px; height: 4px; background: #64748B; border-radius: 50%; margin-top: 2px; }
+    .header-user { background: #1E293B; color: white; padding: 10px 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; cursor: pointer; }
+    .dia-num { color: #1E293B !important; font-size: 12px; }
     .progress-bar { height: 8px; background: #E2E8F0; border-radius: 4px; overflow: hidden; margin-top: 4px; }
     .progress-fill { height: 100%; transition: width 0.5s ease-out; }
-    /* Forzamos que todos los números de día sean negros */
-    .dia-num { color: #1E293B !important; font-weight: normal !important; font-size: 12px; }
   </style>
 </head>
 <body>
@@ -31,98 +29,94 @@
     const { useState, useMemo, useEffect } = React;
 
     const TIPOS = [
-      { id: "jornada", label: "Jornada", emoji: "💼", color: "#DC2626", bg: "#FEF2F2", text: "#991B1B", border: "#FECACA" },
-      { id: "vacaciones", label: "Vacaciones", emoji: "🏖️", color: "#CA8A04", bg: "#FEFCE8", text: "#713F12", border: "#FDE047" },
-      { id: "asuntos", label: "Asuntos Propios", emoji: "📋", color: "#7C3AED", bg: "#F5F3FF", text: "#4C1D95", border: "#DDD6FE" },
-      { id: "sindical", label: "H. Sindicales", emoji: "📢", color: "#EF4444", bg: "#FFF1F2", text: "#9F1239", border: "#FECDD3" },
-      { id: "permiso", label: "Permisos", emoji: "📝", color: "#6366F1", bg: "#EEF2FF", text: "#312E81", border: "#C7D2FE" },
-      { id: "excesos", label: "Excesos", emoji: "⏱️", color: "#0891B2", bg: "#ECFEFF", text: "#164E63", border: "#A5F3FC" },
-      { id: "libre", label: "Libre", emoji: "☕", color: "#16A34A", bg: "#F0FDF4", text: "#14532D", border: "#86EFAC" },
-      { id: "guardia", label: "Guardia", emoji: "🛡️", color: "#D97706", bg: "#FFFBEB", text: "#92400E", border: "#FDE68A" }
+      { id: "jornada", label: "Jornada", emoji: "💼", color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
+      { id: "vacaciones", label: "Vacaciones", emoji: "🏖️", color: "#CA8A04", bg: "#FEFCE8", border: "#FDE047" },
+      { id: "asuntos", label: "Asuntos Propios", emoji: "📋", color: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE" },
+      { id: "sindical", label: "H. Sindicales", emoji: "📢", color: "#EF4444", bg: "#FFF1F2", border: "#FECDD3" },
+      { id: "permiso", label: "Permisos", emoji: "📝", color: "#6366F1", bg: "#EEF2FF", border: "#C7D2FE" },
+      { id: "excesos", label: "Excesos", emoji: "⏱️", color: "#0891B2", bg: "#ECFEFF", border: "#A5F3FC" },
+      { id: "libre", label: "Libre", emoji: "☕", color: "#16A34A", bg: "#F0FDF4", border: "#86EFAC" },
+      { id: "guardia", label: "Guardia", emoji: "🛡️", color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" }
     ];
 
     const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
     const DIAS_L = ["L","M","X","J","V","S","D"];
-
     const toDateKey = (y, m, d) => `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-
-    function BannerSemanal({ selected }) {
-      const hoy = new Date();
-      const hoyKey = toDateKey(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
-      const start = new Date(hoy);
-      const day = start.getDay();
-      const diff = start.getDate() - day + (day === 0 ? -6 : 1);
-      start.setDate(diff);
-      const dias = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date(start); d.setDate(start.getDate() + i);
-        return toDateKey(d.getFullYear(), d.getMonth(), d.getDate());
-      });
-
-      return (
-        <div style={{ background: "#1E293B", padding: "12px", borderRadius: "12px", marginBottom: "15px", color: "white" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "5px" }}>
-            {dias.map(dk => {
-              const data = selected[dk] || {};
-              const t = TIPOS.find(x => data[x.id] > 0);
-              return (
-                <div key={dk} style={{ textAlign: "center", padding: "5px", borderRadius: "8px", background: dk === hoyKey ? "#3B82F6" : "transparent" }}>
-                  <div style={{ fontSize: "9px", opacity: 0.6 }}>{DIAS_L[new Date(dk).getDay() === 0 ? 6 : new Date(dk).getDay()-1]}</div>
-                  <div style={{ fontSize: "12px", fontWeight: "bold" }}>{dk.split("-")[2]}</div>
-                  <div style={{ fontSize: "10px" }}>{t ? t.emoji : "·"}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
 
     function App() {
       const [year, setYear] = useState(2026);
       const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_vFinal_2026") || "{}"));
+      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("cuad_user") || '{"nombre":"Alfredo","ingreso":2010}'));
       const [edit, setEdit] = useState(null);
+      const [showUserModal, setShowUserModal] = useState(false);
       const [showPatron, setShowPatron] = useState(false);
 
       useEffect(() => { localStorage.setItem("cuad_vFinal_2026", JSON.stringify(selected)); }, [selected]);
+      useEffect(() => { localStorage.setItem("cuad_user", JSON.stringify(user)); }, [user]);
+
+      const antiguedad = year - user.ingreso;
+
+      // CÁLCULO DE LÍMITES POR ANTIGÜEDAD
+      const maxVacas = useMemo(() => {
+        if (antiguedad >= 30) return 26;
+        if (antiguedad >= 25) return 25;
+        if (antiguedad >= 20) return 24;
+        if (antiguedad >= 15) return 23;
+        return 22;
+      }, [antiguedad]);
+
+      const maxAsuntos = useMemo(() => {
+        let base = 6;
+        if (antiguedad >= 18) base += 2; // 6º Trienio
+        if (antiguedad >= 24) {
+           const trieniosExtra = Math.floor((antiguedad - 21) / 3); // A partir del 8º (24 años)
+           if (trieniosExtra > 0) base += (trieniosExtra - 1); 
+        }
+        return base;
+      }, [antiguedad]);
 
       const stats = useMemo(() => {
-        let j=0, v=0, e=0, g=0, a=0, s=0, p=0;
+        let j=0, v=0, a=0, s=0, p=0;
         Object.entries(selected).forEach(([key, d]) => {
           if(key.startsWith(year.toString())) {
             if(d.jornada) j += d.jornada/8; 
             if(d.vacaciones) v++; 
-            if(d.excesos) e += d.excesos; 
-            if(d.guardia) g++; 
             if(d.asuntos) a++;
             if(d.sindical) s += d.sindical;
             if(d.permiso) p++;
           }
         });
-        return { j, v, e, g, a, s, p };
+        return { j, v, a, s, p };
       }, [selected, year]);
 
       return (
         <div style={{ maxWidth: "1200px", margin: "auto" }}>
+          <div className="header-user" onClick={() => setShowUserModal(true)}>
+            <div>
+              <div style={{fontSize:"10px", opacity:0.8}}>PERFIL</div>
+              <div style={{fontWeight:"bold"}}>👤 Cuadrante {user.nombre}</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:"10px", opacity:0.8}}>ANTIGÜEDAD</div>
+              <div style={{fontWeight:"bold"}}>{antiguedad} años</div>
+            </div>
+          </div>
+
           <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <button onClick={() => setYear(y => y-1)} style={{fontSize:"20px", padding:"5px"}}>◀</button>
-              <div className="year-display">{year}</div>
+              <div style={{background:"#2563EB", color:"white", padding:"5px 15px", borderRadius:"10px", fontWeight:"bold"}}>{year}</div>
               <button onClick={() => setYear(y => y+1)} style={{fontSize:"20px", padding:"5px"}}>▶</button>
             </div>
-            <div style={{ textAlign: "right", fontSize: "12px", fontWeight: "bold" }}>
-               💼 Jornadas: {stats.j.toFixed(1)}
-            </div>
+            <div style={{ textAlign: "right", fontSize: "12px" }}>💼 Jornadas: <b>{stats.j.toFixed(1)}</b></div>
           </header>
 
-          <BannerSemanal selected={selected} />
-
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px" }}>
-             <button onClick={() => setShowPatron(true)} className="btn-primary" style={{background: "#7C3AED"}}>⚙️ Patrón</button>
+             <button onClick={() => setShowPatron(true)} className="btn-primary" style={{background: "#7C3AED"}}>⚙️ Patrón Ciclo</button>
              <button onClick={() => {
-                const data = JSON.stringify(selected);
-                navigator.clipboard.writeText(data);
+                navigator.clipboard.writeText(JSON.stringify(selected));
                 alert("Backup copiado!");
-             }} className="btn-sec">📤 Backup</button>
+             }} className="btn-sec">📤 Copiar Backup</button>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "15px" }}>
@@ -139,7 +133,6 @@
                       const dk = toDateKey(year, mi, d);
                       const data = selected[dk] || {};
                       const t = TIPOS.find(x => data[x.id] > 0);
-
                       return (
                         <button key={dk} onClick={() => setEdit({ dk, data })} 
                           style={{ 
@@ -149,7 +142,7 @@
                           }}
                         >
                           <span className="dia-num">{d}</span>
-                          {data.nota && <div style={{ position:"absolute", bottom:"2px", left:"50%", transform:"translateX(-50%)" }} className="dot-nota"></div>}
+                          {data.nota && <div style={{ position:"absolute", bottom:"2px", left:"50%", transform:"translateX(-50%)", width:"4px", height:"4px", background:"#64748B", borderRadius:"50%" }}></div>}
                         </button>
                       );
                     })}
@@ -160,44 +153,50 @@
           </div>
 
           <div className="card" style={{ marginTop: "20px", background: "#F8FAFC" }}>
-            <h4 style={{ marginBottom: "15px" }}>📊 Control Anual {year}</h4>
+            <h4 style={{ marginBottom: "15px" }}>📊 Derechos por Antigüedad {year}</h4>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "15px" }}>
               <div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}><span>🏖️ Vacaciones</span><span>{stats.v}</span></div>
-                <div className="progress-bar"><div className="progress-fill" style={{ width: `${Math.min(100, (stats.v/22)*100)}%`, background: "#CA8A04" }}></div></div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}><span>🏖️ Vacaciones</span><span>{stats.v} / {maxVacas}</span></div>
+                <div className="progress-bar"><div className="progress-fill" style={{ width: `${(stats.v/maxVacas)*100}%`, background: "#CA8A04" }}></div></div>
               </div>
               <div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}><span>📋 Asuntos</span><span>{stats.a}</span></div>
-                <div className="progress-bar"><div className="progress-fill" style={{ width: `${Math.min(100, (stats.a/6)*100)}%`, background: "#7C3AED" }}></div></div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}><span>📋 Asuntos</span><span>{stats.a} / {maxAsuntos}</span></div>
+                <div className="progress-bar"><div className="progress-fill" style={{ width: `${(stats.a/maxAsuntos)*100}%`, background: "#7C3AED" }}></div></div>
               </div>
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}><span>📢 Sindical</span><span>{stats.s}h</span></div>
                 <div className="progress-bar"><div className="progress-fill" style={{ width: `100%`, background: "#EF4444" }}></div></div>
               </div>
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}><span>📝 Permisos</span><span>{stats.p}</span></div>
-                <div className="progress-bar"><div className="progress-fill" style={{ width: `100%`, background: "#6366F1" }}></div></div>
-              </div>
             </div>
           </div>
+
+          {showUserModal && (
+            <div className="modal" onClick={() => setShowUserModal(false)}>
+              <div className="card" style={{ width: "320px" }} onClick={e => e.stopPropagation()}>
+                <h3>👤 Perfil de Usuario</h3>
+                <div style={{margin:"15px 0"}}>
+                  <label style={{fontSize:"12px"}}>Nombre:</label>
+                  <input type="text" value={user.nombre} onChange={e => setUser({...user, nombre: e.target.value})} style={{marginBottom:"10px"}}/>
+                  <label style={{fontSize:"12px"}}>Año de Ingreso:</label>
+                  <input type="number" value={user.ingreso} onChange={e => setUser({...user, ingreso: parseInt(e.target.value) || 2010})} />
+                </div>
+                <div style={{background:"#F1F5F9", padding:"10px", borderRadius:"8px", marginBottom:"15px", fontSize:"13px"}}>
+                  🏠 Antigüedad: <b>{antiguedad} años</b><br/>
+                  🏖️ Máx. Vacaciones: <b>{maxVacas} días</b><br/>
+                  📋 Máx. Asuntos: <b>{maxAsuntos} días</b>
+                </div>
+                <button onClick={() => setShowUserModal(false)} className="btn-primary">Aceptar</button>
+              </div>
+            </div>
+          )}
 
           {edit && (
             <div className="modal" onClick={() => setEdit(null)}>
               <div className="card" style={{ width: "320px", maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
                 <h3>Editar {edit.dk}</h3>
-                <div style={{ display: "flex", gap: "10px", margin: "15px 0" }}>
-                   <div style={{flex:1}}>
-                     <label style={{fontSize:"10px"}}>Inicio</label>
-                     <input type="time" value={edit.data.inicio || "08:00"} onChange={e => setEdit({...edit, data: {...edit.data, inicio: e.target.value}})} />
-                   </div>
-                   <div style={{flex:1}}>
-                     <label style={{fontSize:"10px"}}>Fin</label>
-                     <input type="time" value={edit.data.fin || "15:00"} onChange={e => setEdit({...edit, data: {...edit.data, fin: e.target.value}})} />
-                   </div>
-                </div>
                 {TIPOS.map(t => (
                   <div key={t.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", alignItems: "center" }}>
-                    <span style={{fontSize:"14px"}}>{t.emoji} {t.label}</span>
+                    <span>{t.emoji} {t.label}</span>
                     <input type="number" style={{width:"60px"}} value={edit.data[t.id] || 0} onChange={e => setEdit({...edit, data: {...edit.data, [t.id]: parseInt(e.target.value) || 0}})} />
                   </div>
                 ))}
@@ -210,27 +209,24 @@
           {showPatron && (
             <div className="modal" onClick={() => setShowPatron(false)}>
               <div className="card" style={{ width: "320px" }} onClick={e => e.stopPropagation()}>
-                <h3>⚙️ Configuración</h3>
-                <label style={{fontSize:"11px", marginTop:"10px", display:"block"}}>Fecha inicio ciclo 1/4:</label>
-                <input type="date" id="startP" defaultValue={`${year}-01-02`} style={{marginBottom:"15px"}} />
+                <h3>⚙️ Aplicar Ciclo 1/4</h3>
+                <input type="date" id="startP" defaultValue={`${year}-01-02`} style={{margin:"15px 0"}} />
                 <button onClick={() => {
-                  const startInput = document.getElementById("startP").value;
-                  const start = new Date(startInput);
+                  const start = new Date(document.getElementById("startP").value);
                   let newS = {...selected};
                   while(start.getFullYear() === year) {
                     newS[toDateKey(year, start.getMonth(), start.getDate())] = { jornada: 24 };
                     start.setDate(start.getDate() + 5);
                   }
                   setSelected(newS); setShowPatron(false);
-                }} className="btn-primary">Aplicar Ciclo</button>
+                }} className="btn-primary">Aplicar</button>
                 <button onClick={() => {
-                  if(confirm("¿Borrar año?")) {
-                    let newS = {...selected};
-                    Object.keys(newS).forEach(key => { if(key.startsWith(year.toString())) delete newS[key]; });
-                    setSelected(newS); setShowPatron(false);
-                  }
-                }} className="btn-sec" style={{marginTop:"20px", color:"#DC2626"}}>🗑️ Resetear Año</button>
-                <button onClick={() => setShowPatron(false)} className="btn-sec" style={{marginTop:"10px"}}>Cerrar</button>
+                   if(confirm("¿Resetear?")) {
+                     let newS = {...selected};
+                     Object.keys(newS).forEach(k => { if(k.startsWith(year.toString())) delete newS[k] });
+                     setSelected(newS); setShowPatron(false);
+                   }
+                }} className="btn-sec" style={{marginTop:"10px", color:"red"}}>Resetear Año</button>
               </div>
             </div>
           )}
