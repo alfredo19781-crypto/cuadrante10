@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gestor de Cuadrante 2026</title>
+  <title>Cuadrante 2026</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -103,9 +103,9 @@
         <div style={{ maxWidth: "1200px", margin: "auto" }}>
           <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <button onClick={() => setYear(y => y-1)} style={{fontSize:"20px"}}>◀</button>
+              <button onClick={() => setYear(y => y-1)} style={{fontSize:"20px", padding:"5px"}}>◀</button>
               <div className="year-display">{year}</div>
-              <button onClick={() => setYear(y => y+1)} style={{fontSize:"20px"}}>▶</button>
+              <button onClick={() => setYear(y => y+1)} style={{fontSize:"20px", padding:"5px"}}>▶</button>
             </div>
             <div style={{ textAlign: "right", fontSize: "12px", fontWeight: "bold" }}>
                💼 Jornadas: {stats.j.toFixed(1)}
@@ -158,17 +158,16 @@
             })}
           </div>
 
-          {/* RESUMEN DE PERMISOS Y VACACIONES */}
           <div className="card" style={{ marginTop: "20px", background: "#F8FAFC" }}>
             <h4 style={{ marginBottom: "15px" }}>📊 Control de Tiempos {year}</h4>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "15px" }}>
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}><span>🏖️ Vacaciones</span><span>{stats.v}</span></div>
-                <div className="progress-bar"><div className="progress-fill" style={{ width: `${(stats.v/22)*100}%`, background: "#CA8A04" }}></div></div>
+                <div className="progress-bar"><div className="progress-fill" style={{ width: `${Math.min(100, (stats.v/22)*100)}%`, background: "#CA8A04" }}></div></div>
               </div>
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}><span>📋 Asuntos</span><span>{stats.a}</span></div>
-                <div className="progress-bar"><div className="progress-fill" style={{ width: `${(stats.a/6)*100}%`, background: "#7C3AED" }}></div></div>
+                <div className="progress-bar"><div className="progress-fill" style={{ width: `${Math.min(100, (stats.a/6)*100)}%`, background: "#7C3AED" }}></div></div>
               </div>
               <div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}><span>📢 Sindical</span><span>{stats.s}h</span></div>
@@ -179,7 +178,7 @@
                 <div className="progress-bar"><div className="progress-fill" style={{ width: `100%`, background: "#6366F1" }}></div></div>
               </div>
             </div>
-          </header>
+          </div>
 
           {edit && (
             <div className="modal" onClick={() => setEdit(null)}>
