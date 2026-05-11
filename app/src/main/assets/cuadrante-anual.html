@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cuadrante Alfredo V.Ficha</title>
+  <title>Cuadrante Alfredo V.Oficial</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -19,12 +19,13 @@
     label { font-size: 12px; font-weight: bold; color: #64748B; }
     .btn-primary { background: #2563EB; color: white; padding: 12px; border-radius: 8px; font-weight: bold; width: 100%; }
     .btn-sec { background: #F1F5F9; color: #64748B; padding: 10px; border-radius: 8px; width: 100%; }
-    .dia-btn { aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; border: 1px solid #E2E8F0; background: white; }
+    .dia-btn { aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; border: 1px solid #E2E8F0; background: white; position: relative; }
     .header-user { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .btn-gear { background: #1E293B; color: white; width: 45px; height: 45px; border-radius: 12px; font-size: 24px; display: flex; align-items: center; justify-content: center; }
     .stats-bar { background: #2563EB; color: white; padding: 12px; border-radius: 12px; display: grid; grid-template-columns: 1fr 1fr 1fr; text-align: center; margin-bottom: 10px; }
     .stat-val { font-size: 16px; font-weight: bold; display: block; }
     .section-title { font-size: 14px; font-weight: bold; margin: 15px 0 8px 0; border-bottom: 2px solid #F1F5F9; padding-bottom: 4px; color: #1E293B; }
+    .badge-sindical { position: absolute; top: -2px; right: -2px; background: #EF4444; color: white; font-size: 7px; padding: 1px 3px; border-radius: 4px; }
   </style>
 </head>
 <body>
@@ -38,42 +39,42 @@
 
     function App() {
       const [year, setYear] = useState(2026);
-      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v4") || "{}"));
-      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v4") || '{"nombre":"Alfredo","ingreso":2010,"periodos":[]}'));
+      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_vFinal") || "{}"));
+      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_vFinal") || '{"nombre":"Alfredo","ingreso":2010,"periodos":[]}'));
       const [edit, setEdit] = useState(null);
       const [showGear, setShowGear] = useState(false);
 
-      useEffect(() => { localStorage.setItem("cuad_alfredo_v4", JSON.stringify(selected)); }, [selected]);
-      useEffect(() => { localStorage.setItem("user_alfredo_v4", JSON.stringify(user)); }, [user]);
+      useEffect(() => { localStorage.setItem("cuad_alfredo_vFinal", JSON.stringify(selected)); }, [selected]);
+      useEffect(() => { localStorage.setItem("user_alfredo_vFinal", JSON.stringify(user)); }, [user]);
 
-      // LÓGICA DE ANTIGÜEDAD Y DERECHOS
       const antiguedad = year - user.ingreso;
       const extraVacas = antiguedad >= 30 ? 4 : antiguedad >= 25 ? 3 : antiguedad >= 20 ? 2 : antiguedad >= 15 ? 1 : 0;
-      const extraAsuntos = useMemo(() => {
-        let e = 0;
-        if (antiguedad >= 18) e += 2;
-        if (antiguedad >= 24) e += Math.floor((antiguedad - 21) / 3);
-        return e;
-      }, [antiguedad]);
-
-      const jornadasObj = 193 - extraVacas;
-      const totalAsuntosPermitidos = 6 + extraAsuntos;
+      const extraAsuntos = antiguedad >= 18 ? (antiguedad >= 24 ? 2 + Math.floor((antiguedad-21)/3) : 2) : 0;
       
+      const jornadasObj = 193 - extraVacas;
+      const totalAsuntosDisponibles = 6 + extraAsuntos;
+
       const isVacation = (dk) => user.periodos.some(p => dk >= p.inicio && dk <= p.fin);
 
+      // ESTADÍSTICAS GLOBALES Y POR MES
       const stats = useMemo(() => {
-        let jReal = 0, vCons = 0, sHoras = 0, aHoras = 0;
+        let jReal = 0, vCons = 0, aDias = 0;
+        let sindicalPorMes = Array(12).fill(0);
+
         Object.entries(selected).forEach(([dk, data]) => {
           if(!dk.startsWith(year.toString())) return;
+          const fecha = new Date(dk);
+          const mesIndex = fecha.getMonth();
+
           if (isVacation(dk)) {
             if(data.jornada > 0) vCons++;
           } else {
             if(data.jornada) jReal += data.jornada / 8;
-            if(data.sindical) sHoras += data.sindical;
-            if(data.asuntos) aHoras += data.asuntos;
+            if(data.sindical) sindicalPorMes[mesIndex] += data.sindical;
+            if(data.asuntos) aDias += 1; // Se cuenta como día completo (8h)
           }
         });
-        return { jReal, vCons, sHoras, aHoras, exceso: jReal - jornadasObj };
+        return { jReal, vCons, aDias, sindicalPorMes, exceso: jReal - jornadasObj };
       }, [selected, year, user.periodos, jornadasObj]);
 
       const aplicarCiclo = () => {
@@ -81,12 +82,9 @@
         const horas = parseInt(document.getElementById('cHoras').value);
         const dTrabajo = parseInt(document.getElementById('cDW').value);
         const dDescanso = parseInt(document.getElementById('cDD').value);
-        
         let newSelected = {...selected};
         let curr = new Date(startStr);
-        const endYear = new Date(year, 11, 31);
-
-        while(curr <= endYear) {
+        while(curr.getFullYear() <= year) {
           for(let i=0; i<dTrabajo; i++) {
             if(curr.getFullYear() === year) newSelected[toDateKey(year, curr.getMonth(), curr.getDate())] = { jornada: horas };
             curr.setDate(curr.getDate() + 1);
@@ -104,30 +102,31 @@
         <div>
           <div className="header-user">
             <div>
-              <h2 style={{fontSize:'18px'}}>Cuadrante {user.nombre}</h2>
-              <p style={{fontSize:'12px', opacity:0.7}}>Antigüedad: {antiguedad} años</p>
+              <h2 style={{fontSize:'18px'}}>👤 {user.nombre}</h2>
+              <p style={{fontSize:'12px', opacity:0.7}}>{year} | {antiguedad} años ant.</p>
             </div>
             <button className="btn-gear" onClick={() => setShowGear(true)}>⚙️</button>
           </div>
 
           <div className="stats-bar">
-            <div><span style={{fontSize:'10px'}}>OBJETIVO</span><span className="stat-val">{jornadasObj}</span></div>
-            <div><span style={{fontSize:'10px'}}>REALIZADO</span><span className="stat-val">{stats.jReal.toFixed(1)}</span></div>
+            <div><span style={{fontSize:'10px'}}>DEUDA</span><span className="stat-val">{jornadasObj}</span></div>
+            <div><span style={{fontSize:'10px'}}>TRABAJADO</span><span className="stat-val">{stats.jReal.toFixed(1)}</span></div>
             <div style={{color: stats.exceso > 0 ? '#4ADE80' : 'white'}}>
-              <span style={{fontSize:'10px'}}>EXCESO</span><span className="stat-val">{stats.exceso > 0 ? `+${stats.exceso.toFixed(1)}` : stats.exceso.toFixed(1)}</span>
+              <span style={{fontSize:'10px'}}>BALANCE</span><span className="stat-val">{stats.exceso > 0 ? `+${stats.exceso.toFixed(1)}` : stats.exceso.toFixed(1)}</span>
             </div>
           </div>
 
-          <div style={{display:'flex', gap:'10px', marginBottom:'10px'}}>
-            <button onClick={()=>setYear(y=>y-1)} className="btn-sec" style={{width:'50px'}}>◀</button>
-            <div className="card" style={{flex:1, textAlign:'center', fontWeight:'bold', display:'flex', alignItems:'center', justifyContent:'center'}}>{year}</div>
-            <button onClick={()=>setYear(y=>y+1)} className="btn-sec" style={{width:'50px'}}>▶</button>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "10px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "12px" }}>
             {MESES.map((nombre, mi) => (
               <div key={mi} className="card">
-                <h4 style={{ color: "#2563EB", marginBottom: "5px", fontSize: "14px" }}>{nombre}</h4>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'5px'}}>
+                  <h4 style={{ color: "#2563EB", fontSize: "14px" }}>{nombre}</h4>
+                  {stats.sindicalPorMes[mi] > 0 && (
+                    <span style={{fontSize:'10px', color: stats.sindicalPorMes[mi] > 20 ? 'red' : '#7C3AED', fontWeight:'bold'}}>
+                      Sind: {stats.sindicalPorMes[mi]}h/20
+                    </span>
+                  )}
+                </div>
                 <div className="grid-cal">
                   {DIAS_L.map(l => <div key={l} style={{ textAlign: "center", fontSize: "10px", opacity: 0.4 }}>{l}</div>)}
                   {Array(new Date(year, mi, 1).getDay() === 0 ? 6 : new Date(year, mi, 1).getDay() - 1).fill(0).map((_, i) => <div key={i} />)}
@@ -136,17 +135,16 @@
                     const data = selected[dk] || {};
                     const vacas = isVacation(dk);
                     let bg = "white";
-                    let border = "#E2E8F0";
-                    if(vacas) { bg = "#FDE047"; border = "#CA8A04"; }
-                    else if(data.jornada) { bg = "#FEF2F2"; border = "#FECACA"; }
-                    else if(data.descanso) { bg = "#F0FDF4"; border = "#86EFAC"; }
-                    else if(data.asuntos || data.sindical) { bg = "#F5F3FF"; border = "#DDD6FE"; }
+                    if(vacas) bg = "#FDE047";
+                    else if(data.jornada) bg = "#FEF2F2";
+                    else if(data.descanso) bg = "#F0FDF4";
+                    else if(data.asuntos || data.sindical) bg = "#F5F3FF";
 
                     return (
-                      <button key={dk} onClick={() => setEdit({ dk, data })} className="dia-btn" style={{ background: bg, borderColor: border }}>
+                      <button key={dk} onClick={() => setEdit({ dk, data })} className="dia-btn" style={{ background: bg }}>
                         <span>{d}</span>
                         {data.jornada > 0 && !vacas && <span style={{fontSize:'8px', color:'#DC2626', fontWeight:'bold'}}>{data.jornada}h</span>}
-                        {data.sindical > 0 && <span style={{fontSize:'7px', color:'#7C3AED'}}>S:{data.sindical}h</span>}
+                        {data.sindical > 0 && <div className="badge-sindical">{data.sindical}h</div>}
                       </button>
                     );
                   })}
@@ -155,82 +153,73 @@
             ))}
           </div>
 
-          {/* MODAL CONFIGURACION / FICHA */}
           {showGear && (
             <div className="modal" onClick={() => setShowGear(false)}>
               <div className="modal-content" onClick={e => e.stopPropagation()}>
-                <h3 style={{marginBottom:'10px'}}>⚙️ Configuración</h3>
+                <h3 style={{marginBottom:'15px'}}>⚙️ Configuración Oficial</h3>
                 
-                <section className="card" style={{background:'#F1F5F9', marginBottom:'15px'}}>
+                <section className="card" style={{background:'#F8FAFC', marginBottom:'10px'}}>
                   <div className="section-title" style={{marginTop:0}}>👤 MI FICHA</div>
-                  <label>Nombre Completo:</label>
-                  <input type="text" value={user.nombre} onChange={e => setUser({...user, nombre: e.target.value})} />
-                  <label>Año de Ingreso:</label>
-                  <input type="number" value={user.ingreso} onChange={e => setUser({...user, ingreso: parseInt(e.target.value)||2010})} />
-                  <div style={{marginTop:'10px', fontSize:'12px', color:'#2563EB'}}>
-                    • Antigüedad: <b>{antiguedad} años</b><br/>
-                    • Vacaciones: 22 + <b>{extraVacas}</b> extra<br/>
-                    • Asuntos: 6 + <b>{extraAsuntos}</b> canosos
+                  <label>Nombre:</label><input type="text" value={user.nombre} onChange={e => setUser({...user, nombre: e.target.value})} />
+                  <label>Año Ingreso:</label><input type="number" value={user.ingreso} onChange={e => setUser({...user, ingreso: parseInt(e.target.value)||2010})} />
+                </section>
+
+                <section className="card" style={{marginBottom:'10px'}}>
+                  <div className="section-title">📊 CONTROL DE CUPOS</div>
+                  <div style={{fontSize:'13px', display:'grid', gap:'5px'}}>
+                    <div style={{display:'flex', justifyContent:'space-between'}}>
+                      <span>📋 Asuntos Propios:</span>
+                      <b>{stats.aDias} / {totalAsuntosDisponibles} días</b>
+                    </div>
+                    <div style={{display:'flex', justifyContent:'space-between'}}>
+                      <span>📢 Crédito Sindical:</span>
+                      <span>Máx. <b>20h / mes</b></span>
+                    </div>
+                    <div style={{fontSize:'11px', color:'#64748B'}}>
+                      * Los asuntos se descuentan como días completos (8h).
+                    </div>
                   </div>
                 </section>
 
-                <div className="section-title">⚙️ PATRÓN DE TRABAJO</div>
-                <div style={{display:'grid', gap:'5px'}}>
-                  <label>Inicio del Ciclo:</label>
-                  <input type="date" id="cStart" defaultValue={`${year}-01-02`} />
-                  <div style={{display:'flex', gap:'5px'}}>
-                    <div style={{flex:1}}>
-                      <label>Horas:</label>
-                      <select id="cHoras">
-                        <option value="24">24h</option>
-                        <option value="12">12h</option>
-                      </select>
-                    </div>
-                    <div style={{flex:1}}><label>Días Trab.:</label><input type="number" id="cDW" defaultValue="1" /></div>
-                    <div style={{flex:1}}><label>Días Desc.:</label><input type="number" id="cDD" defaultValue="4" /></div>
-                  </div>
-                  <button onClick={aplicarCiclo} className="btn-primary" style={{marginTop:'5px'}}>Aplicar Patrón al Calendario</button>
+                <div className="section-title">⚙️ PATRÓN CICLO TRABAJO</div>
+                <input type="date" id="cStart" defaultValue={`${year}-01-02`} />
+                <div style={{display:'flex', gap:'5px', marginTop:'5px'}}>
+                  <select id="cHoras"><option value="24">24h</option><option value="12">12h</option></select>
+                  <input type="number" id="cDW" placeholder="Trab." defaultValue="1" />
+                  <input type="number" id="cDD" placeholder="Desc." defaultValue="4" />
                 </div>
+                <button onClick={aplicarCiclo} className="btn-primary" style={{marginTop:'10px'}}>Aplicar al Calendario</button>
 
-                <div className="section-title">🏖️ PERIODOS VACACIONALES</div>
+                <div className="section-title">🏖️ VACACIONES</div>
                 {user.periodos.map(p => (
                   <div key={p.id} style={{display:'flex', gap:'5px', marginBottom:'5px'}}>
                     <input type="date" value={p.inicio} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, inicio:e.target.value}:x)})} />
                     <input type="date" value={p.fin} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, fin:e.target.value}:x)})} />
-                    <button onClick={()=>setUser({...user, periodos: user.periodos.filter(x=>x.id!==p.id)})} style={{color:'red', padding:'0 10px'}}>X</button>
+                    <button onClick={()=>setUser({...user, periodos: user.periodos.filter(x=>x.id!==p.id)})} style={{color:'red'}}>X</button>
                   </div>
                 ))}
                 <button onClick={()=>setUser({...user, periodos:[...user.periodos, {id:Date.now(), inicio:`${year}-08-01`, fin:`${year}-08-31`}]})} className="btn-sec">+ Añadir Periodo</button>
 
-                <button onClick={() => setShowGear(false)} className="btn-primary" style={{marginTop:'20px', background:'#1E293B'}}>Cerrar Ajustes</button>
+                <button onClick={() => setShowGear(false)} className="btn-primary" style={{marginTop:'20px', background:'#1E293B'}}>Guardar Cambios</button>
               </div>
             </div>
           )}
 
-          {/* MODAL EDICIÓN DÍA */}
           {edit && (
             <div className="modal" onClick={() => setEdit(null)}>
               <div className="modal-content" onClick={e => e.stopPropagation()}>
                 <h3>Día {edit.dk}</h3>
                 <div style={{display:'grid', gap:'12px', marginTop:'15px'}}>
-                  <div><label>💼 Jornada / Refuerzo (Horas):</label>
-                  <input type="number" value={edit.data.jornada || 0} onChange={e => setEdit({...edit, data: {...edit.data, jornada: parseInt(e.target.value)||0, descanso: false}})} /></div>
-                  
-                  <div><label>📢 Horas Sindicales (Max 20/año):</label>
-                  <input type="number" value={edit.data.sindical || 0} onChange={e => setEdit({...edit, data: {...edit.data, sindical: parseInt(e.target.value)||0}})} /></div>
-                  
-                  <div><label>📋 Horas Asuntos Propios:</label>
-                  <input type="number" value={edit.data.asuntos || 0} onChange={e => setEdit({...edit, data: {...edit.data, asuntos: parseInt(e.target.value)||0}})} /></div>
-                  
-                  <div><label>📝 Horas Permisos:</label>
-                  <input type="number" value={edit.data.permiso || 0} onChange={e => setEdit({...edit, data: {...edit.data, permiso: parseInt(e.target.value)||0}})} /></div>
-
+                  <div><label>💼 Jornada / Refuerzo (h):</label><input type="number" value={edit.data.jornada || 0} onChange={e => setEdit({...edit, data: {...edit.data, jornada: parseInt(e.target.value)||0, descanso: false}})} /></div>
+                  <div><label>📢 Horas Sindicales (Máx 20h/mes):</label><input type="number" value={edit.data.sindical || 0} onChange={e => setEdit({...edit, data: {...edit.data, sindical: parseInt(e.target.value)||0}})} /></div>
+                  <div><label>📋 Asuntos Propios (Anotar horario):</label><input type="text" placeholder="Ej: 08:00 a 16:00" value={edit.data.asuntos_nota || ""} onChange={e => setEdit({...edit, data: {...edit.data, asuntos_nota: e.target.value, asuntos: e.target.value ? 8 : 0}})} /></div>
                   <div style={{display:'flex', alignItems:'center', gap:'10px', background:'#F0FDF4', padding:'10px', borderRadius:'8px'}}>
                     <input type="checkbox" checked={edit.data.descanso || false} onChange={e => setEdit({...edit, data: {...edit.data, descanso: e.target.checked, jornada: 0}})} style={{width:'20px'}} />
-                    <label style={{margin:0}}>Día de Descanso (Verde)</label>
+                    <label style={{margin:0}}>Es Día de Descanso</label>
                   </div>
+                  <textarea placeholder="Otras notas..." value={edit.data.nota || ""} onChange={e => setEdit({...edit, data: {...edit.data, nota: e.target.value}})} />
                 </div>
-                <button onClick={() => { setSelected({...selected, [edit.dk]: edit.data}); setEdit(null); }} className="btn-primary" style={{marginTop:'15px'}}>Guardar</button>
+                <button onClick={() => { setSelected({...selected, [edit.dk]: edit.data}); setEdit(null); }} className="btn-primary" style={{marginTop:'15px'}}>Guardar Día</button>
               </div>
             </div>
           )}
