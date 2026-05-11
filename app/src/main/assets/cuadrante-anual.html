@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cuadrante Alfredo V9.5.1</title>
+  <title>Cuadrante Alfredo V9.6</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
-    :root { --primary: #2563EB; --danger: #EF4444; --success: #22C55E; --dark: #1E293B; --bg: #F1F5F9; --ap: #F59E0B; }
+    :root { --primary: #2563EB; --danger: #EF4444; --success: #22C55E; --dark: #1E293B; --bg: #F1F5F9; --ap-color: #FFD700; }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--dark); padding: 10px; }
     
@@ -26,12 +26,15 @@
     
     .row-config { background: #F8FAFC; padding: 10px; border-radius: 12px; border: 1px solid #E2E8F0; margin-bottom: 10px; }
     .inputs-group { display: flex; align-items: center; gap: 5px; margin-bottom: 10px; }
-    .actions-group { display: flex; gap: 8px; }
-    .btn-apply { background: var(--success); color: white; flex: 3; padding: 10px; border-radius: 8px; font-weight: bold; border: none; font-size: 12px; }
-    .btn-del { background: var(--danger); color: white; flex: 1; padding: 10px; border-radius: 8px; border: none; }
+    .btn-del { background: var(--danger); color: white; padding: 10px; border-radius: 8px; border: none; flex: 1; }
 
-    .dia-btn { aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 13px; border: 1px solid #F1F5F9; background: white; position: relative; }
-    .badge-ap { position: absolute; top: 1px; left: 1px; font-size: 9px; background: var(--ap); color: white; padding: 1px 3px; border-radius: 4px; font-weight: bold; }
+    .dia-btn { aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 13px; border: 1px solid #F1F5F9; background: white; position: relative; overflow: hidden; }
+    
+    /* Rayas de AP */
+    .ap-line { position: absolute; left: 0; right: 0; height: 4px; background: var(--ap-color); z-index: 5; }
+    .ap-M { top: 0; }
+    .ap-T { top: calc(50% - 2px); }
+    .ap-N { bottom: 0; }
   </style>
 </head>
 <body>
@@ -45,47 +48,59 @@
 
     function App() {
       const year = 2026;
-      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v951") || "{}"));
-      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v951") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[]}'));
+      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v96") || "{}"));
+      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v96") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[]}'));
       const [showGear, setShowGear] = useState(false);
       const [edit, setEdit] = useState(null);
 
-      useEffect(() => { localStorage.setItem("cuad_alfredo_v951", JSON.stringify(selected)); }, [selected]);
-      useEffect(() => { localStorage.setItem("user_alfredo_v951", JSON.stringify(user)); }, [user]);
+      useEffect(() => { localStorage.setItem("cuad_alfredo_v96", JSON.stringify(selected)); }, [selected]);
+      useEffect(() => { localStorage.setItem("user_alfredo_v96", JSON.stringify(user)); }, [user]);
 
-      // NUEVA LÓGICA DE DÍAS AP SEGÚN TU TABLA
       const diasAP_Totales = useMemo(() => {
         const ant = year - user.ingreso;
         let base = 6;
-        if (ant >= 30) base += 5; // 10º trienio
-        else if (ant >= 27) base += 4; // 9º trienio
-        else if (ant >= 24) base += 3; // 8º trienio
-        else if (ant >= 21) base += 2; // 7º trienio
-        else if (ant >= 18) base += 2; // 6º trienio
+        if (ant >= 30) base += 5;
+        else if (ant >= 27) base += 4;
+        else if (ant >= 24) base += 3;
+        else if (ant >= 21) base += 2;
+        else if (ant >= 18) base += 2;
         return base;
-      }, [user.ingreso, year]);
+      }, [user.ingreso]);
 
-      const isVacation = (dk) => {
-        return user.periodos.some(p => {
-          if(!p.mIni || !p.dIni || !p.mFin || !p.dFin) return false;
-          const inicio = `${year}-${String(p.mIni).padStart(2,'0')}-${String(p.dIni).padStart(2,'0')}`;
-          const fin = `${year}-${String(p.mFin).padStart(2,'0')}-${String(p.dFin).padStart(2,'0')}`;
-          return dk >= inicio && dk <= fin;
-        });
-      };
+      const isVacation = (dk) => user.periodos.some(p => {
+        if(!p.mIni || !p.dIni || !p.mFin || !p.dFin) return false;
+        const inicio = `${year}-${String(p.mIni).padStart(2,'0')}-${String(p.dIni).padStart(2,'0')}`;
+        const fin = `${year}-${String(p.mFin).padStart(2,'0')}-${String(p.dFin).padStart(2,'0')}`;
+        return dk >= inicio && dk <= fin;
+      });
 
-      const isAP = (dk) => user.ap.some(a => a.dia && a.mes && toDateKey(year, a.mes-1, a.dia) === dk);
+      const getAPForDay = (dk) => user.ap.filter(a => a.dia && a.mes && toDateKey(year, a.mes-1, a.dia) === dk);
 
       const stats = useMemo(() => {
         let totalJ = 0;
         Object.entries(selected).forEach(([dk, data]) => {
-          if(dk.startsWith("2026") && data.jornada && !isVacation(dk) && !isAP(dk)) totalJ += (data.jornada/8);
+          if(dk.startsWith("2026") && data.jornada && !isVacation(dk)) totalJ += (data.jornada/8);
         });
-        const totalConAP = totalJ + user.ap.filter(a => a.dia && a.mes).length;
         const ant = year - user.ingreso;
         const extraVacas = ant >= 30 ? 4 : ant >= 25 ? 3 : ant >= 20 ? 2 : ant >= 15 ? 1 : 0;
-        return { real: totalConAP, obj: 193 - extraVacas };
-      }, [selected, user, year]);
+        return { real: totalJ, obj: 193 - extraVacas };
+      }, [selected, user]);
+
+      const updateAP = (id, field, value) => {
+        const item = user.ap.find(x => x.id === id);
+        if (field === 'turno' || field === 'dia' || field === 'mes') {
+          const newItem = { ...item, [field]: value };
+          if (newItem.dia && newItem.mes && newItem.turno) {
+            const dateKey = toDateKey(year, newItem.mes-1, newItem.dia);
+            const exists = user.ap.some(a => a.id !== id && a.dia === newItem.dia && a.mes === newItem.mes && a.turno === newItem.turno);
+            if (exists) {
+              alert("Ya tienes solicitado ese turno para ese día.");
+              return;
+            }
+          }
+        }
+        setUser({ ...user, ap: user.ap.map(x => x.id === id ? { ...x, [field]: value } : x) });
+      };
 
       const aplicarCiclo = () => {
         const startVal = document.getElementById('cStart').value;
@@ -98,13 +113,11 @@
           if(curr.getFullYear() === year) {
             for(let i=0; i<dw; i++){ 
                const d = toDateKey(year, curr.getMonth(), curr.getDate());
-               newS[d] = {jornada: h}; 
-               curr.setDate(curr.getDate()+1); 
+               newS[d] = {jornada: h}; curr.setDate(curr.getDate()+1); 
             }
             for(let i=0; i<dd; i++){ 
                const d = toDateKey(year, curr.getMonth(), curr.getDate());
-               newS[d] = {descanso: true}; 
-               curr.setDate(curr.getDate()+1); 
+               newS[d] = {descanso: true}; curr.setDate(curr.getDate()+1); 
             }
           } else { curr.setDate(curr.getDate()+1); }
         }
@@ -135,14 +148,14 @@
                   {Array.from({ length: new Date(year, mi + 1, 0).getDate() }, (_, i) => i + 1).map(d => {
                     const dk = toDateKey(year, mi, d);
                     const v = isVacation(dk);
-                    const ap = isAP(dk);
+                    const aps = getAPForDay(dk);
                     const data = selected[dk] || {};
-                    let bg = v ? "#FEF9C3" : (ap ? "#FFEDD5" : (data.jornada ? "#FEE2E2" : (data.descanso ? "#DCFCE7" : "white")));
+                    let bg = v ? "#FEF9C3" : (data.jornada ? "#FEE2E2" : (data.descanso ? "#DCFCE7" : "white"));
                     return (
                       <button key={dk} className="dia-btn" style={{background: bg}} onClick={() => setEdit({dk, data})}>
                         {d}
-                        {ap && <span className="badge-ap">AP</span>}
-                        {data.jornada > 0 && !v && !ap && <span style={{fontSize:'9px', color:'red', fontWeight:'bold'}}>{data.jornada}h</span>}
+                        {aps.map(a => <div key={a.id} className={`ap-line ap-${a.turno}`} />)}
+                        {data.jornada > 0 && !v && <span style={{fontSize:'9px', color:'red', fontWeight:'bold', zIndex:10}}>{data.jornada}h</span>}
                       </button>
                     )
                   })}
@@ -156,14 +169,7 @@
               <div className="modal-content" onClick={e => e.stopPropagation()}>
                 <h2 style={{marginBottom:'15px', fontSize:'18px'}}>Configuración</h2>
                 
-                <div className="card">
-                  <label>Nombre y Año Ingreso</label>
-                  <div style={{display:'flex', gap:'5px'}}>
-                    <input type="text" value={user.nombre} onChange={e => setUser({...user, nombre: e.target.value})} />
-                    <input type="number" value={user.ingreso} onChange={e => setUser({...user, ingreso: parseInt(e.target.value)})} style={{width:'80px'}} />
-                  </div>
-                </div>
-
+                {/* CICLO */}
                 <div className="card">
                   <label>🔄 1. Ciclo de Trabajo</label>
                   <input type="date" id="cStart" defaultValue="2026-01-01" style={{margin:'8px 0'}} />
@@ -175,6 +181,7 @@
                   <button className="btn-primary" onClick={aplicarCiclo} style={{background: '#1E293B'}}>APLICAR CICLO</button>
                 </div>
 
+                {/* VACACIONES */}
                 <div className="card">
                   <label>🏖️ 2. Vacaciones</label>
                   {user.periodos.map(p => (
@@ -198,46 +205,40 @@
                           {Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
                         </select>
                       </div>
-                      <div className="actions-group">
-                        <button className="btn-apply" onClick={() => setShowGear(false)}>APLICAR</button>
-                        <button className="btn-del" onClick={() => setUser({...user, periodos: user.periodos.filter(x => x.id !== p.id)})}>🗑️</button>
-                      </div>
+                      <button className="btn-del" onClick={() => setUser({...user, periodos: user.periodos.filter(x => x.id !== p.id)})}>🗑️</button>
                     </div>
                   ))}
                   <button className="btn-primary" onClick={() => setUser({...user, periodos: [...user.periodos, {id:Date.now(), dIni:null, mIni:null, dFin:null, mFin:null}]})}>+ AÑADIR VACACIONES</button>
                 </div>
 
+                {/* ASUNTOS PROPIOS */}
                 <div className="card">
-                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px'}}>
-                    <label style={{margin:0}}>📂 3. Asuntos Propios</label>
-                    <span style={{fontSize:'12px', fontWeight:'bold', color:'var(--ap)'}}>Usados: {user.ap.filter(a=>a.dia).length} / {diasAP_Totales}</span>
+                  <div style={{display:'flex', justifyContent:'space-between', marginBottom:'10px'}}>
+                    <label>📂 3. Asuntos Propios</label>
+                    <span style={{fontSize:'12px', fontWeight:'bold'}}>Usados: {user.ap.filter(a=>a.dia).length} / {diasAP_Totales}</span>
                   </div>
                   {user.ap.map(a => (
                     <div key={a.id} className="row-config">
                       <div className="inputs-group">
-                        <select value={a.mes || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, mes:parseInt(e.target.value)}:x)})}>
+                        <select value={a.mes || ""} onChange={e => updateAP(a.id, 'mes', parseInt(e.target.value))}>
                           <option value="" disabled>—</option>
                           {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
                         </select>
-                        <select value={a.dia || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, dia:parseInt(e.target.value)}:x)})}>
+                        <select value={a.dia || ""} onChange={e => updateAP(a.id, 'dia', parseInt(e.target.value))}>
                           <option value="" disabled>—</option>
                           {Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
                         </select>
-                        <select value={a.turno || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, turno:e.target.value}:x)})}>
-                          <option value="" disabled>Horario</option>
-                          <option value="M">Mañana</option>
-                          <option value="T">Tarde</option>
-                          <option value="N">Noche</option>
-                          <option value="L">Libre</option>
+                        <select value={a.turno || ""} onChange={e => updateAP(a.id, 'turno', e.target.value)}>
+                          <option value="" disabled>T</option>
+                          <option value="M">M</option>
+                          <option value="T">T</option>
+                          <option value="N">N</option>
                         </select>
                       </div>
-                      <div className="actions-group">
-                        <button className="btn-apply" onClick={() => setShowGear(false)}>APLICAR</button>
-                        <button className="btn-del" onClick={() => setUser({...user, ap: user.ap.filter(x => x.id !== a.id)})}>🗑️</button>
-                      </div>
+                      <button className="btn-del" onClick={() => setUser({...user, ap: user.ap.filter(x => x.id !== a.id)})}>🗑️</button>
                     </div>
                   ))}
-                  <button className="btn-primary" style={{background:'var(--ap)'}} onClick={() => setUser({...user, ap: [...user.ap, {id:Date.now(), dia:null, mes:null, turno:null}]})}>+ AÑADIR ASUNTO</button>
+                  <button className="btn-primary" style={{background:'#F59E0B'}} onClick={() => setUser({...user, ap: [...user.ap, {id:Date.now(), dia:null, mes:null, turno:null}]})}>+ AÑADIR ASUNTO</button>
                 </div>
 
                 <button className="btn-primary" onClick={() => setShowGear(false)} style={{background:'#64748B'}}>CERRAR</button>
@@ -253,7 +254,7 @@
                   <label>Horas Jornada</label>
                   <input type="number" value={edit.data.jornada || 0} onChange={e => setEdit({...edit, data: {...edit.data, jornada: parseInt(e.target.value)||0, descanso:false}})} />
                   <div style={{marginTop:'15px', padding:'10px', background:'#f8f9fa', borderRadius:'10px', textAlign:'center'}}>
-                    <label>¿Es día de descanso?</label>
+                    <label>¿Es descanso?</label>
                     <input type="checkbox" checked={edit.data.descanso||false} onChange={e => setEdit({...edit, data:{...edit.data, descanso: e.target.checked, jornada:0}})} style={{width:'20px', height:'20px'}} />
                   </div>
                 </div>
