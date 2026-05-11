@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cuadrante Alfredo V9.7</title>
+  <title>Cuadrante Alfredo V9.8</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -47,13 +47,13 @@
 
     function App() {
       const year = 2026;
-      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v97") || "{}"));
-      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v97") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[]}'));
+      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v98") || "{}"));
+      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v98") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[]}'));
       const [showGear, setShowGear] = useState(false);
       const [edit, setEdit] = useState(null);
 
-      useEffect(() => { localStorage.setItem("cuad_alfredo_v97", JSON.stringify(selected)); }, [selected]);
-      useEffect(() => { localStorage.setItem("user_alfredo_v97", JSON.stringify(user)); }, [user]);
+      useEffect(() => { localStorage.setItem("cuad_alfredo_v98", JSON.stringify(selected)); }, [selected]);
+      useEffect(() => { localStorage.setItem("user_alfredo_v98", JSON.stringify(user)); }, [user]);
 
       const diasAP_Totales = useMemo(() => {
         const ant = year - user.ingreso;
@@ -91,7 +91,7 @@
           const newItem = { ...item, [field]: value };
           if (newItem.dia && newItem.mes && newItem.turno) {
             const exists = user.ap.some(a => a.id !== id && a.dia === newItem.dia && a.mes === newItem.mes && a.turno === newItem.turno);
-            if (exists) return; // No alert, simplemente no actualiza si está duplicado
+            if (exists) return; 
           }
         }
         setUser({ ...user, ap: user.ap.map(x => x.id === id ? { ...x, [field]: value } : x) });
@@ -117,7 +117,6 @@
           } else { curr.setDate(curr.getDate()+1); }
         }
         setSelected(newS);
-        setShowGear(false); // Cerramos el menú automáticamente para dar feedback visual
       };
 
       return (
@@ -221,7 +220,7 @@
                           {Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
                         </select>
                         <select value={a.turno || ""} onChange={e => updateAP(a.id, 'turno', e.target.value)}>
-                          <option value="" disabled>T</option>
+                          <option value="" disabled>—</option>
                           <option value="M">M</option>
                           <option value="T">T</option>
                           <option value="N">N</option>
