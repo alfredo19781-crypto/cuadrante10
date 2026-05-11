@@ -19,8 +19,9 @@
     .btn-sec { background: #F1F5F9; color: #64748B; padding: 10px; border-radius: 8px; font-weight: bold; width: 100%; }
     .header-user { background: #1E293B; color: white; padding: 10px 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; cursor: pointer; }
     .dia-num { color: #1E293B !important; font-size: 12px; }
-    .progress-bar { height: 8px; background: #E2E8F0; border-radius: 4px; overflow: hidden; margin-top: 4px; }
-    .progress-fill { height: 100%; transition: width 0.5s ease-out; }
+    .stats-main { background: #2563EB; color: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; display: flex; justify-content: space-around; text-align: center; }
+    .stat-val { font-size: 1.2rem; font-weight: bold; display: block; }
+    .stat-lbl { font-size: 0.7rem; opacity: 0.8; text-transform: uppercase; }
   </style>
 </head>
 <body>
@@ -29,14 +30,14 @@
     const { useState, useMemo, useEffect } = React;
 
     const TIPOS = [
-      { id: "jornada", label: "Jornada", emoji: "💼", color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
-      { id: "vacaciones", label: "Vacaciones", emoji: "🏖️", color: "#CA8A04", bg: "#FEFCE8", border: "#FDE047" },
-      { id: "asuntos", label: "Asuntos Propios", emoji: "📋", color: "#7C3AED", bg: "#F5F3FF", border: "#DDD6FE" },
-      { id: "sindical", label: "H. Sindicales", emoji: "📢", color: "#EF4444", bg: "#FFF1F2", border: "#FECDD3" },
-      { id: "permiso", label: "Permisos", emoji: "📝", color: "#6366F1", bg: "#EEF2FF", border: "#C7D2FE" },
-      { id: "excesos", label: "Excesos", emoji: "⏱️", color: "#0891B2", bg: "#ECFEFF", border: "#A5F3FC" },
-      { id: "libre", label: "Libre", emoji: "☕", color: "#16A34A", bg: "#F0FDF4", border: "#86EFAC" },
-      { id: "guardia", label: "Guardia", emoji: "🛡️", color: "#D97706", bg: "#FFFBEB", border: "#FDE68A" }
+      { id: "jornada", label: "Jornada", emoji: "💼", bg: "#FEF2F2", border: "#FECACA" },
+      { id: "vacaciones", label: "Vacaciones", emoji: "🏖️", bg: "#FEFCE8", border: "#FDE047" },
+      { id: "asuntos", label: "Asuntos Propios", emoji: "📋", bg: "#F5F3FF", border: "#DDD6FE" },
+      { id: "sindical", label: "H. Sindicales", emoji: "📢", bg: "#FFF1F2", border: "#FECDD3" },
+      { id: "permiso", label: "Permisos", emoji: "📝", bg: "#EEF2FF", border: "#C7D2FE" },
+      { id: "excesos", label: "Excesos", emoji: "⏱️", bg: "#ECFEFF", border: "#A5F3FC" },
+      { id: "libre", label: "Libre", emoji: "☕", bg: "#F0FDF4", border: "#86EFAC" },
+      { id: "guardia", label: "Guardia", emoji: "🛡️", bg: "#FFFBEB", border: "#FDE68A" }
     ];
 
     const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
@@ -56,24 +57,25 @@
 
       const antiguedad = year - user.ingreso;
 
-      // CÁLCULO DE LÍMITES POR ANTIGÜEDAD
-      const maxVacas = useMemo(() => {
-        if (antiguedad >= 30) return 26;
-        if (antiguedad >= 25) return 25;
-        if (antiguedad >= 20) return 24;
-        if (antiguedad >= 15) return 23;
-        return 22;
+      // 1. Días extra de vacaciones por antigüedad
+      const diasExtraVacas = useMemo(() => {
+        if (antiguedad >= 30) return 4;
+        if (antiguedad >= 25) return 3;
+        if (antiguedad >= 20) return 2;
+        if (antiguedad >= 15) return 1;
+        return 0;
       }, [antiguedad]);
 
-      const maxAsuntos = useMemo(() => {
-        let base = 6;
-        if (antiguedad >= 18) base += 2; // 6º Trienio
-        if (antiguedad >= 24) {
-           const trieniosExtra = Math.floor((antiguedad - 21) / 3); // A partir del 8º (24 años)
-           if (trieniosExtra > 0) base += (trieniosExtra - 1); 
-        }
-        return base;
+      // 2. Días extra de Asuntos Propios (Canosos)
+      const diasExtraAsuntos = useMemo(() => {
+        let extra = 0;
+        if (antiguedad >= 18) extra += 2;
+        if (antiguedad >= 24) extra += Math.floor((antiguedad - 21) / 3);
+        return extra;
       }, [antiguedad]);
+
+      // 3. Cálculo de Jornadas Objetivo (193 - días extra vacas)
+      const jornadasObjetivo = 193 - diasExtraVacas;
 
       const stats = useMemo(() => {
         let j=0, v=0, a=0, s=0, p=0;
@@ -83,41 +85,47 @@
             if(d.vacaciones) v++; 
             if(d.asuntos) a++;
             if(d.sindical) s += d.sindical;
-            if(d.permiso) p++;
           }
         });
-        return { j, v, a, s, p };
-      }, [selected, year]);
+        return { j, v, a, s, exceso: j - jornadasObjetivo };
+      }, [selected, year, jornadasObjetivo]);
 
       return (
         <div style={{ maxWidth: "1200px", margin: "auto" }}>
           <div className="header-user" onClick={() => setShowUserModal(true)}>
             <div>
-              <div style={{fontSize:"10px", opacity:0.8}}>PERFIL</div>
-              <div style={{fontWeight:"bold"}}>👤 Cuadrante {user.nombre}</div>
+              <div style={{fontSize:"10px", opacity:0.8}}>USUARIO</div>
+              <div style={{fontWeight:"bold"}}>👤 {user.nombre}</div>
             </div>
             <div style={{textAlign:"right"}}>
-              <div style={{fontSize:"10px", opacity:0.8}}>ANTIGÜEDAD</div>
-              <div style={{fontWeight:"bold"}}>{antiguedad} años</div>
+              <div style={{fontSize:"10px", opacity:0.8}}>AÑO INGRESO</div>
+              <div style={{fontWeight:"bold"}}>{user.ingreso}</div>
+            </div>
+          </div>
+
+          <div className="stats-main">
+            <div>
+              <span className="stat-lbl">Obj. Jornadas</span>
+              <span className="stat-val">{jornadasObjetivo}</span>
+            </div>
+            <div>
+              <span className="stat-lbl">Realizadas</span>
+              <span className="stat-val">{stats.j.toFixed(1)}</span>
+            </div>
+            <div style={{color: stats.exceso > 0 ? "#4ADE80" : "#fff"}}>
+              <span className="stat-lbl">Balance/Exceso</span>
+              <span className="stat-val">{stats.exceso > 0 ? `+${stats.exceso.toFixed(1)}` : stats.exceso.toFixed(1)}</span>
             </div>
           </div>
 
           <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <button onClick={() => setYear(y => y-1)} style={{fontSize:"20px", padding:"5px"}}>◀</button>
-              <div style={{background:"#2563EB", color:"white", padding:"5px 15px", borderRadius:"10px", fontWeight:"bold"}}>{year}</div>
+              <div style={{background:"#1E293B", color:"white", padding:"5px 15px", borderRadius:"10px", fontWeight:"bold"}}>{year}</div>
               <button onClick={() => setYear(y => y+1)} style={{fontSize:"20px", padding:"5px"}}>▶</button>
             </div>
-            <div style={{ textAlign: "right", fontSize: "12px" }}>💼 Jornadas: <b>{stats.j.toFixed(1)}</b></div>
+            <button onClick={() => setShowPatron(true)} className="btn-sec" style={{width:"auto", padding:"5px 15px"}}>⚙️ Ciclo 1/4</button>
           </header>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px" }}>
-             <button onClick={() => setShowPatron(true)} className="btn-primary" style={{background: "#7C3AED"}}>⚙️ Patrón Ciclo</button>
-             <button onClick={() => {
-                navigator.clipboard.writeText(JSON.stringify(selected));
-                alert("Backup copiado!");
-             }} className="btn-sec">📤 Copiar Backup</button>
-          </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "15px" }}>
             {MESES.map((nombre, mi) => {
@@ -142,7 +150,7 @@
                           }}
                         >
                           <span className="dia-num">{d}</span>
-                          {data.nota && <div style={{ position:"absolute", bottom:"2px", left:"50%", transform:"translateX(-50%)", width:"4px", height:"4px", background:"#64748B", borderRadius:"50%" }}></div>}
+                          {data.nota && <div style={{ position:"absolute", bottom:"2px", left:"50%", transform:"translateX(-50%", width:"4px", height:"4px", background:"#64748B", borderRadius:"50%" }}></div>}
                         </button>
                       );
                     })}
@@ -152,40 +160,29 @@
             })}
           </div>
 
-          <div className="card" style={{ marginTop: "20px", background: "#F8FAFC" }}>
-            <h4 style={{ marginBottom: "15px" }}>📊 Derechos por Antigüedad {year}</h4>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "15px" }}>
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}><span>🏖️ Vacaciones</span><span>{stats.v} / {maxVacas}</span></div>
-                <div className="progress-bar"><div className="progress-fill" style={{ width: `${(stats.v/maxVacas)*100}%`, background: "#CA8A04" }}></div></div>
-              </div>
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}><span>📋 Asuntos</span><span>{stats.a} / {maxAsuntos}</span></div>
-                <div className="progress-bar"><div className="progress-fill" style={{ width: `${(stats.a/maxAsuntos)*100}%`, background: "#7C3AED" }}></div></div>
-              </div>
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}><span>📢 Sindical</span><span>{stats.s}h</span></div>
-                <div className="progress-bar"><div className="progress-fill" style={{ width: `100%`, background: "#EF4444" }}></div></div>
-              </div>
-            </div>
-          </div>
-
           {showUserModal && (
             <div className="modal" onClick={() => setShowUserModal(false)}>
-              <div className="card" style={{ width: "320px" }} onClick={e => e.stopPropagation()}>
-                <h3>👤 Perfil de Usuario</h3>
-                <div style={{margin:"15px 0"}}>
-                  <label style={{fontSize:"12px"}}>Nombre:</label>
-                  <input type="text" value={user.nombre} onChange={e => setUser({...user, nombre: e.target.value})} style={{marginBottom:"10px"}}/>
-                  <label style={{fontSize:"12px"}}>Año de Ingreso:</label>
+              <div className="card" style={{ width: "340px" }} onClick={e => e.stopPropagation()}>
+                <h3 style={{marginBottom:"15px"}}>👤 Perfil y Antigüedad</h3>
+                <div style={{display:"grid", gap:"10px", marginBottom:"20px"}}>
+                  <label>Nombre:</label>
+                  <input type="text" value={user.nombre} onChange={e => setUser({...user, nombre: e.target.value})} />
+                  <label>Año de Ingreso:</label>
                   <input type="number" value={user.ingreso} onChange={e => setUser({...user, ingreso: parseInt(e.target.value) || 2010})} />
                 </div>
-                <div style={{background:"#F1F5F9", padding:"10px", borderRadius:"8px", marginBottom:"15px", fontSize:"13px"}}>
-                  🏠 Antigüedad: <b>{antiguedad} años</b><br/>
-                  🏖️ Máx. Vacaciones: <b>{maxVacas} días</b><br/>
-                  📋 Máx. Asuntos: <b>{maxAsuntos} días</b>
+                
+                <div style={{background:"#F1F5F9", padding:"12px", borderRadius:"10px", fontSize:"13px", lineHeight:"1.6"}}>
+                  <div style={{display:"flex", justifyContent:"space-between"}}><span>Antigüedad:</span> <b>{antiguedad} años</b></div>
+                  <div style={{display:"flex", justifyContent:"space-between"}}><span>Días extra Vacaciones:</span> <b style={{color:"#CA8A04"}}>+{diasExtraVacas}</b></div>
+                  <div style={{display:"flex", justifyContent:"space-between"}}><span>Canosos Asuntos:</span> <b style={{color:"#7C3AED"}}>+{diasExtraAsuntos}</b></div>
+                  <hr style={{margin:"8px 0", opacity:0.2}}/>
+                  <div style={{display:"flex", justifyContent:"space-between"}}><span>Jornadas Base:</span> <span>193</span></div>
+                  <div style={{display:"flex", justifyContent:"space-between"}}><span>Reducción Antigüedad:</span> <span>-{diasExtraVacas}</span></div>
+                  <div style={{display:"flex", justifyContent:"space-between", fontSize:"14px", marginTop:"5px", paddingTop:"5px", borderTop:"1px solid #CBD5E1"}}>
+                    <b>DEUDA ANUAL {year}:</b> <b style={{color:"#2563EB"}}>{jornadasObjetivo}</b>
+                  </div>
                 </div>
-                <button onClick={() => setShowUserModal(false)} className="btn-primary">Aceptar</button>
+                <button onClick={() => setShowUserModal(false)} className="btn-primary" style={{marginTop:"15px"}}>Cerrar</button>
               </div>
             </div>
           )}
@@ -209,7 +206,7 @@
           {showPatron && (
             <div className="modal" onClick={() => setShowPatron(false)}>
               <div className="card" style={{ width: "320px" }} onClick={e => e.stopPropagation()}>
-                <h3>⚙️ Aplicar Ciclo 1/4</h3>
+                <h3>⚙️ Configurar Ciclo 1/4</h3>
                 <input type="date" id="startP" defaultValue={`${year}-01-02`} style={{margin:"15px 0"}} />
                 <button onClick={() => {
                   const start = new Date(document.getElementById("startP").value);
@@ -219,14 +216,7 @@
                     start.setDate(start.getDate() + 5);
                   }
                   setSelected(newS); setShowPatron(false);
-                }} className="btn-primary">Aplicar</button>
-                <button onClick={() => {
-                   if(confirm("¿Resetear?")) {
-                     let newS = {...selected};
-                     Object.keys(newS).forEach(k => { if(k.startsWith(year.toString())) delete newS[k] });
-                     setSelected(newS); setShowPatron(false);
-                   }
-                }} className="btn-sec" style={{marginTop:"10px", color:"red"}}>Resetear Año</button>
+                }} className="btn-primary">Aplicar Ciclo</button>
               </div>
             </div>
           )}
