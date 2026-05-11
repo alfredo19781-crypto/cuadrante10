@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cuadrante Alfredo V9.8</title>
+  <title>Cuadrante Alfredo V10</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
-    :root { --primary: #2563EB; --danger: #EF4444; --success: #22C55E; --dark: #1E293B; --bg: #F1F5F9; --ap-color: #FFD700; }
+    :root { --primary: #2563EB; --danger: #EF4444; --success: #22C55E; --dark: #1E293B; --bg: #F1F5F9; --ap-color: #FFD700; --hs-color: #3B82F6; }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--dark); padding: 10px; }
     
@@ -34,6 +34,7 @@
     .ap-M { top: 0; }
     .ap-T { top: calc(50% - 2px); }
     .ap-N { bottom: 0; }
+    .hs-dot { position: absolute; top: 3px; right: 3px; width: 6px; height: 6px; background: var(--hs-color); border-radius: 50%; z-index: 6; box-shadow: 0 0 3px rgba(0,0,0,0.3); }
   </style>
 </head>
 <body>
@@ -47,22 +48,19 @@
 
     function App() {
       const year = 2026;
-      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v98") || "{}"));
-      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v98") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[]}'));
+      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v10") || "{}"));
+      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v10") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[],"hs":[]}'));
       const [showGear, setShowGear] = useState(false);
       const [edit, setEdit] = useState(null);
 
-      useEffect(() => { localStorage.setItem("cuad_alfredo_v98", JSON.stringify(selected)); }, [selected]);
-      useEffect(() => { localStorage.setItem("user_alfredo_v98", JSON.stringify(user)); }, [user]);
+      useEffect(() => { localStorage.setItem("cuad_alfredo_v10", JSON.stringify(selected)); }, [selected]);
+      useEffect(() => { localStorage.setItem("user_alfredo_v10", JSON.stringify(user)); }, [user]);
 
       const diasAP_Totales = useMemo(() => {
         const ant = year - user.ingreso;
         let base = 6;
-        if (ant >= 30) base += 5;
-        else if (ant >= 27) base += 4;
-        else if (ant >= 24) base += 3;
-        else if (ant >= 21) base += 2;
-        else if (ant >= 18) base += 2;
+        if (ant >= 30) base += 5; else if (ant >= 27) base += 4; else if (ant >= 24) base += 3;
+        else if (ant >= 21) base += 2; else if (ant >= 18) base += 2;
         return base;
       }, [user.ingreso]);
 
@@ -74,6 +72,7 @@
       });
 
       const getAPForDay = (dk) => user.ap.filter(a => a.dia && a.mes && toDateKey(year, a.mes-1, a.dia) === dk);
+      const getHSForDay = (dk) => user.hs.some(h => h.dia && h.mes && toDateKey(year, h.mes-1, h.dia) === dk);
 
       const stats = useMemo(() => {
         let totalJ = 0;
@@ -97,6 +96,20 @@
         setUser({ ...user, ap: user.ap.map(x => x.id === id ? { ...x, [field]: value } : x) });
       };
 
+      const updateHS = (id, field, value) => {
+        const item = user.hs.find(x => x.id === id);
+        const newItem = { ...item, [field]: value };
+        if (newItem.mes && field === 'horas' || field === 'mes') {
+            const mesHS = user.hs.filter(h => h.id !== id && h.mes === (field === 'mes' ? value : newItem.mes));
+            const sumaMes = mesHS.reduce((acc, curr) => acc + (curr.horas || 0), 0) + (field === 'horas' ? value : (newItem.horas || 0));
+            if (sumaMes > 20) {
+                alert(`No puedes superar las 20 horas sindicales en ${MESES_NOM[(field === 'mes' ? value : newItem.mes)-1]}`);
+                return;
+            }
+        }
+        setUser({ ...user, hs: user.hs.map(x => x.id === id ? { ...x, [field]: value } : x) });
+      };
+
       const aplicarCiclo = () => {
         const startVal = document.getElementById('cStart').value;
         const h = parseInt(document.getElementById('cHoras').value);
@@ -106,14 +119,8 @@
         let curr = new Date(startVal);
         while(curr.getFullYear() <= year) {
           if(curr.getFullYear() === year) {
-            for(let i=0; i<dw; i++){ 
-               const d = toDateKey(year, curr.getMonth(), curr.getDate());
-               newS[d] = {jornada: h}; curr.setDate(curr.getDate()+1); 
-            }
-            for(let i=0; i<dd; i++){ 
-               const d = toDateKey(year, curr.getMonth(), curr.getDate());
-               newS[d] = {descanso: true}; curr.setDate(curr.getDate()+1); 
-            }
+            for(let i=0; i<dw; i++){ const d = toDateKey(year, curr.getMonth(), curr.getDate()); newS[d] = {jornada: h}; curr.setDate(curr.getDate()+1); }
+            for(let i=0; i<dd; i++){ const d = toDateKey(year, curr.getMonth(), curr.getDate()); newS[d] = {descanso: true}; curr.setDate(curr.getDate()+1); }
           } else { curr.setDate(curr.getDate()+1); }
         }
         setSelected(newS);
@@ -122,8 +129,16 @@
       return (
         <div>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px'}}>
-            <h1 style={{fontSize:'18px'}}>📅 {user.nombre}</h1>
+            <h1 style={{fontSize:'18px'}}>📅 CUADRANTE 2026</h1>
             <button onClick={() => setShowGear(true)} style={{fontSize:'22px', background:'none', border:'none'}}><i className="fa-solid fa-gear"></i></button>
+          </div>
+
+          <div className="card" style={{background:'var(--dark)', color:'white', marginBottom:'12px'}}>
+            <label style={{color:'#94A3B8'}}>👤 AGENTE</label>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                <b style={{fontSize:'16px'}}>{user.nombre.toUpperCase()}</b>
+                <span style={{fontSize:'12px', opacity:0.8}}>Ingreso: {user.ingreso} ({year - user.ingreso} años)</span>
+            </div>
           </div>
 
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px', marginBottom:'12px'}}>
@@ -143,12 +158,14 @@
                     const dk = toDateKey(year, mi, d);
                     const v = isVacation(dk);
                     const aps = getAPForDay(dk);
+                    const hasHS = getHSForDay(dk);
                     const data = selected[dk] || {};
                     let bg = v ? "#FEF9C3" : (data.jornada ? "#FEE2E2" : (data.descanso ? "#DCFCE7" : "white"));
                     return (
                       <button key={dk} className="dia-btn" style={{background: bg}} onClick={() => setEdit({dk, data})}>
                         {d}
                         {aps.map(a => <div key={a.id} className={`ap-line ap-${a.turno}`} />)}
+                        {hasHS && <div className="hs-dot" />}
                         {data.jornada > 0 && !v && <span style={{fontSize:'9px', color:'red', fontWeight:'bold', zIndex:10}}>{data.jornada}h</span>}
                       </button>
                     )
@@ -163,6 +180,14 @@
               <div className="modal-content" onClick={e => e.stopPropagation()}>
                 <h2 style={{marginBottom:'15px', fontSize:'18px'}}>Configuración</h2>
                 
+                <div className="card">
+                  <label>👤 Datos del Agente</label>
+                  <div style={{display:'flex', gap:'5px'}}>
+                    <input type="text" value={user.nombre} onChange={e => setUser({...user, nombre: e.target.value})} placeholder="Nombre" />
+                    <input type="number" value={user.ingreso} onChange={e => setUser({...user, ingreso: parseInt(e.target.value)})} style={{width:'85px'}} />
+                  </div>
+                </div>
+
                 <div className="card">
                   <label>🔄 1. Ciclo de Trabajo</label>
                   <input type="date" id="cStart" defaultValue="2026-01-01" style={{margin:'8px 0'}} />
@@ -230,6 +255,30 @@
                     </div>
                   ))}
                   <button className="btn-primary" style={{background:'#F59E0B'}} onClick={() => setUser({...user, ap: [...user.ap, {id:Date.now(), dia:null, mes:null, turno:null}]})}>+ AÑADIR ASUNTO</button>
+                </div>
+
+                <div className="card">
+                  <div style={{display:'flex', justifyContent:'space-between', marginBottom:'10px'}}>
+                    <label>📢 4. Horas Sindicales</label>
+                    <span style={{fontSize:'11px', fontWeight:'bold', color:'var(--hs-color)'}}>Crédito: 20h / mes</span>
+                  </div>
+                  {user.hs.map(h => (
+                    <div key={h.id} className="row-config">
+                      <div className="inputs-group">
+                        <select value={h.mes || ""} onChange={e => updateHS(h.id, 'mes', parseInt(e.target.value))}>
+                          <option value="" disabled>—</option>
+                          {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
+                        </select>
+                        <select value={h.dia || ""} onChange={e => updateHS(h.id, 'dia', parseInt(e.target.value))}>
+                          <option value="" disabled>—</option>
+                          {Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                        <input type="number" value={h.horas || ""} onChange={e => updateHS(h.id, 'horas', parseInt(e.target.value))} placeholder="Hrs" style={{width:'60px'}} />
+                      </div>
+                      <button className="btn-del" onClick={() => setUser({...user, hs: user.hs.filter(x => x.id !== h.id)})}>🗑️</button>
+                    </div>
+                  ))}
+                  <button className="btn-primary" style={{background:'var(--hs-color)'}} onClick={() => setUser({...user, hs: [...user.hs, {id:Date.now(), dia:null, mes:null, horas:null}]})}>+ AÑADIR HORAS</button>
                 </div>
 
                 <button className="btn-primary" onClick={() => setShowGear(false)} style={{background:'#64748B'}}>CERRAR</button>
