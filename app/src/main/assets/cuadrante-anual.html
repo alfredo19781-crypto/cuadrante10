@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cuadrante Alfredo V.Oficial</title>
+  <title>Cuadrante Alfredo V6</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: "Segoe UI", sans-serif; background: #F1F5F9; color: #1E293B; padding: 10px; padding-bottom: 60px; }
@@ -14,18 +15,20 @@
     .grid-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
     button { cursor: pointer; border: none; transition: 0.2s; }
     .modal { position: fixed; inset: 0; background: rgba(15,23,42,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 15px; }
-    .modal-content { background: white; border-radius: 16px; padding: 20px; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; }
+    .modal-content { background: white; border-radius: 16px; padding: 20px; width: 100%; max-width: 450px; max-height: 92vh; overflow-y: auto; }
     input, select, textarea { border-radius: 8px; border: 1px solid #CBD5E1; padding: 10px; width: 100%; font-size: 14px; margin-top: 4px; }
-    label { font-size: 12px; font-weight: bold; color: #64748B; }
+    label { font-size: 11px; font-weight: bold; color: #64748B; text-transform: uppercase; }
     .btn-primary { background: #2563EB; color: white; padding: 12px; border-radius: 8px; font-weight: bold; width: 100%; }
     .btn-sec { background: #F1F5F9; color: #64748B; padding: 10px; border-radius: 8px; width: 100%; }
     .dia-btn { aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; border: 1px solid #E2E8F0; background: white; position: relative; }
-    .header-user { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .btn-gear { background: #1E293B; color: white; width: 45px; height: 45px; border-radius: 12px; font-size: 24px; display: flex; align-items: center; justify-content: center; }
+    .header-user { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; background: white; padding: 10px; border-radius: 12px; border: 1px solid #E2E8F0; }
+    .btn-gear { background: #1E293B; color: white; width: 45px; height: 45px; border-radius: 12px; font-size: 20px; display: flex; align-items: center; justify-content: center; }
     .stats-bar { background: #2563EB; color: white; padding: 12px; border-radius: 12px; display: grid; grid-template-columns: 1fr 1fr 1fr; text-align: center; margin-bottom: 10px; }
     .stat-val { font-size: 16px; font-weight: bold; display: block; }
-    .section-title { font-size: 14px; font-weight: bold; margin: 15px 0 8px 0; border-bottom: 2px solid #F1F5F9; padding-bottom: 4px; color: #1E293B; }
-    .badge-sindical { position: absolute; top: -2px; right: -2px; background: #EF4444; color: white; font-size: 7px; padding: 1px 3px; border-radius: 4px; }
+    .section-title { font-size: 13px; font-weight: bold; margin: 15px 0 8px 0; border-bottom: 2px solid #F1F5F9; padding-bottom: 4px; color: #1E293B; display: flex; align-items: center; gap: 8px; }
+    .log-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #F1F5F9; font-size: 12px; }
+    .trash-btn { color: #EF4444; padding: 5px; font-size: 14px; }
+    .logo-img { height: 40px; margin-right: 10px; }
   </style>
 </head>
 <body>
@@ -39,93 +42,96 @@
 
     function App() {
       const [year, setYear] = useState(2026);
-      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_vFinal") || "{}"));
-      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_vFinal") || '{"nombre":"Alfredo","ingreso":2010,"periodos":[]}'));
+      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v6") || "{}"));
+      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v6") || '{"nombre":"Alfredo","ingreso":2010,"periodos":[]}'));
       const [edit, setEdit] = useState(null);
       const [showGear, setShowGear] = useState(false);
 
-      useEffect(() => { localStorage.setItem("cuad_alfredo_vFinal", JSON.stringify(selected)); }, [selected]);
-      useEffect(() => { localStorage.setItem("user_alfredo_vFinal", JSON.stringify(user)); }, [user]);
+      useEffect(() => { localStorage.setItem("cuad_alfredo_v6", JSON.stringify(selected)); }, [selected]);
+      useEffect(() => { localStorage.setItem("user_alfredo_v6", JSON.stringify(user)); }, [user]);
 
       const antiguedad = year - user.ingreso;
       const extraVacas = antiguedad >= 30 ? 4 : antiguedad >= 25 ? 3 : antiguedad >= 20 ? 2 : antiguedad >= 15 ? 1 : 0;
       const extraAsuntos = antiguedad >= 18 ? (antiguedad >= 24 ? 2 + Math.floor((antiguedad-21)/3) : 2) : 0;
-      
       const jornadasObj = 193 - extraVacas;
-      const totalAsuntosDisponibles = 6 + extraAsuntos;
-
       const isVacation = (dk) => user.periodos.some(p => dk >= p.inicio && dk <= p.fin);
 
-      // ESTADÍSTICAS GLOBALES Y POR MES
+      // ESTADÍSTICAS
       const stats = useMemo(() => {
         let jReal = 0, vCons = 0, aDias = 0;
         let sindicalPorMes = Array(12).fill(0);
+        let log = [];
 
-        Object.entries(selected).forEach(([dk, data]) => {
+        Object.entries(selected).sort().forEach(([dk, data]) => {
           if(!dk.startsWith(year.toString())) return;
-          const fecha = new Date(dk);
-          const mesIndex = fecha.getMonth();
+          const mIdx = new Date(dk).getMonth();
 
           if (isVacation(dk)) {
             if(data.jornada > 0) vCons++;
           } else {
             if(data.jornada) jReal += data.jornada / 8;
-            if(data.sindical) sindicalPorMes[mesIndex] += data.sindical;
-            if(data.asuntos) aDias += 1; // Se cuenta como día completo (8h)
+            if(data.sindical) sindicalPorMes[mIdx] += data.sindical;
+            if(data.asuntos) aDias++;
+          }
+          
+          // Construir historial para configuración
+          if(data.jornada || data.asuntos || data.sindical || data.refuerzo || data.permiso || data.guardia || data.baja) {
+            log.push({dk, ...data});
           }
         });
-        return { jReal, vCons, aDias, sindicalPorMes, exceso: jReal - jornadasObj };
+        return { jReal, vCons, aDias, sindicalPorMes, exceso: jReal - jornadasObj, log };
       }, [selected, year, user.periodos, jornadasObj]);
 
-      const aplicarCiclo = () => {
-        const startStr = document.getElementById('cStart').value;
-        const horas = parseInt(document.getElementById('cHoras').value);
-        const dTrabajo = parseInt(document.getElementById('cDW').value);
-        const dDescanso = parseInt(document.getElementById('cDD').value);
-        let newSelected = {...selected};
-        let curr = new Date(startStr);
-        while(curr.getFullYear() <= year) {
-          for(let i=0; i<dTrabajo; i++) {
-            if(curr.getFullYear() === year) newSelected[toDateKey(year, curr.getMonth(), curr.getDate())] = { jornada: horas };
-            curr.setDate(curr.getDate() + 1);
-          }
-          for(let i=0; i<dDescanso; i++) {
-            if(curr.getFullYear() === year) newSelected[toDateKey(year, curr.getMonth(), curr.getDate())] = { descanso: true };
-            curr.setDate(curr.getDate() + 1);
-          }
+      // Función para borrar un día desde el historial
+      const borrarDia = (dk) => {
+        if(confirm(`¿Borrar todos los registros del día ${dk}?`)) {
+          const newSelected = {...selected};
+          delete newSelected[dk];
+          setSelected(newSelected);
         }
-        setSelected(newSelected);
-        setShowGear(false);
+      };
+
+      const aplicarCiclo = () => {
+        const start = new Date(document.getElementById('cStart').value);
+        const h = parseInt(document.getElementById('cHoras').value);
+        const dw = parseInt(document.getElementById('cDW').value);
+        const dd = parseInt(document.getElementById('cDD').value);
+        let newS = {...selected};
+        let curr = new Date(start);
+        while(curr.getFullYear() <= year) {
+          for(let i=0; i<dw; i++){ if(curr.getFullYear()===year) newS[toDateKey(year, curr.getMonth(), curr.getDate())] = {jornada: h}; curr.setDate(curr.getDate()+1); }
+          for(let i=0; i<dd; i++){ if(curr.getFullYear()===year) newS[toDateKey(year, curr.getMonth(), curr.getDate())] = {descanso: true}; curr.setDate(curr.getDate()+1); }
+        }
+        setSelected(newS); setShowGear(false);
       };
 
       return (
         <div>
           <div className="header-user">
-            <div>
-              <h2 style={{fontSize:'18px'}}>👤 {user.nombre}</h2>
-              <p style={{fontSize:'12px', opacity:0.7}}>{year} | {antiguedad} años ant.</p>
+            <div style={{display:'flex', alignItems:'center'}}>
+              <img className="logo-img" src="https://cdn-icons-png.flaticon.com/512/2618/2618576.png" alt="Logo" />
+              <div>
+                <h2 style={{fontSize:'16px'}}>{user.nombre}</h2>
+                <p style={{fontSize:'10px', opacity:0.6}}>Ingreso: {user.ingreso}</p>
+              </div>
             </div>
-            <button className="btn-gear" onClick={() => setShowGear(true)}>⚙️</button>
+            <button className="btn-gear" onClick={() => setShowGear(true)}><i className="fa-solid fa-cog"></i></button>
           </div>
 
           <div className="stats-bar">
-            <div><span style={{fontSize:'10px'}}>DEUDA</span><span className="stat-val">{jornadasObj}</span></div>
-            <div><span style={{fontSize:'10px'}}>TRABAJADO</span><span className="stat-val">{stats.jReal.toFixed(1)}</span></div>
+            <div><span style={{fontSize:'9px'}}>DEUDA</span><span className="stat-val">{jornadasObj}</span></div>
+            <div><span style={{fontSize:'9px'}}>REAL</span><span className="stat-val">{stats.jReal.toFixed(1)}</span></div>
             <div style={{color: stats.exceso > 0 ? '#4ADE80' : 'white'}}>
-              <span style={{fontSize:'10px'}}>BALANCE</span><span className="stat-val">{stats.exceso > 0 ? `+${stats.exceso.toFixed(1)}` : stats.exceso.toFixed(1)}</span>
+              <span style={{fontSize:'9px'}}>EXCESO</span><span className="stat-val">{stats.exceso > 0 ? `+${stats.exceso.toFixed(1)}` : stats.exceso.toFixed(1)}</span>
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "12px" }}>
+          <div style={{display:'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '10px' }}>
             {MESES.map((nombre, mi) => (
               <div key={mi} className="card">
-                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'5px'}}>
+                <div style={{display:'flex', justifyContent:'space-between', marginBottom:'5px'}}>
                   <h4 style={{ color: "#2563EB", fontSize: "14px" }}>{nombre}</h4>
-                  {stats.sindicalPorMes[mi] > 0 && (
-                    <span style={{fontSize:'10px', color: stats.sindicalPorMes[mi] > 20 ? 'red' : '#7C3AED', fontWeight:'bold'}}>
-                      Sind: {stats.sindicalPorMes[mi]}h/20
-                    </span>
-                  )}
+                  {stats.sindicalPorMes[mi] > 0 && <span style={{fontSize:'9px', color: stats.sindicalPorMes[mi] >= 20 ? 'red' : '#7C3AED'}}>Sind: {stats.sindicalPorMes[mi]}h</span>}
                 </div>
                 <div className="grid-cal">
                   {DIAS_L.map(l => <div key={l} style={{ textAlign: "center", fontSize: "10px", opacity: 0.4 }}>{l}</div>)}
@@ -136,15 +142,16 @@
                     const vacas = isVacation(dk);
                     let bg = "white";
                     if(vacas) bg = "#FDE047";
+                    else if(data.baja) bg = "#94A3B8";
                     else if(data.jornada) bg = "#FEF2F2";
                     else if(data.descanso) bg = "#F0FDF4";
-                    else if(data.asuntos || data.sindical) bg = "#F5F3FF";
+                    else if(data.asuntos || data.sindical || data.refuerzo) bg = "#F5F3FF";
 
                     return (
                       <button key={dk} onClick={() => setEdit({ dk, data })} className="dia-btn" style={{ background: bg }}>
                         <span>{d}</span>
                         {data.jornada > 0 && !vacas && <span style={{fontSize:'8px', color:'#DC2626', fontWeight:'bold'}}>{data.jornada}h</span>}
-                        {data.sindical > 0 && <div className="badge-sindical">{data.sindical}h</div>}
+                        {data.baja && <i className="fa-solid fa-stethosocpe" style={{fontSize:'8px'}}></i>}
                       </button>
                     );
                   })}
@@ -153,73 +160,94 @@
             ))}
           </div>
 
+          {/* MODAL CONFIGURACIÓN */}
           {showGear && (
             <div className="modal" onClick={() => setShowGear(false)}>
               <div className="modal-content" onClick={e => e.stopPropagation()}>
-                <h3 style={{marginBottom:'15px'}}>⚙️ Configuración Oficial</h3>
+                <h3><i className="fa-solid fa-sliders"></i> Configuración</h3>
                 
-                <section className="card" style={{background:'#F8FAFC', marginBottom:'10px'}}>
-                  <div className="section-title" style={{marginTop:0}}>👤 MI FICHA</div>
-                  <label>Nombre:</label><input type="text" value={user.nombre} onChange={e => setUser({...user, nombre: e.target.value})} />
-                  <label>Año Ingreso:</label><input type="number" value={user.ingreso} onChange={e => setUser({...user, ingreso: parseInt(e.target.value)||2010})} />
+                <section className="card" style={{marginTop:'15px'}}>
+                  <div className="section-title"><i className="fa-solid fa-user-pen"></i> FICHA PERSONAL</div>
+                  <input type="text" value={user.nombre} onChange={e => setUser({...user, nombre: e.target.value})} placeholder="Nombre" />
+                  <input type="number" value={user.ingreso} onChange={e => setUser({...user, ingreso: parseInt(e.target.value)||2010})} placeholder="Año ingreso" />
                 </section>
 
-                <section className="card" style={{marginBottom:'10px'}}>
-                  <div className="section-title">📊 CONTROL DE CUPOS</div>
-                  <div style={{fontSize:'13px', display:'grid', gap:'5px'}}>
-                    <div style={{display:'flex', justifyContent:'space-between'}}>
-                      <span>📋 Asuntos Propios:</span>
-                      <b>{stats.aDias} / {totalAsuntosDisponibles} días</b>
-                    </div>
-                    <div style={{display:'flex', justifyContent:'space-between'}}>
-                      <span>📢 Crédito Sindical:</span>
-                      <span>Máx. <b>20h / mes</b></span>
-                    </div>
-                    <div style={{fontSize:'11px', color:'#64748B'}}>
-                      * Los asuntos se descuentan como días completos (8h).
-                    </div>
+                <section className="card" style={{marginTop:'10px'}}>
+                  <div className="section-title"><i className="fa-solid fa-clock-rotate-left"></i> HISTORIAL DE REGISTROS</div>
+                  <div style={{maxHeight:'150px', overflowY:'auto'}}>
+                    {stats.log.length === 0 ? <p style={{fontSize:'11px', opacity:0.5}}>No hay registros aún.</p> : 
+                      stats.log.map(item => (
+                        <div key={item.dk} className="log-item">
+                          <span><b>{item.dk.split('-').reverse().join('/')}</b>: {item.jornada?item.jornada+'h':''} {item.asuntos?'Asuntos':''} {item.sindical?item.sindical+'h Sind.':''} {item.baja?'Baja':''}</span>
+                          <button onClick={()=>borrarDia(item.dk)} className="trash-btn"><i className="fa-solid fa-trash-can"></i></button>
+                        </div>
+                      ))
+                    }
                   </div>
                 </section>
 
-                <div className="section-title">⚙️ PATRÓN CICLO TRABAJO</div>
+                <div className="section-title"><i className="fa-solid fa-arrows-rotate"></i> CICLO AUTOMÁTICO</div>
                 <input type="date" id="cStart" defaultValue={`${year}-01-02`} />
                 <div style={{display:'flex', gap:'5px', marginTop:'5px'}}>
                   <select id="cHoras"><option value="24">24h</option><option value="12">12h</option></select>
-                  <input type="number" id="cDW" placeholder="Trab." defaultValue="1" />
-                  <input type="number" id="cDD" placeholder="Desc." defaultValue="4" />
+                  <input type="number" id="cDW" defaultValue="1" />
+                  <input type="number" id="cDD" defaultValue="4" />
                 </div>
-                <button onClick={aplicarCiclo} className="btn-primary" style={{marginTop:'10px'}}>Aplicar al Calendario</button>
+                <button onClick={aplicarCiclo} className="btn-primary" style={{marginTop:'10px'}}>Generar Ciclo</button>
 
-                <div className="section-title">🏖️ VACACIONES</div>
+                <div className="section-title"><i className="fa-solid fa-umbrella-beach"></i> VACACIONES</div>
                 {user.periodos.map(p => (
                   <div key={p.id} style={{display:'flex', gap:'5px', marginBottom:'5px'}}>
                     <input type="date" value={p.inicio} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, inicio:e.target.value}:x)})} />
                     <input type="date" value={p.fin} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, fin:e.target.value}:x)})} />
-                    <button onClick={()=>setUser({...user, periodos: user.periodos.filter(x=>x.id!==p.id)})} style={{color:'red'}}>X</button>
+                    <button onClick={()=>setUser({...user, periodos: user.periodos.filter(x=>x.id!==p.id)})} className="trash-btn"><i className="fa-solid fa-trash"></i></button>
                   </div>
                 ))}
-                <button onClick={()=>setUser({...user, periodos:[...user.periodos, {id:Date.now(), inicio:`${year}-08-01`, fin:`${year}-08-31`}]})} className="btn-sec">+ Añadir Periodo</button>
-
-                <button onClick={() => setShowGear(false)} className="btn-primary" style={{marginTop:'20px', background:'#1E293B'}}>Guardar Cambios</button>
+                <button onClick={()=>setUser({...user, periodos:[...user.periodos, {id:Date.now(), inicio:`${year}-08-01`, fin:`${year}-08-31`}]})} className="btn-sec">+ Nuevo Periodo</button>
+                <button onClick={() => setShowGear(false)} className="btn-primary" style={{marginTop:'20px', background:'#1E293B'}}>Cerrar Ajustes</button>
               </div>
             </div>
           )}
 
+          {/* MODAL DÍA */}
           {edit && (
             <div className="modal" onClick={() => setEdit(null)}>
               <div className="modal-content" onClick={e => e.stopPropagation()}>
-                <h3>Día {edit.dk}</h3>
-                <div style={{display:'grid', gap:'12px', marginTop:'15px'}}>
-                  <div><label>💼 Jornada / Refuerzo (h):</label><input type="number" value={edit.data.jornada || 0} onChange={e => setEdit({...edit, data: {...edit.data, jornada: parseInt(e.target.value)||0, descanso: false}})} /></div>
-                  <div><label>📢 Horas Sindicales (Máx 20h/mes):</label><input type="number" value={edit.data.sindical || 0} onChange={e => setEdit({...edit, data: {...edit.data, sindical: parseInt(e.target.value)||0}})} /></div>
-                  <div><label>📋 Asuntos Propios (Anotar horario):</label><input type="text" placeholder="Ej: 08:00 a 16:00" value={edit.data.asuntos_nota || ""} onChange={e => setEdit({...edit, data: {...edit.data, asuntos_nota: e.target.value, asuntos: e.target.value ? 8 : 0}})} /></div>
+                <h3 style={{marginBottom:'15px'}}>Día {edit.dk.split('-').reverse().join('/')}</h3>
+                <div style={{display:'grid', gap:'10px'}}>
+                  <div><label>💼 Jornada / Refuerzo (h)</label>
+                  <input type="number" value={edit.data.jornada || 0} onChange={e => setEdit({...edit, data: {...edit.data, jornada: parseInt(e.target.value)||0, descanso: false}})} /></div>
+                  
+                  <div><label>📢 Sindical (Máx 20h/mes)</label>
+                  <input type="number" value={edit.data.sindical || 0} onChange={e => {
+                    let val = parseInt(e.target.value) || 0;
+                    const mesIdx = new Date(edit.dk).getMonth();
+                    const actualMes = stats.sindicalPorMes[mesIdx] - (edit.data.sindical || 0);
+                    if(actualMes + val > 20) {
+                      alert("Has superado el límite mensual de 20h sindicales. Se ajustará al máximo disponible.");
+                      val = 20 - actualMes;
+                    }
+                    setEdit({...edit, data: {...edit.data, sindical: val}});
+                  }} /></div>
+
+                  <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px'}}>
+                    <div><label>📋 Asuntos</label><input type="checkbox" style={{height:'20px'}} checked={edit.data.asuntos || false} onChange={e => setEdit({...edit, data: {...edit.data, asuntos: e.target.checked}})} /></div>
+                    <div><label>🏥 Baja Médica</label><input type="checkbox" style={{height:'20px'}} checked={edit.data.baja || false} onChange={e => setEdit({...edit, data: {...edit.data, baja: e.target.checked, jornada:0}})} /></div>
+                  </div>
+
+                  <div><label>🛡️ Guardia / 📝 Permiso (h)</label>
+                    <div style={{display:'flex', gap:'5px'}}>
+                      <input type="number" placeholder="Guardia" value={edit.data.guardia || 0} onChange={e => setEdit({...edit, data: {...edit.data, guardia: parseInt(e.target.value)||0}})} />
+                      <input type="number" placeholder="Permiso" value={edit.data.permiso || 0} onChange={e => setEdit({...edit, data: {...edit.data, permiso: parseInt(e.target.value)||0}})} />
+                    </div>
+                  </div>
+
                   <div style={{display:'flex', alignItems:'center', gap:'10px', background:'#F0FDF4', padding:'10px', borderRadius:'8px'}}>
                     <input type="checkbox" checked={edit.data.descanso || false} onChange={e => setEdit({...edit, data: {...edit.data, descanso: e.target.checked, jornada: 0}})} style={{width:'20px'}} />
-                    <label style={{margin:0}}>Es Día de Descanso</label>
+                    <label style={{margin:0}}>Es Descanso</label>
                   </div>
-                  <textarea placeholder="Otras notas..." value={edit.data.nota || ""} onChange={e => setEdit({...edit, data: {...edit.data, nota: e.target.value}})} />
                 </div>
-                <button onClick={() => { setSelected({...selected, [edit.dk]: edit.data}); setEdit(null); }} className="btn-primary" style={{marginTop:'15px'}}>Guardar Día</button>
+                <button onClick={() => { setSelected({...selected, [edit.dk]: edit.data}); setEdit(null); }} className="btn-primary" style={{marginTop:'15px'}}>Guardar</button>
               </div>
             </div>
           )}
