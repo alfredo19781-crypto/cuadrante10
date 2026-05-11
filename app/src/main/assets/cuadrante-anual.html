@@ -86,7 +86,7 @@
       const stats = useMemo(() => {
         let j=0, v=0, e=0, g=0, a=0, s=0, p=0;
         Object.entries(selected).forEach(([key, d]) => {
-          if(key.startsWith(year)) {
+          if(key.startsWith(year.toString())) {
             if(d.jornada) j += d.jornada/8; 
             if(d.vacaciones) v++; 
             if(d.excesos) e += d.excesos; 
@@ -213,7 +213,8 @@
                 <label style={{fontSize:"11px", marginTop:"10px", display:"block"}}>Fecha inicio ciclo 1/4:</label>
                 <input type="date" id="startP" defaultValue={`${year}-01-02`} style={{marginBottom:"15px"}} />
                 <button onClick={() => {
-                  const start = new Date(document.getElementById("startP").value);
+                  const startInput = document.getElementById("startP").value;
+                  const start = new Date(startInput);
                   let newS = {...selected};
                   while(start.getFullYear() === year) {
                     newS[toDateKey(year, start.getMonth(), start.getDate())] = { jornada: 24 };
@@ -224,7 +225,7 @@
                 <button onClick={() => {
                   if(confirm("¿Borrar año?")) {
                     let newS = {...selected};
-                    Object.keys(newS).forEach(key => { if(key.startsWith(year)) delete newS[key]; });
+                    Object.keys(newS).forEach(key => { if(key.startsWith(year.toString())) delete newS[key]; });
                     setSelected(newS); setShowPatron(false);
                   }
                 }} className="btn-sec" style={{marginTop:"20px", color:"#DC2626"}}>🗑️ Resetear Año</button>
