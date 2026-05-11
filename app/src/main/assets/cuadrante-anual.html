@@ -2,40 +2,40 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cuadrante Alfredo V9.1</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Cuadrante Alfredo V9.2</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
     :root { --primary: #2563EB; --danger: #EF4444; --success: #22C55E; --dark: #1E293B; --bg: #F1F5F9; }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--dark); padding: 10px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--dark); padding: 10px; }
     
     .card { background: white; border-radius: 12px; border: 1px solid #E2E8F0; padding: 12px; margin-bottom: 12px; }
     .grid-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
     
-    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 10px; }
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 10px; }
     .modal-content { background: white; border-radius: 20px; padding: 15px; width: 100%; max-width: 400px; max-height: 85vh; overflow-y: auto; }
     
-    select, input { border-radius: 8px; border: 1px solid #CBD5E1; padding: 8px; font-size: 14px; width: 100%; }
-    label { font-size: 10px; font-weight: 700; color: #64748B; text-transform: uppercase; margin-bottom: 4px; display: block; }
+    select, input { border-radius: 8px; border: 1px solid #CBD5E1; padding: 10px; font-size: 16px; width: 100%; appearance: none; }
+    label { font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; margin-bottom: 4px; display: block; }
     
-    .btn-primary { background: var(--primary); color: white; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; margin-top: 5px; border:none; }
+    .btn-primary { background: var(--primary); color: white; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; border: none; margin-top: 5px; }
     
-    /* FIX VACACIONES: DOS FILAS */
-    .vaca-row { background: #F8FAFC; padding: 10px; border-radius: 10px; border: 1px solid #E2E8F0; margin-bottom: 10px; }
-    .vaca-inputs { display: flex; align-items: center; justify-content: space-between; gap: 5px; margin-bottom: 10px; }
-    .vaca-group { display: flex; gap: 3px; flex: 1; }
-    .vaca-group select { flex: 2; padding: 5px; font-size: 12px; }
-    .vaca-group input { flex: 1; padding: 5px; text-align: center; font-size: 12px; }
+    /* FIX VACACIONES */
+    .vaca-row { background: #F8FAFC; padding: 12px; border-radius: 12px; border: 1px solid #E2E8F0; margin-bottom: 10px; }
+    .vaca-inputs { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+    .vaca-group { display: flex; gap: 4px; flex: 1; }
+    .vaca-group select { flex: 2; padding: 8px; font-size: 13px; }
+    .vaca-group input { flex: 1; padding: 8px; text-align: center; font-size: 13px; }
     
     .vaca-actions { display: flex; gap: 8px; }
-    .btn-apply-v { background: var(--success); color: white; flex: 3; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 12px; border:none;}
-    .btn-del-v { background: var(--danger); color: white; flex: 1; padding: 8px; border-radius: 6px; border:none;}
+    .btn-apply-v { background: var(--success); color: white; flex: 3; padding: 10px; border-radius: 8px; font-weight: bold; border: none; }
+    .btn-del-v { background: var(--danger); color: white; flex: 1; padding: 10px; border-radius: 8px; border: none; }
 
-    .dia-btn { aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; border: 1px solid #F1F5F9; background: white; }
+    .dia-btn { aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; border: 1px solid #F1F5F9; background: white; }
   </style>
 </head>
 <body>
@@ -48,14 +48,14 @@
     const toDateKey = (y, m, d) => `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
 
     function App() {
-      const [year, setYear] = useState(2026);
-      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v91") || "{}"));
-      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v91") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[]}'));
+      const [year] = useState(2026);
+      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v92") || "{}"));
+      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v92") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[]}'));
       const [showGear, setShowGear] = useState(false);
       const [edit, setEdit] = useState(null);
 
-      useEffect(() => { localStorage.setItem("cuad_alfredo_v91", JSON.stringify(selected)); }, [selected]);
-      useEffect(() => { localStorage.setItem("user_alfredo_v91", JSON.stringify(user)); }, [user]);
+      useEffect(() => { localStorage.setItem("cuad_alfredo_v92", JSON.stringify(selected)); }, [selected]);
+      useEffect(() => { localStorage.setItem("user_alfredo_v92", JSON.stringify(user)); }, [user]);
 
       const isVacation = (dk) => {
         return user.periodos.some(p => {
@@ -67,39 +67,36 @@
 
       const jTotal = useMemo(() => {
         return Object.entries(selected).reduce((acc, [dk, data]) => {
-          if(dk.startsWith(year.toString()) && data.jornada && !isVacation(dk)) return acc + (data.jornada/8);
+          if(dk.startsWith("2026") && data.jornada && !isVacation(dk)) return acc + (data.jornada/8);
           return acc;
         }, 0);
-      }, [selected, year, user.periodos]);
-
-      const updatePeriodo = (id, campo, valor) => {
-        const nuevos = user.periodos.map(p => p.id === id ? {...p, [campo]: parseInt(valor)} : p);
-        setUser({...user, periodos: nuevos});
-      };
+      }, [selected, user.periodos]);
 
       const aplicarCiclo = () => {
-        const start = new Date(document.getElementById('cStart').value);
+        const startVal = document.getElementById('cStart').value;
+        if(!startVal) return alert("Selecciona fecha");
+        const start = new Date(startVal);
         const h = parseInt(document.getElementById('cHoras').value);
         const dw = parseInt(document.getElementById('cDW').value);
         const dd = parseInt(document.getElementById('cDD').value);
         let newS = {...selected};
         let curr = new Date(start);
-        while(curr.getFullYear() <= year) {
-          if(curr.getFullYear() === year) {
+        while(curr.getFullYear() <= 2026) {
+          if(curr.getFullYear() === 2026) {
             for(let i=0; i<dw; i++){ 
-               const d = toDateKey(year, curr.getMonth(), curr.getDate());
-               if(curr.getFullYear()===year) newS[d] = {jornada: h}; 
+               const d = toDateKey(2026, curr.getMonth(), curr.getDate());
+               newS[d] = {jornada: h}; 
                curr.setDate(curr.getDate()+1); 
             }
             for(let i=0; i<dd; i++){ 
-               const d = toDateKey(year, curr.getMonth(), curr.getDate());
-               if(curr.getFullYear()===year) newS[d] = {descanso: true}; 
+               const d = toDateKey(2026, curr.getMonth(), curr.getDate());
+               newS[d] = {descanso: true}; 
                curr.setDate(curr.getDate()+1); 
             }
           } else { curr.setDate(curr.getDate()+1); }
         }
         setSelected(newS);
-        alert("Ciclo aplicado.");
+        alert("Ciclo aplicado correctamente");
       };
 
       return (
@@ -112,15 +109,15 @@
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:'10px'}}>
             {MESES_NOM.map((nombre, mi) => (
               <div key={mi} className="card">
-                <h4 style={{color:'var(--primary)', marginBottom:'5px'}}>{nombre.toUpperCase()}</h4>
+                <h4 style={{color:'var(--primary)', marginBottom:'5px'}}>{nombre.toUpperCase()} 2026</h4>
                 <div className="grid-cal">
                   {DIAS_L.map(l => <div key={l} style={{fontSize:'10px', opacity:0.4, textAlign:'center'}}>{l}</div>)}
-                  {Array(new Date(year, mi, 1).getDay() === 0 ? 6 : new Date(year, mi, 1).getDay() - 1).fill(0).map((_, i) => <div key={i} />)}
-                  {Array.from({ length: new Date(year, mi + 1, 0).getDate() }, (_, i) => i + 1).map(d => {
-                    const dk = toDateKey(year, mi, d);
+                  {Array(new Date(2026, mi, 1).getDay() === 0 ? 6 : new Date(2026, mi, 1).getDay() - 1).fill(0).map((_, i) => <div key={i} />)}
+                  {Array.from({ length: new Date(2026, mi + 1, 0).getDate() }, (_, i) => i + 1).map(d => {
+                    const dk = toDateKey(2026, mi, d);
                     const data = selected[dk] || {};
-                    const vacas = isVacation(dk);
-                    let bg = vacas ? "#FEF9C3" : (data.jornada ? "#FEE2E2" : (data.descanso ? "#DCFCE7" : "white"));
+                    const v = isVacation(dk);
+                    let bg = v ? "#FEF9C3" : (data.jornada ? "#FEE2E2" : (data.descanso ? "#DCFCE7" : "white"));
                     return <button key={dk} className="dia-btn" style={{background: bg}} onClick={() => setEdit({dk, data})}>{d}</button>
                   })}
                 </div>
@@ -133,52 +130,49 @@
               <div className="modal-content" onClick={e => e.stopPropagation()}>
                 <div style={{display:'flex', justifyContent:'space-between', marginBottom:'15px'}}>
                   <h2 style={{fontSize:'18px'}}>Configuración</h2>
-                  <button onClick={() => setShowGear(false)} style={{border:'none', background:'none', fontSize:'20px'}}>✕</button>
+                  <button onClick={() => setShowGear(false)} style={{border:'none', background:'none', fontSize:'24px'}}>×</button>
                 </div>
                 
-                {/* 1. FICHA */}
                 <div className="card">
                   <label>Nombre</label>
                   <input type="text" value={user.nombre} onChange={e => setUser({...user, nombre: e.target.value})} />
-                  <label style={{marginTop:'8px'}}>Año Ingreso (Def: 2008)</label>
+                  <label style={{marginTop:'10px'}}>Año Ingreso</label>
                   <input type="number" value={user.ingreso} onChange={e => setUser({...user, ingreso: parseInt(e.target.value)})} />
                 </div>
 
-                {/* 2. CICLO */}
                 <div className="card">
-                  <label style={{color:'var(--dark)'}}><i className="fa-solid fa-sync"></i> CICLO TRABAJO</label>
-                  <input type="date" id="cStart" defaultValue={`${year}-01-02`} style={{margin:'8px 0'}} />
-                  <div style={{display:'flex', gap:'5px', marginBottom:'8px'}}>
+                  <label style={{color:'var(--dark)'}}>🔄 CICLO TRABAJO</label>
+                  <input type="date" id="cStart" defaultValue="2026-01-02" style={{margin:'10px 0'}} />
+                  <div style={{display:'flex', gap:'5px', marginBottom:'10px'}}>
                     <select id="cHoras"><option value="24">24h</option><option value="12">12h</option></select>
                     <input type="number" id="cDW" defaultValue="1" />
                     <input type="number" id="cDD" defaultValue="4" />
                   </div>
-                  <button className="btn-primary" onClick={aplicarCiclo} style={{background: 'var(--dark)'}}>APLICAR CICLO</button>
+                  <button className="btn-primary" onClick={aplicarCiclo} style={{background: '#1E293B'}}>APLICAR CICLO</button>
                 </div>
 
-                {/* 3. VACACIONES CON FIX DE ANCHO */}
                 <div className="card">
-                  <label style={{color:'var(--dark)', marginBottom:'10px'}}><i className="fa-solid fa-umbrella-beach"></i> VACACIONES</label>
+                  <label style={{color:'var(--dark)', marginBottom:'10px'}}>🏖️ VACACIONES</label>
                   {user.periodos.map(p => (
                     <div key={p.id} className="vaca-row">
                       <div className="vaca-inputs">
                         <div className="vaca-group">
-                          <select value={p.mIni} onChange={e => updatePeriodo(p.id, 'mIni', e.target.value)}>
+                          <select value={p.mIni} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, mIni:parseInt(e.target.value)}:x)})}>
                             {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
                           </select>
-                          <input type="number" value={p.dIni} onChange={e => updatePeriodo(p.id, 'dIni', e.target.value)} />
+                          <input type="number" value={p.dIni} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, dIni:parseInt(e.target.value)}:x)})} />
                         </div>
                         <span style={{fontWeight:'bold'}}>-</span>
                         <div className="vaca-group">
-                          <select value={p.mFin} onChange={e => updatePeriodo(p.id, 'mFin', e.target.value)}>
+                          <select value={p.mFin} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, mFin:parseInt(e.target.value)}:x)})}>
                             {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
                           </select>
-                          <input type="number" value={p.dFin} onChange={e => updatePeriodo(p.id, 'dFin', e.target.value)} />
+                          <input type="number" value={p.dFin} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, dFin:parseInt(e.target.value)}:x)})} />
                         </div>
                       </div>
                       <div className="vaca-actions">
-                        <button className="btn-apply-v" onClick={() => {alert("Periodo Guardado"); setShowGear(false);}}>APLICAR</button>
-                        <button className="btn-del-v" onClick={() => setUser({...user, periodos: user.periodos.filter(x => x.id !== p.id)})}><i className="fa-solid fa-trash"></i></button>
+                        <button className="btn-apply-v" onClick={() => setShowGear(false)}>APLICAR</button>
+                        <button className="btn-del-v" onClick={() => setUser({...user, periodos: user.periodos.filter(x => x.id !== p.id)})}>🗑️</button>
                       </div>
                     </div>
                   ))}
@@ -192,7 +186,8 @@
         </div>
       );
     }
-    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
   </script>
 </body>
 </html>
