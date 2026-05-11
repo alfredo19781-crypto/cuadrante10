@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cuadrante Inteligente 2026</title>
+  <title>Gestor de Cuadrante 2026</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -17,12 +17,10 @@
     input, textarea { border-radius: 8px; border: 1px solid #CBD5E1; padding: 8px; outline: none; font-family: inherit; width: 100%; }
     .btn-primary { background: #2563EB; color: white; padding: 12px; border-radius: 8px; font-weight: bold; width: 100%; }
     .btn-sec { background: #F1F5F9; color: #64748B; padding: 10px; border-radius: 8px; font-weight: bold; width: 100%; }
-    .year-display { background: #2563EB; color: white; padding: 5px 15px; border-radius: 10px; font-weight: bold; font-size: 1.2rem; }
+    .year-display { background: #1E293B; color: white; padding: 5px 15px; border-radius: 10px; font-weight: bold; font-size: 1.2rem; }
     .dot-nota { width: 4px; height: 4px; background: #64748B; border-radius: 50%; margin-top: 2px; }
     .progress-bar { height: 8px; background: #E2E8F0; border-radius: 4px; overflow: hidden; margin-top: 4px; }
     .progress-fill { height: 100%; transition: width 0.5s ease-out; }
-    .festivo { color: #DC2626 !important; font-weight: 900 !important; }
-    .saliente { border: 2px dashed #CBD5E1 !important; opacity: 0.8; }
   </style>
 </head>
 <body>
@@ -34,12 +32,12 @@
       { id: "jornada", label: "Jornada", emoji: "💼", color: "#DC2626", bg: "#FEF2F2", text: "#991B1B", border: "#FECACA" },
       { id: "vacaciones", label: "Vacaciones", emoji: "🏖️", color: "#CA8A04", bg: "#FEFCE8", text: "#713F12", border: "#FDE047" },
       { id: "asuntos", label: "Asuntos Propios", emoji: "📋", color: "#7C3AED", bg: "#F5F3FF", text: "#4C1D95", border: "#DDD6FE" },
+      { id: "sindical", label: "H. Sindicales", emoji: "📢", color: "#EF4444", bg: "#FFF1F2", text: "#9F1239", border: "#FECDD3" },
+      { id: "permiso", label: "Permisos", emoji: "📝", color: "#6366F1", bg: "#EEF2FF", text: "#312E81", border: "#C7D2FE" },
       { id: "excesos", label: "Excesos", emoji: "⏱️", color: "#0891B2", bg: "#ECFEFF", text: "#164E63", border: "#A5F3FC" },
       { id: "libre", label: "Libre", emoji: "☕", color: "#16A34A", bg: "#F0FDF4", text: "#14532D", border: "#86EFAC" },
       { id: "guardia", label: "Guardia", emoji: "🛡️", color: "#D97706", bg: "#FFFBEB", text: "#92400E", border: "#FDE68A" }
     ];
-
-    const FESTIVOS_2026 = ["2026-01-01", "2026-01-06", "2026-04-02", "2026-04-03", "2026-05-01", "2026-08-15", "2026-10-12", "2026-11-01", "2026-12-06", "2026-12-08", "2026-12-25"];
 
     const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
     const DIAS_L = ["L","M","X","J","V","S","D"];
@@ -65,7 +63,7 @@
               const data = selected[dk] || {};
               const t = TIPOS.find(x => data[x.id] > 0);
               return (
-                <div key={dk} style={{ textAlign: "center", padding: "5px", borderRadius: "8px", background: dk === hoyKey ? "#2563EB" : "transparent" }}>
+                <div key={dk} style={{ textAlign: "center", padding: "5px", borderRadius: "8px", background: dk === hoyKey ? "#3B82F6" : "transparent" }}>
                   <div style={{ fontSize: "9px", opacity: 0.6 }}>{DIAS_L[new Date(dk).getDay() === 0 ? 6 : new Date(dk).getDay()-1]}</div>
                   <div style={{ fontSize: "12px", fontWeight: "bold" }}>{dk.split("-")[2]}</div>
                   <div style={{ fontSize: "10px" }}>{t ? t.emoji : "·"}</div>
@@ -86,13 +84,19 @@
       useEffect(() => { localStorage.setItem("cuad_vFinal_2026", JSON.stringify(selected)); }, [selected]);
 
       const stats = useMemo(() => {
-        let j=0, v=0, e=0, g=0, a=0;
+        let j=0, v=0, e=0, g=0, a=0, s=0, p=0;
         Object.entries(selected).forEach(([key, d]) => {
           if(key.startsWith(year)) {
-            if(d.jornada) j += d.jornada/8; if(d.vacaciones) v++; if(d.excesos) e += d.excesos; if(d.guardia) g++; if(d.asuntos) a++;
+            if(d.jornada) j += d.jornada/8; 
+            if(d.vacaciones) v++; 
+            if(d.excesos) e += d.excesos; 
+            if(d.guardia) g++; 
+            if(d.asuntos) a++;
+            if(d.sindical) s += d.sindical;
+            if(d.permiso) p++;
           }
         });
-        return { j, v, e, g, a };
+        return { j, v, e, g, a, s, p };
       }, [selected, year]);
 
       return (
@@ -103,9 +107,8 @@
               <div className="year-display">{year}</div>
               <button onClick={() => setYear(y => y+1)} style={{fontSize:"20px"}}>▶</button>
             </div>
-            <div style={{ textAlign: "right" }}>
-               <div style={{fontSize:"11px", color:"#64748B"}}>Jornadas Totales</div>
-               <div style={{fontSize:"18px", fontWeight:"bold"}}>💼 {stats.j.toFixed(1)}</div>
+            <div style={{ textAlign: "right", fontSize: "12px", fontWeight: "bold" }}>
+               💼 Jornadas: {stats.j.toFixed(1)}
             </div>
           </header>
 
@@ -116,7 +119,7 @@
              <button onClick={() => {
                 const data = JSON.stringify(selected);
                 navigator.clipboard.writeText(data);
-                alert("Copiado!");
+                alert("Backup copiado!");
              }} className="btn-sec">📤 Backup</button>
           </div>
 
@@ -133,25 +136,18 @@
                     {Array.from({ length: diasMes }, (_, i) => i + 1).map(d => {
                       const dk = toDateKey(year, mi, d);
                       const data = selected[dk] || {};
-                      
-                      // Lógica de Saliente
-                      const ayer = new Date(year, mi, d - 1);
-                      const ayerKey = toDateKey(ayer.getFullYear(), ayer.getMonth(), ayer.getDate());
-                      const esSaliente = selected[ayerKey]?.guardia > 0;
-
                       const t = TIPOS.find(x => data[x.id] > 0);
-                      const esFestivo = FESTIVOS_2026.includes(dk);
 
                       return (
                         <button key={dk} onClick={() => setEdit({ dk, data })} 
                           style={{ 
                             aspectRatio: "1", borderRadius: "8px", position: "relative",
                             background: t ? t.bg : "#fff",
-                            border: t ? `1px solid ${t.border}` : "1px solid #E2E8F0"
+                            border: t ? `1px solid ${t.border}` : "1px solid #E2E8F0",
+                            color: "#1E293B"
                           }}
-                          className={`${esSaliente ? 'saliente' : ''}`}
                         >
-                          <span style={{ fontSize: "12px" }} className={esFestivo ? 'festivo' : ''}>{d}</span>
+                          <span style={{ fontSize: "12px" }}>{d}</span>
                           {data.nota && <div style={{ position:"absolute", bottom:"2px", left:"50%", transform:"translateX(-50%)" }} className="dot-nota"></div>}
                         </button>
                       );
@@ -162,31 +158,45 @@
             })}
           </div>
 
-          {/* RESUMEN GRÁFICO FINAL */}
+          {/* RESUMEN DE PERMISOS Y VACACIONES */}
           <div className="card" style={{ marginTop: "20px", background: "#F8FAFC" }}>
-            <h4 style={{ marginBottom: "15px" }}>📊 Resumen Anual {year}</h4>
-            <div style={{ display: "grid", gap: "10px" }}>
+            <h4 style={{ marginBottom: "15px" }}>📊 Control de Tiempos {year}</h4>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "15px" }}>
               <div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px" }}><span>Vacaciones</span><span>{stats.v} días</span></div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}><span>🏖️ Vacaciones</span><span>{stats.v}</span></div>
                 <div className="progress-bar"><div className="progress-fill" style={{ width: `${(stats.v/22)*100}%`, background: "#CA8A04" }}></div></div>
               </div>
               <div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px" }}><span>Asuntos Propios</span><span>{stats.a} días</span></div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}><span>📋 Asuntos</span><span>{stats.a}</span></div>
                 <div className="progress-bar"><div className="progress-fill" style={{ width: `${(stats.a/6)*100}%`, background: "#7C3AED" }}></div></div>
               </div>
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}><span>📢 Sindical</span><span>{stats.s}h</span></div>
+                <div className="progress-bar"><div className="progress-fill" style={{ width: `100%`, background: "#EF4444" }}></div></div>
+              </div>
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}><span>📝 Permisos</span><span>{stats.p}</span></div>
+                <div className="progress-bar"><div className="progress-fill" style={{ width: `100%`, background: "#6366F1" }}></div></div>
+              </div>
             </div>
-          </div>
+          </header>
 
           {edit && (
             <div className="modal" onClick={() => setEdit(null)}>
-              <div className="card" style={{ width: "320px" }} onClick={e => e.stopPropagation()}>
+              <div className="card" style={{ width: "320px", maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
                 <h3>Editar {edit.dk}</h3>
                 <div style={{ display: "flex", gap: "10px", margin: "15px 0" }}>
-                   <input type="time" value={edit.data.inicio || "08:00"} onChange={e => setEdit({...edit, data: {...edit.data, inicio: e.target.value}})} />
-                   <input type="time" value={edit.data.fin || "15:00"} onChange={e => setEdit({...edit, data: {...edit.data, fin: e.target.value}})} />
+                   <div style={{flex:1}}>
+                     <label style={{fontSize:"10px"}}>Inicio</label>
+                     <input type="time" value={edit.data.inicio || "08:00"} onChange={e => setEdit({...edit, data: {...edit.data, inicio: e.target.value}})} />
+                   </div>
+                   <div style={{flex:1}}>
+                     <label style={{fontSize:"10px"}}>Fin</label>
+                     <input type="time" value={edit.data.fin || "15:00"} onChange={e => setEdit({...edit, data: {...edit.data, fin: e.target.value}})} />
+                   </div>
                 </div>
                 {TIPOS.map(t => (
-                  <div key={t.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                  <div key={t.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", alignItems: "center" }}>
                     <span style={{fontSize:"14px"}}>{t.emoji} {t.label}</span>
                     <input type="number" style={{width:"60px"}} value={edit.data[t.id] || 0} onChange={e => setEdit({...edit, data: {...edit.data, [t.id]: parseInt(e.target.value) || 0}})} />
                   </div>
@@ -201,7 +211,7 @@
             <div className="modal" onClick={() => setShowPatron(false)}>
               <div className="card" style={{ width: "320px" }} onClick={e => e.stopPropagation()}>
                 <h3>⚙️ Configuración</h3>
-                <label style={{fontSize:"11px", marginTop:"10px", display:"block"}}>Fecha de inicio 1/4:</label>
+                <label style={{fontSize:"11px", marginTop:"10px", display:"block"}}>Fecha inicio ciclo 1/4:</label>
                 <input type="date" id="startP" defaultValue={`${year}-01-02`} style={{marginBottom:"15px"}} />
                 <button onClick={() => {
                   const start = new Date(document.getElementById("startP").value);
@@ -211,15 +221,14 @@
                     start.setDate(start.getDate() + 5);
                   }
                   setSelected(newS); setShowPatron(false);
-                }} className="btn-primary">Aplicar Ciclo 1/4</button>
-                
+                }} className="btn-primary">Aplicar Ciclo</button>
                 <button onClick={() => {
-                  if(confirm("¿Borrar TODO el año?")) {
+                  if(confirm("¿Borrar año?")) {
                     let newS = {...selected};
                     Object.keys(newS).forEach(key => { if(key.startsWith(year)) delete newS[key]; });
                     setSelected(newS); setShowPatron(false);
                   }
-                }} className="btn-sec" style={{marginTop:"20px", color:"#DC2626"}}>🗑️ Borrar Todo el Año</button>
+                }} className="btn-sec" style={{marginTop:"20px", color:"#DC2626"}}>🗑️ Resetear Año</button>
                 <button onClick={() => setShowPatron(false)} className="btn-sec" style={{marginTop:"10px"}}>Cerrar</button>
               </div>
             </div>
