@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cuadrante Alfredo V9.4</title>
+  <title>Cuadrante Alfredo V9.5.1</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
-    :root { --primary: #2563EB; --danger: #EF4444; --success: #22C55E; --dark: #1E293B; --bg: #F1F5F9; }
+    :root { --primary: #2563EB; --danger: #EF4444; --success: #22C55E; --dark: #1E293B; --bg: #F1F5F9; --ap: #F59E0B; }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--dark); padding: 10px; }
     
@@ -19,20 +19,19 @@
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 10px; }
     .modal-content { background: white; border-radius: 20px; padding: 15px; width: 100%; max-width: 420px; max-height: 85vh; overflow-y: auto; }
     
-    select, input { border-radius: 8px; border: 1px solid #CBD5E1; padding: 10px; font-size: 16px; width: 100%; background: white; }
+    select, input { border-radius: 8px; border: 1px solid #CBD5E1; padding: 10px; font-size: 14px; width: 100%; background: white; }
     label { font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; margin-bottom: 4px; display: block; }
     
     .btn-primary { background: var(--primary); color: white; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; border: none; margin-top: 5px; }
     
-    .vaca-row { background: #F8FAFC; padding: 12px; border-radius: 12px; border: 1px solid #E2E8F0; margin-bottom: 10px; }
-    .vaca-inputs { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
-    .vaca-group { display: flex; gap: 4px; flex: 1; }
-    .vaca-actions { display: flex; gap: 8px; }
-    .btn-apply-v { background: var(--success); color: white; flex: 3; padding: 10px; border-radius: 8px; font-weight: bold; border: none; }
-    .btn-del-v { background: var(--danger); color: white; flex: 1; padding: 10px; border-radius: 8px; border: none; }
+    .row-config { background: #F8FAFC; padding: 10px; border-radius: 12px; border: 1px solid #E2E8F0; margin-bottom: 10px; }
+    .inputs-group { display: flex; align-items: center; gap: 5px; margin-bottom: 10px; }
+    .actions-group { display: flex; gap: 8px; }
+    .btn-apply { background: var(--success); color: white; flex: 3; padding: 10px; border-radius: 8px; font-weight: bold; border: none; font-size: 12px; }
+    .btn-del { background: var(--danger); color: white; flex: 1; padding: 10px; border-radius: 8px; border: none; }
 
     .dia-btn { aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 13px; border: 1px solid #F1F5F9; background: white; position: relative; }
-    .badge { position: absolute; top: 1px; right: 1px; font-size: 8px; padding: 1px 3px; border-radius: 4px; color: white; font-weight: bold; }
+    .badge-ap { position: absolute; top: 1px; left: 1px; font-size: 9px; background: var(--ap); color: white; padding: 1px 3px; border-radius: 4px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -46,13 +45,25 @@
 
     function App() {
       const year = 2026;
-      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v94") || "{}"));
-      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v94") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[]}'));
+      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v951") || "{}"));
+      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v951") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[]}'));
       const [showGear, setShowGear] = useState(false);
       const [edit, setEdit] = useState(null);
 
-      useEffect(() => { localStorage.setItem("cuad_alfredo_v94", JSON.stringify(selected)); }, [selected]);
-      useEffect(() => { localStorage.setItem("user_alfredo_v94", JSON.stringify(user)); }, [user]);
+      useEffect(() => { localStorage.setItem("cuad_alfredo_v951", JSON.stringify(selected)); }, [selected]);
+      useEffect(() => { localStorage.setItem("user_alfredo_v951", JSON.stringify(user)); }, [user]);
+
+      // NUEVA LÓGICA DE DÍAS AP SEGÚN TU TABLA
+      const diasAP_Totales = useMemo(() => {
+        const ant = year - user.ingreso;
+        let base = 6;
+        if (ant >= 30) base += 5; // 10º trienio
+        else if (ant >= 27) base += 4; // 9º trienio
+        else if (ant >= 24) base += 3; // 8º trienio
+        else if (ant >= 21) base += 2; // 7º trienio
+        else if (ant >= 18) base += 2; // 6º trienio
+        return base;
+      }, [user.ingreso, year]);
 
       const isVacation = (dk) => {
         return user.periodos.some(p => {
@@ -63,15 +74,18 @@
         });
       };
 
+      const isAP = (dk) => user.ap.some(a => a.dia && a.mes && toDateKey(year, a.mes-1, a.dia) === dk);
+
       const stats = useMemo(() => {
         let totalJ = 0;
         Object.entries(selected).forEach(([dk, data]) => {
-          if(dk.startsWith("2026") && data.jornada && !isVacation(dk)) totalJ += (data.jornada/8);
+          if(dk.startsWith("2026") && data.jornada && !isVacation(dk) && !isAP(dk)) totalJ += (data.jornada/8);
         });
+        const totalConAP = totalJ + user.ap.filter(a => a.dia && a.mes).length;
         const ant = year - user.ingreso;
-        const extra = ant >= 30 ? 4 : ant >= 25 ? 3 : ant >= 20 ? 2 : ant >= 15 ? 1 : 0;
-        return { real: totalJ, obj: 193 - extra };
-      }, [selected, user]);
+        const extraVacas = ant >= 30 ? 4 : ant >= 25 ? 3 : ant >= 20 ? 2 : ant >= 15 ? 1 : 0;
+        return { real: totalConAP, obj: 193 - extraVacas };
+      }, [selected, user, year]);
 
       const aplicarCiclo = () => {
         const startVal = document.getElementById('cStart').value;
@@ -84,24 +98,24 @@
           if(curr.getFullYear() === year) {
             for(let i=0; i<dw; i++){ 
                const d = toDateKey(year, curr.getMonth(), curr.getDate());
-               if(curr.getFullYear()===year) newS[d] = {jornada: h}; 
+               newS[d] = {jornada: h}; 
                curr.setDate(curr.getDate()+1); 
             }
             for(let i=0; i<dd; i++){ 
                const d = toDateKey(year, curr.getMonth(), curr.getDate());
-               if(curr.getFullYear()===year) newS[d] = {descanso: true}; 
+               newS[d] = {descanso: true}; 
                curr.setDate(curr.getDate()+1); 
             }
           } else { curr.setDate(curr.getDate()+1); }
         }
         setSelected(newS);
-        alert("Ciclo aplicado desde el " + startVal);
+        alert("Ciclo aplicado");
       };
 
       return (
         <div>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px'}}>
-            <h1 style={{fontSize:'18px'}}>📅 Cuadrante Alfredo</h1>
+            <h1 style={{fontSize:'18px'}}>📅 {user.nombre}</h1>
             <button onClick={() => setShowGear(true)} style={{fontSize:'22px', background:'none', border:'none'}}><i className="fa-solid fa-gear"></i></button>
           </div>
 
@@ -114,21 +128,21 @@
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(290px, 1fr))', gap:'10px'}}>
             {MESES_NOM.map((nombre, mi) => (
               <div key={mi} className="card">
-                <h4 style={{color:'var(--primary)', marginBottom:'5px'}}>{nombre.toUpperCase()} 2026</h4>
+                <h4 style={{color:'var(--primary)', marginBottom:'5px'}}>{nombre.toUpperCase()}</h4>
                 <div className="grid-cal">
-                  {DIAS_L.map(l => <div key={l} style={{fontSize:'10px', opacity:0.4, textAlign:'center', fontWeight:'bold'}}>{l}</div>)}
+                  {DIAS_L.map(l => <div key={l} style={{fontSize:'10px', opacity:0.4, textAlign:'center'}}>{l}</div>)}
                   {Array(new Date(year, mi, 1).getDay() === 0 ? 6 : new Date(year, mi, 1).getDay() - 1).fill(0).map((_, i) => <div key={i} />)}
                   {Array.from({ length: new Date(year, mi + 1, 0).getDate() }, (_, i) => i + 1).map(d => {
                     const dk = toDateKey(year, mi, d);
-                    const data = selected[dk] || {};
                     const v = isVacation(dk);
-                    let bg = v ? "#FEF9C3" : (data.jornada ? "#FEE2E2" : (data.descanso ? "#DCFCE7" : "white"));
+                    const ap = isAP(dk);
+                    const data = selected[dk] || {};
+                    let bg = v ? "#FEF9C3" : (ap ? "#FFEDD5" : (data.jornada ? "#FEE2E2" : (data.descanso ? "#DCFCE7" : "white")));
                     return (
                       <button key={dk} className="dia-btn" style={{background: bg}} onClick={() => setEdit({dk, data})}>
                         {d}
-                        {data.jornada > 0 && !v && <span style={{fontSize:'9px', color:'red', fontWeight:'bold'}}>{data.jornada}h</span>}
-                        {data.sindical > 0 && <span className="badge" style={{background:'#8B5CF6'}}>{data.sindical}h</span>}
-                        {data.asuntos && <span className="badge" style={{background:'#F59E0B', right:'auto', left:'1px'}}>A</span>}
+                        {ap && <span className="badge-ap">AP</span>}
+                        {data.jornada > 0 && !v && !ap && <span style={{fontSize:'9px', color:'red', fontWeight:'bold'}}>{data.jornada}h</span>}
                       </button>
                     )
                   })}
@@ -137,42 +151,21 @@
             ))}
           </div>
 
-          {edit && (
-            <div className="modal" onClick={() => setEdit(null)}>
-              <div className="modal-content" onClick={e => e.stopPropagation()}>
-                <h3>Día {edit.dk.split('-').reverse().join('/')}</h3>
-                <div style={{marginTop:'15px'}}>
-                  <label>Horas Jornada</label>
-                  <input type="number" value={edit.data.jornada || 0} onChange={e => setEdit({...edit, data: {...edit.data, jornada: parseInt(e.target.value)||0, descanso:false}})} />
-                  <label style={{marginTop:'10px'}}>Horas Sindicales</label>
-                  <input type="number" value={edit.data.sindical || 0} onChange={e => setEdit({...edit, data: {...edit.data, sindical: parseInt(e.target.value)||0}})} />
-                  <div style={{display:'flex', gap:'10px', marginTop:'15px', background:'#f8f9fa', padding:'10px', borderRadius:'10px'}}>
-                    <div style={{flex:1, textAlign:'center'}}><label>Asuntos</label><input type="checkbox" checked={edit.data.asuntos||false} onChange={e => setEdit({...edit, data:{...edit.data, asuntos: e.target.checked}})} /></div>
-                    <div style={{flex:1, textAlign:'center'}}><label>Descanso</label><input type="checkbox" checked={edit.data.descanso||false} onChange={e => setEdit({...edit, data:{...edit.data, descanso: e.target.checked, jornada:0}})} /></div>
-                  </div>
-                </div>
-                <button className="btn-primary" onClick={() => { setSelected({...selected, [edit.dk]: edit.data}); setEdit(null); }}>GUARDAR</button>
-              </div>
-            </div>
-          )}
-
           {showGear && (
             <div className="modal" onClick={() => setShowGear(false)}>
               <div className="modal-content" onClick={e => e.stopPropagation()}>
-                <div style={{display:'flex', justifyContent:'space-between', marginBottom:'15px'}}>
-                  <h2>Configuración</h2>
-                  <button onClick={() => setShowGear(false)} style={{fontSize:'24px', background:'none', border:'none'}}>×</button>
-                </div>
+                <h2 style={{marginBottom:'15px', fontSize:'18px'}}>Configuración</h2>
                 
                 <div className="card">
-                  <label>Nombre</label>
-                  <input type="text" value={user.nombre} onChange={e => setUser({...user, nombre: e.target.value})} />
-                  <label style={{marginTop:'10px'}}>Año Ingreso</label>
-                  <input type="number" value={user.ingreso} onChange={e => setUser({...user, ingreso: parseInt(e.target.value)})} />
+                  <label>Nombre y Año Ingreso</label>
+                  <div style={{display:'flex', gap:'5px'}}>
+                    <input type="text" value={user.nombre} onChange={e => setUser({...user, nombre: e.target.value})} />
+                    <input type="number" value={user.ingreso} onChange={e => setUser({...user, ingreso: parseInt(e.target.value)})} style={{width:'80px'}} />
+                  </div>
                 </div>
 
                 <div className="card">
-                  <label>🔄 CICLO TRABAJO</label>
+                  <label>🔄 1. Ciclo de Trabajo</label>
                   <input type="date" id="cStart" defaultValue="2026-01-01" style={{margin:'8px 0'}} />
                   <div style={{display:'flex', gap:'5px', marginBottom:'8px'}}>
                     <select id="cHoras"><option value="24">24h</option><option value="12">12h</option></select>
@@ -183,42 +176,88 @@
                 </div>
 
                 <div className="card">
-                  <label>🏖️ VACACIONES</label>
+                  <label>🏖️ 2. Vacaciones</label>
                   {user.periodos.map(p => (
-                    <div key={p.id} className="vaca-row">
-                      <div className="vaca-inputs">
-                        <div className="vaca-group">
-                          <select value={p.mIni || ""} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, mIni:parseInt(e.target.value)}:x)})}>
-                            <option value="" disabled>—</option>
-                            {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
-                          </select>
-                          <select value={p.dIni || ""} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, dIni:parseInt(e.target.value)}:x)})}>
-                            <option value="" disabled>—</option>
-                            {Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
-                          </select>
-                        </div>
-                        <span style={{fontWeight:'bold'}}>-</span>
-                        <div className="vaca-group">
-                          <select value={p.mFin || ""} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, mFin:parseInt(e.target.value)}:x)})}>
-                            <option value="" disabled>—</option>
-                            {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
-                          </select>
-                          <select value={p.dFin || ""} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, dFin:parseInt(e.target.value)}:x)})}>
-                            <option value="" disabled>—</option>
-                            {Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
-                          </select>
-                        </div>
+                    <div key={p.id} className="row-config">
+                      <div className="inputs-group">
+                        <select value={p.mIni || ""} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, mIni:parseInt(e.target.value)}:x)})}>
+                          <option value="" disabled>—</option>
+                          {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
+                        </select>
+                        <select value={p.dIni || ""} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, dIni:parseInt(e.target.value)}:x)})}>
+                          <option value="" disabled>—</option>
+                          {Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                        <span>-</span>
+                        <select value={p.mFin || ""} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, mFin:parseInt(e.target.value)}:x)})}>
+                          <option value="" disabled>—</option>
+                          {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
+                        </select>
+                        <select value={p.dFin || ""} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, dFin:parseInt(e.target.value)}:x)})}>
+                          <option value="" disabled>—</option>
+                          {Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
                       </div>
-                      <div className="vaca-actions">
-                        <button className="btn-apply-v" onClick={() => setShowGear(false)}>APLICAR</button>
-                        <button className="btn-del-v" onClick={() => setUser({...user, periodos: user.periodos.filter(x => x.id !== p.id)})}>🗑️</button>
+                      <div className="actions-group">
+                        <button className="btn-apply" onClick={() => setShowGear(false)}>APLICAR</button>
+                        <button className="btn-del" onClick={() => setUser({...user, periodos: user.periodos.filter(x => x.id !== p.id)})}>🗑️</button>
                       </div>
                     </div>
                   ))}
-                  <button className="btn-primary" onClick={() => setUser({...user, periodos: [...user.periodos, {id:Date.now(), dIni:null, mIni:null, dFin:null, mFin:null}]})}>+ AÑADIR PERIODO</button>
+                  <button className="btn-primary" onClick={() => setUser({...user, periodos: [...user.periodos, {id:Date.now(), dIni:null, mIni:null, dFin:null, mFin:null}]})}>+ AÑADIR VACACIONES</button>
+                </div>
+
+                <div className="card">
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px'}}>
+                    <label style={{margin:0}}>📂 3. Asuntos Propios</label>
+                    <span style={{fontSize:'12px', fontWeight:'bold', color:'var(--ap)'}}>Usados: {user.ap.filter(a=>a.dia).length} / {diasAP_Totales}</span>
+                  </div>
+                  {user.ap.map(a => (
+                    <div key={a.id} className="row-config">
+                      <div className="inputs-group">
+                        <select value={a.mes || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, mes:parseInt(e.target.value)}:x)})}>
+                          <option value="" disabled>—</option>
+                          {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
+                        </select>
+                        <select value={a.dia || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, dia:parseInt(e.target.value)}:x)})}>
+                          <option value="" disabled>—</option>
+                          {Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                        <select value={a.turno || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, turno:e.target.value}:x)})}>
+                          <option value="" disabled>Horario</option>
+                          <option value="M">Mañana</option>
+                          <option value="T">Tarde</option>
+                          <option value="N">Noche</option>
+                          <option value="L">Libre</option>
+                        </select>
+                      </div>
+                      <div className="actions-group">
+                        <button className="btn-apply" onClick={() => setShowGear(false)}>APLICAR</button>
+                        <button className="btn-del" onClick={() => setUser({...user, ap: user.ap.filter(x => x.id !== a.id)})}>🗑️</button>
+                      </div>
+                    </div>
+                  ))}
+                  <button className="btn-primary" style={{background:'var(--ap)'}} onClick={() => setUser({...user, ap: [...user.ap, {id:Date.now(), dia:null, mes:null, turno:null}]})}>+ AÑADIR ASUNTO</button>
                 </div>
 
                 <button className="btn-primary" onClick={() => setShowGear(false)} style={{background:'#64748B'}}>CERRAR</button>
+              </div>
+            </div>
+          )}
+
+          {edit && (
+            <div className="modal" onClick={() => setEdit(null)}>
+              <div className="modal-content" onClick={e => e.stopPropagation()}>
+                <h3>Día {edit.dk.split('-').reverse().join('/')}</h3>
+                <div style={{marginTop:'15px'}}>
+                  <label>Horas Jornada</label>
+                  <input type="number" value={edit.data.jornada || 0} onChange={e => setEdit({...edit, data: {...edit.data, jornada: parseInt(e.target.value)||0, descanso:false}})} />
+                  <div style={{marginTop:'15px', padding:'10px', background:'#f8f9fa', borderRadius:'10px', textAlign:'center'}}>
+                    <label>¿Es día de descanso?</label>
+                    <input type="checkbox" checked={edit.data.descanso||false} onChange={e => setEdit({...edit, data:{...edit.data, descanso: e.target.checked, jornada:0}})} style={{width:'20px', height:'20px'}} />
+                  </div>
+                </div>
+                <button className="btn-primary" onClick={() => { setSelected({...selected, [edit.dk]: edit.data}); setEdit(null); }}>GUARDAR</button>
               </div>
             </div>
           )}
