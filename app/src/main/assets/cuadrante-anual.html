@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cuadrante Alfredo V9</title>
+  <title>Cuadrante Alfredo V9.1</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -13,30 +13,27 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--dark); padding: 10px; }
     
-    .card { background: white; border-radius: 16px; border: 1px solid #E2E8F0; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .card { background: white; border-radius: 12px; border: 1px solid #E2E8F0; padding: 12px; margin-bottom: 12px; }
     .grid-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-    button { cursor: pointer; border: none; transition: 0.2s; }
     
-    /* Modal Ajustado para Móvil */
-    .modal { position: fixed; inset: 0; background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 10px; }
-    .modal-content { background: white; border-radius: 20px; padding: 15px; width: 100%; max-width: 450px; max-height: 90vh; overflow-y: auto; }
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 10px; }
+    .modal-content { background: white; border-radius: 20px; padding: 15px; width: 100%; max-width: 400px; max-height: 85vh; overflow-y: auto; }
     
-    /* Inputs y Selects */
-    select, input { border-radius: 8px; border: 1px solid #CBD5E1; padding: 10px; font-size: 14px; width: 100%; }
-    label { font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; margin-bottom: 4px; display: block; }
+    select, input { border-radius: 8px; border: 1px solid #CBD5E1; padding: 8px; font-size: 14px; width: 100%; }
+    label { font-size: 10px; font-weight: 700; color: #64748B; text-transform: uppercase; margin-bottom: 4px; display: block; }
     
-    /* Botones */
-    .btn-primary { background: var(--primary); color: white; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; margin-top: 5px; }
-    .btn-apply-vaca { background: var(--success); color: white; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: bold; flex: 1; }
-    .btn-del-vaca { background: var(--danger); color: white; width: 35px; border-radius: 8px; font-size: 14px; }
+    .btn-primary { background: var(--primary); color: white; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; margin-top: 5px; border:none; }
     
-    /* Fila de Vacaciones Optimizada */
-    .vaca-row { background: #F8FAFC; padding: 12px; border-radius: 12px; border: 1px solid #E2E8F0; margin-bottom: 10px; }
-    .vaca-inputs { display: flex; align-items: center; gap: 5px; margin-bottom: 10px; }
-    .vaca-controls { display: flex; gap: 8px; }
-    .vaca-block { flex: 1; display: flex; gap: 3px; }
-    .vaca-block select { flex: 2; padding: 6px; font-size: 13px; }
-    .vaca-block input { flex: 1; padding: 6px; text-align: center; }
+    /* FIX VACACIONES: DOS FILAS */
+    .vaca-row { background: #F8FAFC; padding: 10px; border-radius: 10px; border: 1px solid #E2E8F0; margin-bottom: 10px; }
+    .vaca-inputs { display: flex; align-items: center; justify-content: space-between; gap: 5px; margin-bottom: 10px; }
+    .vaca-group { display: flex; gap: 3px; flex: 1; }
+    .vaca-group select { flex: 2; padding: 5px; font-size: 12px; }
+    .vaca-group input { flex: 1; padding: 5px; text-align: center; font-size: 12px; }
+    
+    .vaca-actions { display: flex; gap: 8px; }
+    .btn-apply-v { background: var(--success); color: white; flex: 3; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 12px; border:none;}
+    .btn-del-v { background: var(--danger); color: white; flex: 1; padding: 8px; border-radius: 6px; border:none;}
 
     .dia-btn { aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; border: 1px solid #F1F5F9; background: white; }
   </style>
@@ -46,23 +43,19 @@
   <script type="text/babel">
     const { useState, useMemo, useEffect } = React;
 
-    const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+    const MESES_NOM = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
     const DIAS_L = ["L","M","X","J","V","S","D"];
     const toDateKey = (y, m, d) => `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
 
     function App() {
       const [year, setYear] = useState(2026);
-      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v9") || "{}"));
-      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v9") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[]}'));
+      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v91") || "{}"));
+      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v91") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[]}'));
       const [showGear, setShowGear] = useState(false);
       const [edit, setEdit] = useState(null);
 
-      useEffect(() => { localStorage.setItem("cuad_alfredo_v9", JSON.stringify(selected)); }, [selected]);
-      useEffect(() => { localStorage.setItem("user_alfredo_v9", JSON.stringify(user)); }, [user]);
-
-      const antiguedad = year - user.ingreso;
-      const extraVacas = antiguedad >= 30 ? 4 : antiguedad >= 25 ? 3 : antiguedad >= 20 ? 2 : antiguedad >= 15 ? 1 : 0;
-      const jornadasObj = 193 - extraVacas;
+      useEffect(() => { localStorage.setItem("cuad_alfredo_v91", JSON.stringify(selected)); }, [selected]);
+      useEffect(() => { localStorage.setItem("user_alfredo_v91", JSON.stringify(user)); }, [user]);
 
       const isVacation = (dk) => {
         return user.periodos.some(p => {
@@ -106,46 +99,29 @@
           } else { curr.setDate(curr.getDate()+1); }
         }
         setSelected(newS);
-        alert("Ciclo aplicado correctamente.");
+        alert("Ciclo aplicado.");
       };
 
       return (
         <div>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px'}}>
-            <h1 style={{fontSize:'18px'}}>📅 Cuadrante {user.nombre}</h1>
-            <button onClick={() => setShowGear(true)} style={{fontSize:'22px', background:'none'}}><i className="fa-solid fa-cog"></i></button>
-          </div>
-
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px', marginBottom:'12px'}}>
-            <div className="card" style={{margin:0, textAlign:'center', padding:'8px'}}>
-              <label>Objetivo</label><b>{jornadasObj}</b>
-            </div>
-            <div className="card" style={{margin:0, textAlign:'center', padding:'8px'}}>
-              <label>Real</label><b>{jTotal.toFixed(1)}</b>
-            </div>
-            <div className="card" style={{margin:0, textAlign:'center', padding:'8px', background: (jTotal-jornadasObj)>=0 ? '#DCFCE7':'#FEE2E2'}}>
-              <label>Balance</label><b>{(jTotal - jornadasObj).toFixed(1)}</b>
-            </div>
+            <h1 style={{fontSize:'18px'}}>📅 {user.nombre}</h1>
+            <button onClick={() => setShowGear(true)} style={{fontSize:'22px', background:'none', border:'none'}}><i className="fa-solid fa-gear"></i></button>
           </div>
 
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:'10px'}}>
-            {MESES.map((nombre, mi) => (
+            {MESES_NOM.map((nombre, mi) => (
               <div key={mi} className="card">
-                <h4 style={{color:'var(--primary)', marginBottom:'5px', fontSize:'14px'}}>{nombre.toUpperCase()} 2026</h4>
+                <h4 style={{color:'var(--primary)', marginBottom:'5px'}}>{nombre.toUpperCase()}</h4>
                 <div className="grid-cal">
-                  {DIAS_L.map(l => <div key={l} style={{fontSize:'10px', opacity:0.4, textAlign:'center', fontWeight:'bold'}}>{l}</div>)}
+                  {DIAS_L.map(l => <div key={l} style={{fontSize:'10px', opacity:0.4, textAlign:'center'}}>{l}</div>)}
                   {Array(new Date(year, mi, 1).getDay() === 0 ? 6 : new Date(year, mi, 1).getDay() - 1).fill(0).map((_, i) => <div key={i} />)}
                   {Array.from({ length: new Date(year, mi + 1, 0).getDate() }, (_, i) => i + 1).map(d => {
                     const dk = toDateKey(year, mi, d);
                     const data = selected[dk] || {};
                     const vacas = isVacation(dk);
                     let bg = vacas ? "#FEF9C3" : (data.jornada ? "#FEE2E2" : (data.descanso ? "#DCFCE7" : "white"));
-                    return (
-                      <button key={dk} className="dia-btn" style={{background: bg}} onClick={() => setEdit({dk, data})}>
-                        {d}
-                        {data.jornada > 0 && !vacas && <span style={{fontSize:'8px', color:'red', fontWeight:'bold'}}>{data.jornada}h</span>}
-                      </button>
-                    );
+                    return <button key={dk} className="dia-btn" style={{background: bg}} onClick={() => setEdit({dk, data})}>{d}</button>
                   })}
                 </div>
               </div>
@@ -155,65 +131,61 @@
           {showGear && (
             <div className="modal" onClick={() => setShowGear(false)}>
               <div className="modal-content" onClick={e => e.stopPropagation()}>
-                <div style={{display:'flex', justifyContent:'space-between', borderBottom:'1px solid #eee', paddingBottom:'10px', marginBottom:'15px'}}>
+                <div style={{display:'flex', justifyContent:'space-between', marginBottom:'15px'}}>
                   <h2 style={{fontSize:'18px'}}>Configuración</h2>
-                  <button onClick={() => setShowGear(false)} style={{fontSize:'20px'}}>✕</button>
+                  <button onClick={() => setShowGear(false)} style={{border:'none', background:'none', fontSize:'20px'}}>✕</button>
                 </div>
                 
                 {/* 1. FICHA */}
                 <div className="card">
-                  <div style={{marginBottom:'10px'}}>
-                    <label>Nombre del Usuario</label>
-                    <input type="text" value={user.nombre} onChange={e => setUser({...user, nombre: e.target.value})} />
-                  </div>
-                  <div>
-                    <label>Año de Ingreso (Defecto: 2008)</label>
-                    <input type="number" value={user.ingreso} onChange={e => setUser({...user, ingreso: parseInt(e.target.value)})} />
-                  </div>
+                  <label>Nombre</label>
+                  <input type="text" value={user.nombre} onChange={e => setUser({...user, nombre: e.target.value})} />
+                  <label style={{marginTop:'8px'}}>Año Ingreso (Def: 2008)</label>
+                  <input type="number" value={user.ingreso} onChange={e => setUser({...user, ingreso: parseInt(e.target.value)})} />
                 </div>
 
-                {/* 2. CICLO TRABAJO */}
+                {/* 2. CICLO */}
                 <div className="card">
-                  <label style={{color: 'var(--dark)', marginBottom:'10px'}}><i className="fa-solid fa-sync"></i> Ciclo de Trabajo</label>
-                  <input type="date" id="cStart" defaultValue={`${year}-01-02`} style={{marginBottom:'8px'}} />
+                  <label style={{color:'var(--dark)'}}><i className="fa-solid fa-sync"></i> CICLO TRABAJO</label>
+                  <input type="date" id="cStart" defaultValue={`${year}-01-02`} style={{margin:'8px 0'}} />
                   <div style={{display:'flex', gap:'5px', marginBottom:'8px'}}>
-                    <select id="cHoras" style={{flex:1}}><option value="24">24h</option><option value="12">12h</option></select>
-                    <input type="number" id="cDW" placeholder="Trab." defaultValue="1" style={{flex:1}} />
-                    <input type="number" id="cDD" placeholder="Desc." defaultValue="4" style={{flex:1}} />
+                    <select id="cHoras"><option value="24">24h</option><option value="12">12h</option></select>
+                    <input type="number" id="cDW" defaultValue="1" />
+                    <input type="number" id="cDD" defaultValue="4" />
                   </div>
-                  <button className="btn-primary" style={{background: var(--dark)}} onClick={aplicarCiclo}>APLICAR CICLO</button>
+                  <button className="btn-primary" onClick={aplicarCiclo} style={{background: 'var(--dark)'}}>APLICAR CICLO</button>
                 </div>
 
-                {/* 3. VACACIONES */}
+                {/* 3. VACACIONES CON FIX DE ANCHO */}
                 <div className="card">
-                  <label style={{color: 'var(--dark)', marginBottom:'10px'}}><i className="fa-solid fa-umbrella-beach"></i> Vacaciones</label>
+                  <label style={{color:'var(--dark)', marginBottom:'10px'}}><i className="fa-solid fa-umbrella-beach"></i> VACACIONES</label>
                   {user.periodos.map(p => (
                     <div key={p.id} className="vaca-row">
                       <div className="vaca-inputs">
-                        <div className="vaca-block">
+                        <div className="vaca-group">
                           <select value={p.mIni} onChange={e => updatePeriodo(p.id, 'mIni', e.target.value)}>
-                            {MESES.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
+                            {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
                           </select>
                           <input type="number" value={p.dIni} onChange={e => updatePeriodo(p.id, 'dIni', e.target.value)} />
                         </div>
                         <span style={{fontWeight:'bold'}}>-</span>
-                        <div className="vaca-block">
+                        <div className="vaca-group">
                           <select value={p.mFin} onChange={e => updatePeriodo(p.id, 'mFin', e.target.value)}>
-                            {MESES.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
+                            {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
                           </select>
                           <input type="number" value={p.dFin} onChange={e => updatePeriodo(p.id, 'dFin', e.target.value)} />
                         </div>
                       </div>
-                      <div className="vaca-controls">
-                        <button className="btn-apply-vaca" onClick={() => {alert("Periodo guardado"); setShowGear(false);}}>APLICAR</button>
-                        <button className="btn-del-vaca" onClick={() => setUser({...user, periodos: user.periodos.filter(x => x.id !== p.id)})}><i className="fa-solid fa-trash"></i></button>
+                      <div className="vaca-actions">
+                        <button className="btn-apply-v" onClick={() => {alert("Periodo Guardado"); setShowGear(false);}}>APLICAR</button>
+                        <button className="btn-del-v" onClick={() => setUser({...user, periodos: user.periodos.filter(x => x.id !== p.id)})}><i className="fa-solid fa-trash"></i></button>
                       </div>
                     </div>
                   ))}
                   <button className="btn-primary" onClick={() => setUser({...user, periodos: [...user.periodos, {id:Date.now(), dIni:1, mIni:8, dFin:31, mFin:8}]})}>+ AÑADIR PERIODO</button>
                 </div>
 
-                <button className="btn-primary" onClick={() => setShowGear(false)} style={{marginTop:'10px', background:'#64748B'}}>CERRAR AJUSTES</button>
+                <button className="btn-primary" onClick={() => setShowGear(false)} style={{background:'#64748B'}}>CERRAR</button>
               </div>
             </div>
           )}
