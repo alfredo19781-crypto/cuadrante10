@@ -167,6 +167,18 @@
                     return (
                       <button key={dk} className="dia-btn" style={{background: bg}} onClick={() => setEdit({dk, data})}>
                         <span style={{ color: fes ? 'var(--danger)' : 'inherit', fontWeight: fes ? 'bold' : 'normal' }}>{d}</span>
+                        {user.ap.filter(a => a.dia && a.mes && toDateKey(year, a.mes-1, a.dia) === dk).map(a => (
+  <div key={a.id} className={`ap-line ap-${a.turno}`} style={{
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: '4px',
+    background: 'var(--ap-color)',
+    zIndex: 5,
+    top: a.turno === 'M' ? '0' : a.turno === 'T' ? 'calc(50% - 2px)' : 'auto',
+    bottom: a.turno === 'N' ? '0' : 'auto'
+  }} />
+))}
                         {aps.map(a => <div key={a.id} className={`ap-line ap-${a.turno}`} />)}
                         {hasHS && <div className="hs-dot" />}
                         {data.jornada > 0 && !v && (
