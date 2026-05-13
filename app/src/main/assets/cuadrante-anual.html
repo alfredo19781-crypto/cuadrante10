@@ -146,9 +146,19 @@
                     const hasHS = user.hs.some(h => h.dia && h.mes && toDateKey(year, h.mes-1, h.dia) === dk);
                     const data = selected[dk] || {};
                     const is12h = data.tipo && data.tipo.startsWith('12h');
-                    let bg = v ? "#FEF9C3" : (is12h ? "#FB923C" : (data.jornada ? "#FEE2E2" : (data.descanso ? "#DCFCE7" : "white")));
+                   let bg = "white"; // Color por defecto
+if (v) {
+  bg = "#FEF9C3"; // Vacaciones (Amarillo)
+} else if (is12h) {
+  // Si es 12h, diferenciamos Día de Noche
+  bg = data.tipo === '12h-N' ? "#C2410C" : "#FB923C"; 
+} else if (data.jornada) {
+  bg = "#FEE2E2"; // 24h u otras jornadas (Rojo claro)
+} else if (data.descanso) {
+  bg = "#DCFCE7"; // Descanso (Verde)
+}
                     return (
-                      <button key={dk} className="dia-btn" style={{background: bg}} onClick={() => setEdit({dk, data})}>
+                     <button key={dk} className="dia-btn" style={{background: bg}} onClick={() => setEdit({dk, data})}>
                         {d}
                         {aps.map(a => <div key={a.id} className={`ap-line ap-${a.turno}`} />)}
                         {hasHS && <div className="hs-dot" />}
