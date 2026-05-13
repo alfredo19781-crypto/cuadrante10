@@ -145,7 +145,12 @@
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(290px, 1fr))', gap:'10px'}}>
             {MESES_NOM.map((nombre, mi) => (
               <div key={mi} className="card">
-                <h4 style={{color:'var(--primary)', marginBottom:'5px'}}>{nombre.toUpperCase()}</h4>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'5px'}}>
+  <h4 style={{color:'var(--primary)'}}>{nombre.toUpperCase()}</h4>
+  <span style={{fontSize:'10px', fontWeight:'bold', color: 'var(--hs-color)'}}>
+    {user.hs.filter(h => h.mes === (mi + 1)).reduce((acc, curr) => acc + (curr.horas || 0), 0)} / 20h HS
+  </span>
+</div>
                 <div className="grid-cal">
                   {DIAS_L.map(l => <div key={l} style={{fontSize:'10px', opacity:0.4, textAlign:'center'}}>{l}</div>)}
                   {Array(new Date(year, mi, 1).getDay() === 0 ? 6 : new Date(year, mi, 1).getDay() - 1).fill(0).map((_, i) => <div key={i} />)}
