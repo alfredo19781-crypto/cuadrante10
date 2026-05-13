@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cuadrante Alfredo V10.3</title>
+  <title>Cuadrante Alfredo V10.4</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -12,7 +12,7 @@
     :root { 
       --primary: #2563EB; --danger: #EF4444; --success: #22C55E; 
       --dark: #1E293B; --bg: #F1F5F9; --ap-color: #FFD700; 
-      --hs-color: #3B82F6; --orange-12h: #FB923C; 
+      --hs-color: #3B82F6; 
     }
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--dark); padding: 10px; }
@@ -43,14 +43,14 @@
 
     function App() {
       const year = 2026;
-      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v103") || "{}"));
-      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v103") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[],"hs":[]}'));
+      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v104") || "{}"));
+      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v104") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[],"hs":[]}'));
       const [showGear, setShowGear] = useState(false);
       const [edit, setEdit] = useState(null);
       const [tempTipo12h, setTempTipo12h] = useState("D");
 
-      useEffect(() => { localStorage.setItem("cuad_alfredo_v103", JSON.stringify(selected)); }, [selected]);
-      useEffect(() => { localStorage.setItem("user_alfredo_v103", JSON.stringify(user)); }, [user]);
+      useEffect(() => { localStorage.setItem("cuad_alfredo_v104", JSON.stringify(selected)); }, [selected]);
+      useEffect(() => { localStorage.setItem("user_alfredo_v104", JSON.stringify(user)); }, [user]);
 
       const diasAP_Totales = useMemo(() => {
         const ant = year - user.ingreso;
@@ -83,35 +83,22 @@
         const h = parseInt(document.getElementById('cHoras').value);
         const dw = parseInt(document.getElementById('cDW').value);
         const dd = parseInt(document.getElementById('cDD').value);
-        if(!startRango || !endRango) return alert("Define inicio y fin del patrón");
+        if(!startRango || !endRango) return alert("Define inicio y fin");
         let newS = {...selected};
         let dFin = new Date(endRango);
         let curr = new Date(startRango);
-       let trabajoCount = 0; // Para llevar la cuenta de los días de trabajo reales
-       while(curr <= dFin) {
-            // Ciclo de Trabajo
+        while(curr <= dFin) {
             for(let i=0; i<dw && curr <= dFin; i++){
                 const dk = toDateKey(curr.getFullYear(), curr.getMonth(), curr.getDate());
-                
                 let tipoFinal = tempTipo12h;
-                if (h === 12 && tempTipo12h === 'D-N') {
-                  // i es la posición dentro del bloque de trabajo (0, 1, 2...)
-                  // Si i es 0 (primer día) -> D. Si i es 1 (segundo día) -> N.
-                  // Si hubiera más de 2 días, seguiría alternando.
-                  tipoFinal = (i % 2 === 0) ? 'D' : 'N';
-                }
-
-                newS[dk] = { 
-                  jornada: h, 
-                  tipo: h === 12 ? `12h-${tipoFinal}` : '24h' 
-                };
-                curr.setDate(curr.getDate() + 1);
+                if (h === 12 && tempTipo12h === 'D-N') tipoFinal = (i % 2 === 0) ? 'D' : 'N';
+                newS[dk] = { jornada: h, tipo: h === 12 ? `12h-${tipoFinal}` : '24h' };
+                curr.setDate(curr.getDate()+1);
             }
-            // Ciclo de Descanso
             for(let i=0; i<dd && curr <= dFin; i++){
                 const dk = toDateKey(curr.getFullYear(), curr.getMonth(), curr.getDate());
                 newS[dk] = { descanso: true };
-                curr.setDate(curr.getDate() + 1);
+                curr.setDate(curr.getDate()+1);
             }
         }
         setSelected(newS);
@@ -130,32 +117,23 @@
       };
 
       return (
-     return (
         <div>
-          {/* 1. CABECERA Y TÍTULO */}
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'15px'}}>
             <h1 style={{fontSize:'18px'}}>📅 CUADRANTE 2026</h1>
-            <button onClick={() => setShowGear(true)} style={{fontSize:'22px', background:'none', border:'none'}}>
-              <i className="fa-solid fa-gear"></i>
-            </button>
+            <button onClick={() => setShowGear(true)} style={{fontSize:'22px', background:'none', border:'none'}}><i className="fa-solid fa-gear"></i></button>
           </div>
 
-          {/* 2. CONTADORES: TOTALES - JORNADAS - EXCESOS */}
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px', marginBottom:'15px'}}>
             <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid var(--primary)'}}>
               <label style={{fontSize:'8px', display:'block', marginBottom:'4px'}}>JORNADAS TOTALES</label>
               <b style={{fontSize:'18px'}}>{stats.real.toFixed(1)}</b>
             </div>
-
             <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid #64748B'}}>
               <label style={{fontSize:'8px', display:'block', marginBottom:'4px'}}>JORNADAS</label>
               <b style={{fontSize:'18px'}}>{stats.obj}</b>
             </div>
-
             <div className="card" style={{
-              margin:0, 
-              textAlign:'center', 
-              padding:'10px', 
+              margin:0, textAlign:'center', padding:'10px', 
               borderTop:'4px solid ' + (stats.real >= stats.obj ? 'var(--success)' : 'var(--danger)'),
               background: stats.real >= stats.obj ? '#DCFCE7' : '#FEE2E2'
             }}>
@@ -164,7 +142,6 @@
             </div>
           </div>
 
-          {/* 3. CALENDARIO */}
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(290px, 1fr))', gap:'10px'}}>
             {MESES_NOM.map((nombre, mi) => (
               <div key={mi} className="card">
@@ -179,13 +156,11 @@
                     const hasHS = user.hs.some(h => h.dia && h.mes && toDateKey(year, h.mes-1, h.dia) === dk);
                     const data = selected[dk] || {};
                     const is12h = data.tipo && data.tipo.startsWith('12h');
-                    
                     let bg = "white";
                     if (v) bg = "#FEF9C3";
                     else if (is12h) bg = data.tipo === '12h-N' ? "#C2410C" : "#FB923C";
                     else if (data.jornada) bg = "#FEE2E2";
                     else if (data.descanso) bg = "#DCFCE7";
-
                     return (
                       <button key={dk} className="dia-btn" style={{background: bg}} onClick={() => setEdit({dk, data})}>
                         {d}
@@ -197,29 +172,29 @@
                           </span>
                         )}
                       </button>
-                    );
+                    )
                   })}
                 </div>
               </div>
             ))}
           </div>
+
           {showGear && (
             <div className="modal" onClick={() => setShowGear(false)}>
               <div className="modal-content" onClick={e => e.stopPropagation()}>
-                <h2 style={{marginBottom:'15px', fontSize:'18px'}}>Configuración</h2>
+                <h2 style={{marginBottom:'15px'}}>Configuración</h2>
                 <div className="card">
+                  <label>👤 DATOS AGENTE</label>
+                  <div style={{display:'flex', gap:'5px', marginBottom:'8px'}}>
+                    <input type="text" value={user.nombre} onChange={e => setUser({...user, nombre: e.target.value})} placeholder="Nombre" />
+                    <input type="number" value={user.ingreso} onChange={e => setUser({...user, ingreso: parseInt(e.target.value)})} style={{width:'85px'}} />
+                  </div>
+                  <div style={{textAlign:'center', fontSize:'11px', color:'var(--primary)', fontWeight:'bold'}}>
+                    ANTIGÜEDAD: {year - user.ingreso} AÑOS
+                  </div>
+                </div>
                 <div className="card">
-  <label>👤 DATOS AGENTE</label>
-  <div style={{display:'flex', gap:'5px', marginBottom:'8px'}}>
-    <input type="text" value={user.nombre} onChange={e => setUser({...user, nombre: e.target.value})} placeholder="Nombre" />
-    <input type="number" value={user.ingreso} onChange={e => setUser({...user, ingreso: parseInt(e.target.value)})} style={{width:'85px'}} />
-  </div>
-  <div style={{textAlign:'center', fontSize:'11px', color:'var(--primary)', fontWeight:'bold'}}>
-    ANTIGÜEDAD: {year - user.ingreso} AÑOS
-  </div>
-</div>
-                <div className="card">
-                  <label>🔄 PATRÓN TURNO DE TRABAJO</label>
+                  <label>🔄 PATRÓN TURNO</label>
                   <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'5px', margin:'8px 0'}}>
                     <div><label>Desde:</label><input type="date" id="rStart" defaultValue="2026-01-01" /></div>
                     <div><label>Hasta:</label><input type="date" id="rEnd" defaultValue="2026-12-31" /></div>
@@ -231,37 +206,31 @@
                     <input type="number" id="cDW" defaultValue="1" placeholder="Trabajo" />
                     <input type="number" id="cDD" defaultValue="4" placeholder="Libre" />
                   </div>
-                <div id="div12h" style={{display:'none', marginBottom:'8px'}}>
-  <label>Secuencia de trabajo (12h):</label>
-  <select value={tempTipo12h} onChange={(e) => setTempTipo12h(e.target.value)}>
-    <option value="D">Solo Día (D)</option>
-    <option value="N">Solo Noche (N)</option>
-    <option value="D-N">Primer día D, Segundo día N</option>
-  </select>
-</div>
-                  <button className="btn-primary" onClick={aplicarPatron} style={{background: '#1E293B'}}>APLICAR PATRÓN EN RANGO</button>
+                  <div id="div12h" style={{display:'none', marginBottom:'8px'}}>
+                    <label>Secuencia 12h:</label>
+                    <select value={tempTipo12h} onChange={(e) => setTempTipo12h(e.target.value)}>
+                      <option value="D">Solo Día (D)</option><option value="N">Solo Noche (N)</option>
+                      <option value="D-N">1º Día, 2º Noche</option>
+                    </select>
+                  </div>
+                  <button className="btn-primary" onClick={aplicarPatron} style={{background: '#1E293B'}}>APLICAR</button>
                 </div>
-                <div className="card">
-                  <label>🏖️ VACACIONES</label>
+                <div className="card"><label>🏖️ VACACIONES</label>
                   {user.periodos.map(p => (
                     <div key={p.id} className="row-config">
                       <div className="inputs-group">
                         <select value={p.mIni || ""} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, mIni:parseInt(e.target.value)}:x)})}>
-                          <option value="" disabled>—</option>
-                          {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
+                          <option value="" disabled>—</option>{MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
                         </select>
                         <select value={p.dIni || ""} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, dIni:parseInt(e.target.value)}:x)})}>
-                          <option value="" disabled>—</option>
-                          {Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
+                          <option value="" disabled>—</option>{Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
                         </select>
                         <span>-</span>
                         <select value={p.mFin || ""} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, mFin:parseInt(e.target.value)}:x)})}>
-                          <option value="" disabled>—</option>
-                          {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
+                          <option value="" disabled>—</option>{MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
                         </select>
                         <select value={p.dFin || ""} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, dFin:parseInt(e.target.value)}:x)})}>
-                          <option value="" disabled>—</option>
-                          {Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
+                          <option value="" disabled>—</option>{Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
                         </select>
                       </div>
                       <button className="btn-del" onClick={() => setUser({...user, periodos: user.periodos.filter(x => x.id !== p.id)})}>🗑️</button>
@@ -269,22 +238,18 @@
                   ))}
                   <button className="btn-primary" onClick={() => setUser({...user, periodos: [...user.periodos, {id:Date.now(), dIni:null, mIni:null, dFin:null, mFin:null}]})}>+ AÑADIR</button>
                 </div>
-                <div className="card">
-                  <label>📂 ASUNTOS PROPIOS</label>
+                <div className="card"><label>📂 ASUNTOS PROPIOS ({user.ap.filter(a=>a.dia).length}/{diasAP_Totales})</label>
                   {user.ap.map(a => (
                     <div key={a.id} className="row-config">
                       <div className="inputs-group">
                         <select value={a.mes || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, mes:parseInt(e.target.value)}:x)})}>
-                          <option value="" disabled>—</option>
-                          {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
+                          <option value="" disabled>—</option>{MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
                         </select>
                         <select value={a.dia || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, dia:parseInt(e.target.value)}:x)})}>
-                          <option value="" disabled>—</option>
-                          {Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
+                          <option value="" disabled>—</option>{Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
                         </select>
                         <select value={a.turno || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, turno:e.target.value}:x)})}>
-                          <option value="" disabled>—</option>
-                          <option value="M">M</option><option value="T">T</option><option value="N">N</option>
+                          <option value="" disabled>—</option><option value="M">M</option><option value="T">T</option><option value="N">N</option>
                         </select>
                       </div>
                       <button className="btn-del" onClick={() => setUser({...user, ap: user.ap.filter(x => x.id !== a.id)})}>🗑️</button>
@@ -292,18 +257,15 @@
                   ))}
                   <button className="btn-primary" style={{background:'#F59E0B'}} onClick={() => setUser({...user, ap: [...user.ap, {id:Date.now(), dia:null, mes:null, turno:null}]})}>+ AÑADIR AP</button>
                 </div>
-                <div className="card">
-                  <label>📢 HORAS SINDICALES (Max 20h)</label>
+                <div className="card"><label>📢 HORAS SINDICALES (Max 20h)</label>
                   {user.hs.map(h => (
                     <div key={h.id} className="row-config">
                       <div className="inputs-group">
                         <select value={h.mes || ""} onChange={e => updateHS(h.id, 'mes', parseInt(e.target.value))}>
-                          <option value="" disabled>—</option>
-                          {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
+                          <option value="" disabled>—</option>{MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
                         </select>
                         <select value={h.dia || ""} onChange={e => updateHS(h.id, 'dia', parseInt(e.target.value))}>
-                          <option value="" disabled>—</option>
-                          {Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
+                          <option value="" disabled>—</option>{Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
                         </select>
                         <input type="number" value={h.horas || ""} onChange={e => updateHS(h.id, 'horas', parseInt(e.target.value))} placeholder="Hrs" style={{width:'60px'}} />
                       </div>
@@ -312,57 +274,38 @@
                   ))}
                   <button className="btn-primary" style={{background:'var(--hs-color)'}} onClick={() => setUser({...user, hs: [...user.hs, {id:Date.now(), dia:null, mes:null, horas:null}]})}>+ AÑADIR HS</button>
                 </div>
-                <div className="card">
-                    <label>⚠️ PELIGRO</label>
-                    <button className="btn-danger" onClick={() => {if(confirm("¿Borrar todo?")) setSelected({});}}>LIMPIAR TODO</button>
-                </div>
                 <button className="btn-primary" onClick={() => setShowGear(false)} style={{background:'#64748B'}}>CERRAR</button>
               </div>
             </div>
           )}
-{edit && (
-  <div className="modal" onClick={() => setEdit(null)}>
-    <div className="modal-content" onClick={e => e.stopPropagation()}>
-      <h3>Día {edit.dk.split('-').reverse().join('/')}</h3>
-      <div style={{marginTop:'15px'}}>
-        <label>Horas Jornada</label>
-        <input 
-          type="number" 
-          value={edit.data.jornada || 0} 
-          onChange={e => {
-            const h = parseInt(e.target.value) || 0;
-            setEdit({...edit, data: {...edit.data, jornada: h, descanso: h === 0, tipo: h === 12 ? '12h-D' : (h === 24 ? '24h' : '')}});
-          }} 
-        />
-        
-        {/* Nuevo selector para cambiar D/N manualmente */}
-        {edit.data.jornada === 12 && (
-          <div style={{marginTop:'10px'}}>
-            <label>Tipo de Turno 12h</label>
-            <select 
-              value={edit.data.tipo || "12h-D"} 
-              onChange={e => setEdit({...edit, data: {...edit.data, tipo: e.target.value}})}
-            >
-              <option value="12h-D">Día (D)</option>
-              <option value="12h-N">Noche (N)</option>
-            </select>
-          </div>
-        )}
 
-        <div style={{marginTop:'15px', padding:'10px', background:'#f8f9fa', borderRadius:'10px', textAlign:'center'}}>
-          <label>¿Es descanso?</label>
-          <input 
-            type="checkbox" 
-            checked={edit.data.descanso || false} 
-            onChange={e => setEdit({...edit, data:{...edit.data, descanso: e.target.checked, jornada: e.target.checked ? 0 : edit.data.jornada, tipo: ''}})} 
-            style={{width:'20px', height:'20px'}} 
-          />
-        </div>
-      </div>
-      <button className="btn-primary" onClick={() => { setSelected({...selected, [edit.dk]: edit.data}); setEdit(null); }}>GUARDAR</button>
-    </div>
-  </div>
-)}
+          {edit && (
+            <div className="modal" onClick={() => setEdit(null)}>
+              <div className="modal-content" onClick={e => e.stopPropagation()}>
+                <h3>Día {edit.dk.split('-').reverse().join('/')}</h3>
+                <div style={{marginTop:'15px'}}>
+                  <label>Horas Jornada</label>
+                  <input type="number" value={edit.data.jornada || 0} onChange={e => {
+                    const h = parseInt(e.target.value) || 0;
+                    setEdit({...edit, data: {...edit.data, jornada: h, descanso: h === 0, tipo: h === 12 ? '12h-D' : (h === 24 ? '24h' : '')}});
+                  }} />
+                  {edit.data.jornada === 12 && (
+                    <div style={{marginTop:'10px'}}>
+                      <label>Tipo 12h</label>
+                      <select value={edit.data.tipo || "12h-D"} onChange={e => setEdit({...edit, data: {...edit.data, tipo: e.target.value}})}>
+                        <option value="12h-D">Día (D)</option><option value="12h-N">Noche (N)</option>
+                      </select>
+                    </div>
+                  )}
+                  <div style={{marginTop:'15px', padding:'10px', background:'#f8f9fa', borderRadius:'10px', textAlign:'center'}}>
+                    <label>¿Es descanso?</label>
+                    <input type="checkbox" checked={edit.data.descanso || false} onChange={e => setEdit({...edit, data:{...edit.data, descanso: e.target.checked, jornada: e.target.checked ? 0 : edit.data.jornada, tipo: ''}})} style={{width:'20px', height:'20px'}} />
+                  </div>
+                </div>
+                <button className="btn-primary" onClick={() => { setSelected({...selected, [edit.dk]: edit.data}); setEdit(null); }}>GUARDAR</button>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
