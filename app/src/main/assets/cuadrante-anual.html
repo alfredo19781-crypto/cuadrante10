@@ -194,7 +194,9 @@
                     else if (data.descanso) bg = "#DCFCE7";
                     return (
                       <button key={dk} className="dia-btn" style={{background: bg}} onClick={() => setEdit({dk, data})}>
-                        {d}
+                        <span style={{ color: isFestivo(dk) ? 'var(--danger)' : 'inherit', fontWeight: isFestivo(dk) ? 'bold' : 'normal' }}>
+  {d}
+</span>
                         {aps.map(a => <div key={a.id} className={`ap-line ap-${a.turno}`} />)}
                         {hasHS && <div className="hs-dot" />}
                         {data.jornada > 0 && !v && (
