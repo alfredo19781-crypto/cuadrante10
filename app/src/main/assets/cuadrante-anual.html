@@ -87,16 +87,33 @@
         let newS = {...selected};
         let dFin = new Date(endRango);
         let curr = new Date(startRango);
+       let trabajoCount = 0; // Para llevar la cuenta de los días de trabajo reales
         while(curr <= dFin) {
+            // Ciclo de Trabajo
             for(let i=0; i<dw && curr <= dFin; i++){
                 const dk = toDateKey(curr.getFullYear(), curr.getMonth(), curr.getDate());
-                newS[dk] = { jornada: h, tipo: h === 12 ? `12h-${tempTipo12h}` : '24h' };
-                curr.setDate(curr.getDate()+1);
+                
+                let tipoFinal = tempTipo12h;
+                if (h === 12) {
+                  if (tempTipo12h === 'DN') {
+                    tipoFinal = (trabajoCount % 2 === 0) ? 'D' : 'N';
+                  } else if (tempTipo12h === 'ND') {
+                    tipoFinal = (trabajoCount % 2 === 0) ? 'N' : 'D';
+                  }
+                }
+
+                newS[dk] = { 
+                  jornada: h, 
+                  tipo: h === 12 ? `12h-${tipoFinal}` : '24h' 
+                };
+                trabajoCount++;
+                curr.setDate(curr.getDate() + 1);
             }
+            // Ciclo de Descanso
             for(let i=0; i<dd && curr <= dFin; i++){
                 const dk = toDateKey(curr.getFullYear(), curr.getMonth(), curr.getDate());
                 newS[dk] = { descanso: true };
-                curr.setDate(curr.getDate()+1);
+                curr.setDate(curr.getDate() + 1);
             }
         }
         setSelected(newS);
@@ -198,12 +215,16 @@ if (v) {
                     <input type="number" id="cDW" defaultValue="1" placeholder="Trabajo" />
                     <input type="number" id="cDD" defaultValue="4" placeholder="Libre" />
                   </div>
-                  <div id="div12h" style={{display:'none', marginBottom:'8px'}}>
-                    <label>Tipo 12h:</label>
-                    <select value={tempTipo12h} onChange={(e) => setTempTipo12h(e.target.value)}>
-                      <option value="D">Día (08:00 - 20:00)</option><option value="N">Noche (20:00 - 08:00)</option>
-                    </select>
-                  </div>
+                 <div id="div12h" style={{display:'none', marginBottom:'8px'}}>
+  <label>Secuencia días de trabajo (12h):</label>
+  <select value={tempTipo12h} onChange={(e) => setTempTipo12h(e.target.value)}>
+    <option value="D">Solo Día (D)</option>
+    <option value="N">Solo Noche (N)</option>
+    <option value="DN">Alternar: D, N, D, N...</option>
+    <option value="ND">Alternar: N, D, N, D...</option>
+  </select>
+  <p style={{fontSize:'10px', color:'#64748B', marginTop:'4px'}}>*La alternancia solo se aplica a los días marcados como "Trabajo".</p>
+</div>
                   <button className="btn-primary" onClick={aplicarPatron} style={{background: '#1E293B'}}>APLICAR PATRÓN EN RANGO</button>
                 </div>
                 <div className="card">
