@@ -267,7 +267,39 @@
     </div>
   ))}
   <button className="btn-primary" style={{background:'#F59E0B'}} onClick={() => setUser({...user, ap: [...user.ap, {id:Date.now(), dia:null, mes:null, turno:null}]})}>+ AÑADIR AP</button>
-</div>
+                </div>
+
+                <div className="card">
+                  <label>📢 HORAS SINDICALES (Máx 20h/mes)</label>
+                  {user.hs.map(h => (
+                    <div key={h.id} className="row-config">
+                      <div className="inputs-group">
+                        <select value={h.mes || ""} onChange={e => {
+                          const val = parseInt(e.target.value);
+                          const suma = user.hs.filter(x => x.id !== h.id && x.mes === val).reduce((acc, curr) => acc + (curr.horas || 0), 0) + (h.horas || 0);
+                          if (suma > 20) return alert("Límite de 20h excedido en ese mes");
+                          setUser({...user, hs: user.hs.map(x => x.id === h.id ? {...x, mes: val} : x)});
+                        }}>
+                          <option value="" disabled>Mes</option>
+                          {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
+                        </select>
+                        <select value={h.dia || ""} onChange={e => setUser({...user, hs: user.hs.map(x => x.id === h.id ? {...x, dia: parseInt(e.target.value)} : x)})}>
+                          <option value="" disabled>Día</option>
+                          {Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                        <input type="number" value={h.horas || ""} placeholder="Hrs" style={{width:'65px'}} onChange={e => {
+                          const val = parseInt(e.target.value) || 0;
+                          const suma = user.hs.filter(x => x.id !== h.id && x.mes === h.mes).reduce((acc, curr) => acc + (curr.horas || 0), 0) + val;
+                          if (suma > 20) return alert("Límite de 20h excedido");
+                          setUser({...user, hs: user.hs.map(x => x.id === h.id ? {...x, horas: val} : x)});
+                        }} />
+                      </div>
+                      <button className="btn-del" onClick={() => setUser({...user, hs: user.hs.filter(x => x.id !== h.id)})}>🗑️</button>
+                    </div>
+                  ))}
+                  <button className="btn-primary" style={{background:'var(--hs-color)'}} onClick={() => setUser({...user, hs: [...user.hs, {id:Date.now(), dia:null, mes:null, horas:null}]})}>+ AÑADIR HS</button>
+                </div>
+
                 <button className="btn-primary" onClick={() => setShowGear(false)} style={{background:'#64748B'}}>CERRAR</button>
               </div>
             </div>
