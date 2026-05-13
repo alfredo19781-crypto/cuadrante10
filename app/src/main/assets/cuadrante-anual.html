@@ -275,22 +275,49 @@
               </div>
             </div>
           )}
-          {edit && (
-            <div className="modal" onClick={() => setEdit(null)}>
-              <div className="modal-content" onClick={e => e.stopPropagation()}>
-                <h3>Día {edit.dk.split('-').reverse().join('/')}</h3>
-                <div style={{marginTop:'15px'}}>
-                  <label>Horas Jornada</label>
-                  <input type="number" value={edit.data.jornada || 0} onChange={e => setEdit({...edit, data: {...edit.data, jornada: parseInt(e.target.value)||0, descanso:false}})} />
-                  <div style={{marginTop:'15px', padding:'10px', background:'#f8f9fa', borderRadius:'10px', textAlign:'center'}}>
-                    <label>¿Es descanso?</label>
-                    <input type="checkbox" checked={edit.data.descanso||false} onChange={e => setEdit({...edit, data:{...edit.data, descanso: e.target.checked, jornada:0}})} style={{width:'20px', height:'20px'}} />
-                  </div>
-                </div>
-                <button className="btn-primary" onClick={() => { setSelected({...selected, [edit.dk]: edit.data}); setEdit(null); }}>GUARDAR</button>
-              </div>
-            </div>
-          )}
+{edit && (
+  <div className="modal" onClick={() => setEdit(null)}>
+    <div className="modal-content" onClick={e => e.stopPropagation()}>
+      <h3>Día {edit.dk.split('-').reverse().join('/')}</h3>
+      <div style={{marginTop:'15px'}}>
+        <label>Horas Jornada</label>
+        <input 
+          type="number" 
+          value={edit.data.jornada || 0} 
+          onChange={e => {
+            const h = parseInt(e.target.value) || 0;
+            setEdit({...edit, data: {...edit.data, jornada: h, descanso: h === 0, tipo: h === 12 ? '12h-D' : (h === 24 ? '24h' : '')}});
+          }} 
+        />
+        
+        {/* Nuevo selector para cambiar D/N manualmente */}
+        {edit.data.jornada === 12 && (
+          <div style={{marginTop:'10px'}}>
+            <label>Tipo de Turno 12h</label>
+            <select 
+              value={edit.data.tipo || "12h-D"} 
+              onChange={e => setEdit({...edit, data: {...edit.data, tipo: e.target.value}})}
+            >
+              <option value="12h-D">Día (D)</option>
+              <option value="12h-N">Noche (N)</option>
+            </select>
+          </div>
+        )}
+
+        <div style={{marginTop:'15px', padding:'10px', background:'#f8f9fa', borderRadius:'10px', textAlign:'center'}}>
+          <label>¿Es descanso?</label>
+          <input 
+            type="checkbox" 
+            checked={edit.data.descanso || false} 
+            onChange={e => setEdit({...edit, data:{...edit.data, descanso: e.target.checked, jornada: e.target.checked ? 0 : edit.data.jornada, tipo: ''}})} 
+            style={{width:'20px', height:'20px'}} 
+          />
+        </div>
+      </div>
+      <button className="btn-primary" onClick={() => { setSelected({...selected, [edit.dk]: edit.data}); setEdit(null); }}>GUARDAR</button>
+    </div>
+  </div>
+)}
         </div>
       );
     }
