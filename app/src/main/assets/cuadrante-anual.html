@@ -132,29 +132,27 @@
       return (
         <div>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px'}}>
-            <h1 style={{fontSize:'18px'}}>📅 CUADRANTE 2026</h1>
-            <button onClick={() => setShowGear(true)} style={{fontSize:'22px', background:'none', border:'none'}}><i className="fa-solid fa-gear"></i></button>
-          </div>         
-            <label style={{color:'#94A3B8'}}>👤 AGENTE</label>
-            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                <b style={{fontSize:'16px'}}>{user.nombre.toUpperCase()}</b>
-                <span style={{fontSize:'12px', opacity:0.8}}>Antigüedad: {year - user.ingreso} años</span>
-            </div>
-          </div>
-        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px', marginBottom:'15px'}}>
-  {/* REAL -> JORNADAS TOTALES */}
+    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'15px'}}>
+  <h1 style={{fontSize:'18px'}}>📅 CUADRANTE 2026</h1>
+  <button onClick={() => setShowGear(true)} style={{fontSize:'22px', background:'none', border:'none'}}>
+    <i className="fa-solid fa-gear"></i>
+  </button>
+</div>
+
+<div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px', marginBottom:'15px'}}>
+  {/* JORNADAS TOTALES (Antiguo REAL) */}
   <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid var(--primary)'}}>
-    <label style={{fontSize:'9px'}}>JORNADAS TOTALES</label>
-    <div style={{fontSize:'20px', fontWeight:'bold'}}>{stats.real.toFixed(1)}</div>
+    <label style={{fontSize:'8px', display:'block', marginBottom:'4px'}}>JORNADAS TOTALES</label>
+    <b style={{fontSize:'18px'}}>{stats.real.toFixed(1)}</b>
   </div>
 
-  {/* OBJETIVO -> JORNADAS */}
+  {/* JORNADAS (Antiguo OBJETIVO) */}
   <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid #64748B'}}>
-    <label style={{fontSize:'9px'}}>JORNADAS</label>
-    <div style={{fontSize:'20px', fontWeight:'bold'}}>{stats.obj}</div>
+    <label style={{fontSize:'8px', display:'block', marginBottom:'4px'}}>JORNADAS</label>
+    <b style={{fontSize:'18px'}}>{stats.obj}</b>
   </div>
 
-  {/* BALANCE -> EXCESOS */}
+  {/* EXCESOS (Antiguo BALANCE) */}
   <div className="card" style={{
     margin:0, 
     textAlign:'center', 
@@ -162,13 +160,12 @@
     borderTop:'4px solid ' + (stats.real >= stats.obj ? 'var(--success)' : 'var(--danger)'),
     background: stats.real >= stats.obj ? '#DCFCE7' : '#FEE2E2'
   }}>
-    <label style={{fontSize:'9px'}}>EXCESOS</label>
-    <div style={{fontSize:'20px', fontWeight:'bold'}}>
-      {(stats.real - stats.obj).toFixed(1)}
-    </div>
+    <label style={{fontSize:'8px', display:'block', marginBottom:'4px'}}>EXCESOS</label>
+    <b style={{fontSize:'18px'}}>{(stats.real - stats.obj).toFixed(1)}</b>
   </div>
 </div>
-          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(290px, 1fr))', gap:'10px'}}>
+
+<div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(290px, 1fr))', gap:'10px'}}>
             {MESES_NOM.map((nombre, mi) => (
               <div key={mi} className="card">
                 <h4 style={{color:'var(--primary)', marginBottom:'5px'}}>{nombre.toUpperCase()}</h4>
