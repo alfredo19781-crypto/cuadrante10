@@ -239,6 +239,35 @@
                   ))}
                   <button className="btn-primary" onClick={() => setUser({...user, periodos: [...user.periodos, {id:Date.now(), dIni:null, mIni:null, dFin:null, mFin:null}]})}>+ AÑADIR</button>
                 </div>
+                <div className="card">
+  <label>📂 ASUNTOS PROPIOS ({user.ap.filter(a => a.dia).length}/{(() => {
+    const ant = year - user.ingreso;
+    let base = 6;
+    if (ant >= 30) base += 5; else if (ant >= 27) base += 4; else if (ant >= 24) base += 3;
+    else if (ant >= 21) base += 2; else if (ant >= 18) base += 2;
+    return base;
+  })()})</label>
+  {user.ap.map(a => (
+    <div key={a.id} className="row-config">
+      <div className="inputs-group">
+        <select value={a.mes || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, mes:parseInt(e.target.value)}:x)})}>
+          <option value="" disabled>Mes</option>
+          {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
+        </select>
+        <select value={a.dia || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, dia:parseInt(e.target.value)}:x)})}>
+          <option value="" disabled>Día</option>
+          {Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+        <select value={a.turno || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, turno:e.target.value}:x)})}>
+          <option value="" disabled>T</option>
+          <option value="M">M</option><option value="T">T</option><option value="N">N</option>
+        </select>
+      </div>
+      <button className="btn-del" onClick={() => setUser({...user, ap: user.ap.filter(x => x.id !== a.id)})}>🗑️ Borrar AP</button>
+    </div>
+  ))}
+  <button className="btn-primary" style={{background:'#F59E0B'}} onClick={() => setUser({...user, ap: [...user.ap, {id:Date.now(), dia:null, mes:null, turno:null}]})}>+ AÑADIR AP</button>
+</div>
                 <button className="btn-primary" onClick={() => setShowGear(false)} style={{background:'#64748B'}}>CERRAR</button>
               </div>
             </div>
