@@ -61,6 +61,32 @@
       }, [user.ingreso]);
 
       const isVacation = (dk) => user.periodos.some(p => {
+        const isFestivo = (dk) => {
+        const d = new Date(dk);
+        const dia = d.getDate();
+        const mes = d.getMonth() + 1; // Enero es 1
+
+        // 1. Festivos Fijos Nacionales y Locales (San Juan 24/06)
+        const fijos = ["1-1", "6-1", "1-5", "15-8", "12-10", "1-11", "6-12", "8-12", "25-12", "24-6"];
+        if (fijos.includes(`${dia}-${mes}`)) return true;
+
+        // 2. Festivo Variable: Lunes posterior al 2º domingo de Mayo (V. Argeme)
+        // Buscamos el segundo domingo de mayo
+        let domingos = 0;
+        let diaArgeme = 0;
+        for (let i = 1; i <= 14; i++) {
+          if (new Date(year, 4, i).getDay() === 0) { // 4 es Mayo
+            domingos++;
+            if (domingos === 2) {
+              diaArgeme = i + 1; // El lunes siguiente
+              break;
+            }
+          }
+        }
+        if (mes === 5 && dia === diaArgeme) return true;
+
+        return false;
+      };
         if(!p.mIni || !p.dIni || !p.mFin || !p.dFin) return false;
         const inicio = `${year}-${String(p.mIni).padStart(2,'0')}-${String(p.dIni).padStart(2,'0')}`;
         const fin = `${year}-${String(p.mFin).padStart(2,'0')}-${String(p.dFin).padStart(2,'0')}`;
