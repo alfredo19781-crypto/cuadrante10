@@ -271,7 +271,7 @@
           {Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
         </select>
         <select value={a.turno || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, turno:e.target.value}:x)})}>
-          <option value="" disabled>T</option>
+          <option value="" disabled>-</option>
           <option value="M">M</option><option value="T">T</option><option value="N">N</option>
         </select>
       </div>
