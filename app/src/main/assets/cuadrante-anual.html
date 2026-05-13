@@ -270,10 +270,30 @@
           <option value="" disabled>Día</option>
           {Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
         </select>
-        <select value={a.turno || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, turno:e.target.value}:x)})}>
-          <option value="" disabled>-</option>
-          <option value="M">M</option><option value="T">T</option><option value="N">N</option>
-        </select>
+        <select 
+  value={a.turno || ""} 
+  onChange={e => setUser({...user, ap: user.ap.map(x => x.id === a.id ? {...x, turno: e.target.value} : x)})}
+>
+  <option value="" disabled>-</option>
+  <option 
+    value="M" 
+    disabled={user.ap.some(x => x.id !== a.id && x.dia === a.dia && x.mes === a.mes && x.turno === 'M')}
+  >
+    M {user.ap.some(x => x.id !== a.id && x.dia === a.dia && x.mes === a.mes && x.turno === 'M') ? '(Ocupado)' : ''}
+  </option>
+  <option 
+    value="T" 
+    disabled={user.ap.some(x => x.id !== a.id && x.dia === a.dia && x.mes === a.mes && x.turno === 'T')}
+  >
+    T {user.ap.some(x => x.id !== a.id && x.dia === a.dia && x.mes === a.mes && x.turno === 'T') ? '(Ocupado)' : ''}
+  </option>
+  <option 
+    value="N" 
+    disabled={user.ap.some(x => x.id !== a.id && x.dia === a.dia && x.mes === a.mes && x.turno === 'N')}
+  >
+    N {user.ap.some(x => x.id !== a.id && x.dia === a.dia && x.mes === a.mes && x.turno === 'N') ? '(Ocupado)' : ''}
+  </option>
+</select>
       </div>
       <button className="btn-del" onClick={() => setUser({...user, ap: user.ap.filter(x => x.id !== a.id)})}>🗑️ Borrar AP</button>
     </div>
