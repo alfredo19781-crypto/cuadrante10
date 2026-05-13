@@ -88,25 +88,23 @@
         let dFin = new Date(endRango);
         let curr = new Date(startRango);
        let trabajoCount = 0; // Para llevar la cuenta de los días de trabajo reales
-        while(curr <= dFin) {
+       while(curr <= dFin) {
             // Ciclo de Trabajo
             for(let i=0; i<dw && curr <= dFin; i++){
                 const dk = toDateKey(curr.getFullYear(), curr.getMonth(), curr.getDate());
                 
                 let tipoFinal = tempTipo12h;
-                if (h === 12) {
-                  if (tempTipo12h === 'DN') {
-                    tipoFinal = (trabajoCount % 2 === 0) ? 'D' : 'N';
-                  } else if (tempTipo12h === 'ND') {
-                    tipoFinal = (trabajoCount % 2 === 0) ? 'N' : 'D';
-                  }
+                if (h === 12 && tempTipo12h === 'D-N') {
+                  // i es la posición dentro del bloque de trabajo (0, 1, 2...)
+                  // Si i es 0 (primer día) -> D. Si i es 1 (segundo día) -> N.
+                  // Si hubiera más de 2 días, seguiría alternando.
+                  tipoFinal = (i % 2 === 0) ? 'D' : 'N';
                 }
 
                 newS[dk] = { 
                   jornada: h, 
                   tipo: h === 12 ? `12h-${tipoFinal}` : '24h' 
                 };
-                trabajoCount++;
                 curr.setDate(curr.getDate() + 1);
             }
             // Ciclo de Descanso
