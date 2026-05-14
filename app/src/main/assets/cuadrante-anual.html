@@ -63,16 +63,41 @@
         const d = new Date(dk);
         const dia = d.getDate();
         const mes = d.getMonth() + 1;
+        const anio = d.getFullYear();
+
+        // 1. Festivos Fijos (Nacionales y San Juan)
         const fijos = ["1-1", "6-1", "1-5", "15-8", "12-10", "1-11", "6-12", "8-12", "25-12", "24-6"];
         if (fijos.includes(`${dia}-${mes}`)) return true;
-        let domingos = 0; let diaArgeme = 0;
+
+        // 2. Virgen de Argeme: Lunes posterior al 2º domingo de Mayo
+        let domingosMayo = 0; let diaArgeme = 0;
         for (let i = 1; i <= 14; i++) {
-          if (new Date(year, 4, i).getDay() === 0) {
-            domingos++;
-            if (domingos === 2) { diaArgeme = i + 1; break; }
+          if (new Date(anio, 4, i).getDay() === 0) {
+            domingosMayo++;
+            if (domingosMayo === 2) { diaArgeme = i + 1; break; }
           }
         }
-        return (mes === 5 && dia === diaArgeme);
+        if (mes === 5 && dia === diaArgeme) return true;
+
+        // 3. Semana Santa (Algoritmo de Gauss)
+        const a = anio % 19; const b = anio % 4; const c = anio % 7;
+        const d_g = (19 * a + 24) % 30;
+        const e = (2 * b + 4 * c + 6 * d_g + 5) % 7;
+        const marzo = 22 + d_g + e;
+        
+        let diaPascua, mesPascua;
+        if (marzo > 31) { diaPascua = marzo - 31; mesPascua = 4; } 
+        else { diaPascua = marzo; mesPascua = 3; }
+
+        // Calculamos Jueves y Viernes Santo (3 y 2 días antes del Domingo de Resurrección)
+        const pascua = new Date(anio, mesPascua - 1, diaPascua);
+        const viernesSanto = new Date(pascua); viernesSanto.setDate(pascua.getDate() - 2);
+        const juevesSanto = new Date(pascua); juevesSanto.setDate(pascua.getDate() - 3);
+
+        if (d.toDateString() === viernesSanto.toDateString()) return true;
+        if (d.toDateString() === juevesSanto.toDateString()) return true;
+
+        return false;
       };
 
       const stats = useMemo(() => {
