@@ -181,6 +181,10 @@
                   <h4 style={{color:'var(--primary)'}}>{nombre.toUpperCase()}</h4>
                   <span style={{fontSize:'10px', fontWeight:'bold', color: 'var(--hs-color)'}}>
                     {user.hs.filter(h => h.mes === (mi + 1)).reduce((acc, curr) => acc + (curr.horas || 0), 0)} / 20h HS
+                    {/* AQUÍ PEGAS EL CÓDIGO NUEVO DEL PER */}
+                  <span style={{fontSize:'10px', fontWeight:'bold', color: '#10b981', marginLeft: '8px'}}>
+                    {user.per?.filter(p => p.mes === (mi + 1)).reduce((acc, curr) => acc + (curr.horas || 0), 0)} PER
+                  </span>
                   </span>
                  
                 </div>
@@ -193,6 +197,7 @@
                     const fes = isFestivo(dk);
                     const aps = user.ap.filter(a => a.dia && a.mes && toDateKey(year, a.mes-1, a.dia) === dk);
                     const hasHS = user.hs.some(h => h.dia && h.mes && toDateKey(year, h.mes-1, h.dia) === dk);
+                    const hasPER = user.per?.some(p => p.dia === d && p.mes === (mi + 1));
                     const data = selected[dk] || {};
                     const is12h = data.tipo && data.tipo.startsWith('12h');
                     let bg = "white";
@@ -367,26 +372,26 @@
                   ))}
                   <button className="btn-primary" style={{background:'var(--hs-color)'}} onClick={() => setUser({...user, hs: [...user.hs, {id:Date.now(), dia:null, mes:null, horas:null}]})}>+ AÑADIR HS</button>
                 </div>
-                {/* --- INICIO TARJETA PER ACTUALIZADA --- */}
+               {/* --- INICIO TARJETA PER (HORAS DE PERMISO) --- */}
 <div style={{ marginBottom: '20px', padding: '15px', border: '1px solid #ddd', borderRadius: '10px', backgroundColor: '#ecfdf5' }}>
   <label style={{ fontWeight: 'bold', color: '#065f46', display: 'block', marginBottom: '10px', fontSize: '13px' }}>
-    📋 PER (PERMISOS EXTRAORDINARIOS)
+    📋 PER (HORAS DE PERMISO)
   </label>
   
   {(user.per || []).map(p => (
     <div key={p.id} style={{ backgroundColor: 'white', padding: '10px', borderRadius: '8px', marginBottom: '10px', border: '1px solid #c6f6d5' }}>
       <div style={{ display: 'flex', gap: '5px', marginBottom: '8px' }}>
-        {/* Selector de Mes */}
+        {/* Mes */}
         <select 
           style={{ flex: 1, padding: '8px', borderRadius: '5px', border: '1px solid #ddd', fontSize: '14px' }}
           value={p.mes || ""} 
           onChange={e => setUser({...user, per: user.per.map(x => x.id === p.id ? {...x, mes: parseInt(e.target.value)} : x)})}
         >
           <option value="" disabled>Mes</option>
-          {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
+          {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
         </select>
 
-        {/* Selector de Día */}
+        {/* Día */}
         <select 
           style={{ flex: 1, padding: '8px', borderRadius: '5px', border: '1px solid #ddd', fontSize: '14px' }}
           value={p.dia || ""} 
@@ -398,7 +403,7 @@
           ))}
         </select>
 
-        {/* Input de Horas */}
+        {/* Hrs */}
         <input 
           type="number" 
           placeholder="Hrs"
@@ -408,12 +413,12 @@
         />
       </div>
 
-      {/* Botón Papelera Rojo */}
+      {/* Botón Papelera Rojo Debajo */}
       <button 
         onClick={() => setUser({...user, per: user.per.filter(x => x.id !== p.id)})}
         style={{ 
           backgroundColor: '#ff4444', color: 'white', border: 'none', 
-          padding: '8px 15px', borderRadius: '5px', cursor: 'pointer' 
+          padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', width: 'fit-content'
         }}
       >
         🗑️
@@ -423,16 +428,16 @@
 
   <button 
     className="btn-primary" 
-    style={{ marginTop: '5px', width: '100%', background: '#10b981', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px' }}
+    style={{ marginTop: '5px', width: '100%', background: '#10b981' }}
     onClick={() => {
       const actual = user.per || [];
       setUser({...user, per: [...actual, {id: Date.now(), dia: null, mes: null, horas: null}]});
     }}
   >
-    <span>+ AÑADIR PER</span>
+    + AÑADIR PER
   </button>
 </div>
-{/* --- FIN TARJETA PER ACTUALIZADA --- */}
+{/* --- FIN TARJETA PER --- */}
                
                 <button className="btn-primary" onClick={() => setShowGear(false)} style={{background:'#64748B'}}>CERRAR</button>
               </div>
