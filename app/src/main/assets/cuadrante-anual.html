@@ -167,7 +167,7 @@
                     return (
                       <button key={dk} className="dia-btn" style={{background: bg}} onClick={() => setEdit({dk, data})}>
                         <span style={{ color: fes ? 'var(--danger)' : 'inherit', fontWeight: fes ? 'bold' : 'normal' }}>{d}</span>
-                        {user.ap.filter(a => a.dia && a.mes && toDateKey(year, a.mes-1, a.dia) === dk).map(a => (
+                        {user.ap.filter(a => a.dia && a.mes && a.turno && toDateKey(year, a.mes-1, a.dia) === dk).map(a => (
   <div key={a.id} className={`ap-line ap-${a.turno}`} style={{
     position: 'absolute',
     left: 0,
@@ -252,7 +252,7 @@
                   <button className="btn-primary" onClick={() => setUser({...user, periodos: [...user.periodos, {id:Date.now(), dIni:null, mIni:null, dFin:null, mFin:null}]})}>+ AÑADIR</button>
                 </div>
                 <div className="card">
-  <label>📂 ASUNTOS PROPIOS ({user.ap.filter(a => a.dia).length}/{(() => {
+  <label>📂 ASUNTOS PROPIOS ({user.ap.filter(a => a.dia && a.mes && a.turno).length}/{(() => {
     const ant = year - user.ingreso;
     let base = 6;
     if (ant >= 30) base += 5; else if (ant >= 27) base += 4; else if (ant >= 24) base += 3;
