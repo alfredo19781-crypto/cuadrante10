@@ -172,6 +172,9 @@
                   <span style={{fontSize:'10px', fontWeight:'bold', color: 'var(--hs-color)'}}>
                     {user.hs.filter(h => h.mes === (mi + 1)).reduce((acc, curr) => acc + (curr.horas || 0), 0)} / 20h HS
                   </span>
+                  <span style={{color:'#10B981', marginLeft:'10px'}}>
+                    PER: {user.per.filter(p => p.mes === mIdx + 1).reduce((acc, curr) => acc + (curr.horas || 0), 0)}h
+                  </span>
                 </div>
                 <div className="grid-cal">
                   {DIAS_L.map(l => <div key={l} style={{fontSize:'10px', opacity:0.4, textAlign:'center'}}>{l}</div>)}
