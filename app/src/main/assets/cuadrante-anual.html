@@ -44,43 +44,13 @@
     function App() {
       const year = 2026;
       const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v105") || "{}"));
-      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v106")) || {"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[],"hs":[],"per":[]});
+      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v105") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[],"hs":[]}'));
       const [showGear, setShowGear] = useState(false);
       const [edit, setEdit] = useState(null);
       const [tempTipo12h, setTempTipo12h] = useState("D");
 
-      useEffect(() => {
-        const saved = localStorage.getItem('user_cal_v3');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setUser({
-            ...parsed,
-            ap: parsed.ap || [],
-            hs: parsed.hs || [],
-            per: parsed.per || []
-          });
-        }
-      }, []);
-
-      useEffect(() => {
-        localStorage.setItem('user_cal_v3', JSON.stringify(user));
-      }, [user]);
-      useEffect(() => {
-        const saved = localStorage.getItem('user_cal_v3');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setUser({
-            ...parsed,
-            ap: parsed.ap || [],
-            hs: parsed.hs || [],
-            per: parsed.per || []
-          });
-        }
-      }, []);
-
-      useEffect(() => {
-        localStorage.setItem('user_cal_v3', JSON.stringify(user));
-      }, [user]);
+      useEffect(() => { localStorage.setItem("cuad_alfredo_v105", JSON.stringify(selected)); }, [selected]);
+      useEffect(() => { localStorage.setItem("user_alfredo_v105", JSON.stringify(user)); }, [user]);
       const isVacation = (dk) => user.periodos.some(p => {
         if(!p.mIni || !p.dIni || !p.mFin || !p.dFin) return false;
         const inicio = `${year}-${String(p.mIni).padStart(2,'0')}-${String(p.dIni).padStart(2,'0')}`;
@@ -173,7 +143,7 @@
             <h1 style={{fontSize:'18px'}}>📅 CUADRANTE 2026</h1>
             <button onClick={() => setShowGear(true)} style={{fontSize:'22px', background:'none', border:'none'}}><i className="fa-solid fa-gear"></i></button>
           </div>
-
+          
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px', marginBottom:'15px'}}>
             <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid var(--primary)'}}>
               <label style={{fontSize:'8px', marginBottom:'4px'}}>JORNADAS TOTALES</label>
@@ -201,9 +171,7 @@
                   <span style={{fontSize:'10px', fontWeight:'bold', color: 'var(--hs-color)'}}>
                     {user.hs.filter(h => h.mes === (mi + 1)).reduce((acc, curr) => acc + (curr.horas || 0), 0)} / 20h HS
                   </span>
-                  <span style={{color:'#10B981', marginLeft:'10px'}}>
-                    PER: {(user.per || []).filter(p => p.mes === mIdx + 1).reduce((acc, curr) => acc + (curr.horas || 0), 0)}h
-                  </span>
+                 
                 </div>
                 <div className="grid-cal">
                   {DIAS_L.map(l => <div key={l} style={{fontSize:'10px', opacity:0.4, textAlign:'center'}}>{l}</div>)}
@@ -388,27 +356,7 @@
                   ))}
                   <button className="btn-primary" style={{background:'var(--hs-color)'}} onClick={() => setUser({...user, hs: [...user.hs, {id:Date.now(), dia:null, mes:null, horas:null}]})}>+ AÑADIR HS</button>
                 </div>
-                <div className="card">
-  <label style={{color: '#10B981'}}>📋 PER (Permisos)</label>
-  {/* Añadimos (user.per || []) para que si es undefined no rompa la app */}
-  {(user.per || []).map(p => (
-    <div key={p.id} className="row-config">
-      <div className="inputs-group">
-        <select value={p.mes || ""} onChange={e => setUser({...user, per: (user.per || []).map(x => x.id === p.id ? {...x, mes: parseInt(e.target.value)} : x)})}>
-          <option value="" disabled>Mes</option>
-          {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
-        </select>
-        <select value={p.dia || ""} onChange={e => setUser({...user, per: (user.per || []).map(x => x.id === p.id ? {...x, dia: parseInt(e.target.value)} : x)})}>
-          <option value="" disabled>Día</option>
-          {Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
-        </select>
-        <input type="number" value={p.horas || ""} placeholder="Hrs" style={{width:'65px'}} onChange={e => setUser({...user, per: (user.per || []).map(x => x.id === p.id ? {...x, horas: parseInt(e.target.value) || 0} : x)})} />
-      </div>
-      <button className="btn-del" onClick={() => setUser({...user, per: (user.per || []).filter(x => x.id !== p.id)})}>🗑️</button>
-    </div>
-  ))}
-  <button className="btn-primary" style={{background:'#10B981'}} onClick={() => setUser({...user, per: [...(user.per || []), {id:Date.now(), dia:null, mes:null, horas:null}]})}>+ AÑADIR PER</button>
-</div>
+               
                 <button className="btn-primary" onClick={() => setShowGear(false)} style={{background:'#64748B'}}>CERRAR</button>
               </div>
             </div>
