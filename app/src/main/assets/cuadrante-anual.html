@@ -361,7 +361,7 @@
                 </div>
                 <div className="card">
                   <label style={{color: '#10B981'}}>📋 PER (Permisos)</label>
-                  {user.per.map(p => (
+                  {(user.per || []).map(p => (
                     <div key={p.id} className="row-config">
                       <div className="inputs-group">
                         <select value={p.mes || ""} onChange={e => setUser({...user, per: user.per.map(x => x.id === p.id ? {...x, mes: parseInt(e.target.value)} : x)})}>
@@ -377,7 +377,7 @@
                       <button className="btn-del" onClick={() => setUser({...user, per: user.per.filter(x => x.id !== p.id)})}>🗑️</button>
                     </div>
                   ))}
-                  <button className="btn-primary" style={{background:'#10B981'}} onClick={() => setUser({...user, per: [...user.per, {id:Date.now(), dia:null, mes:null, horas:null}]})}>+ AÑADIR PER</button>
+                  <button className="btn-primary" style={{background:'#10B981'}} onClick={() => setUser({...user, per: [...(user.per || []), {id:Date.now(), dia:null, mes:null, horas:null}]})}>+ AÑADIR PER</button>
                 </div>
                 <button className="btn-primary" onClick={() => setShowGear(false)} style={{background:'#64748B'}}>CERRAR</button>
               </div>
