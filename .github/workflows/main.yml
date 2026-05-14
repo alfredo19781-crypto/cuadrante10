@@ -13,7 +13,6 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # ESTE PASO DESCARGA EL ARCHIVO QUE TE FALTA
       - name: Instalar Gradle Wrapper
         run: gradle wrapper
 
@@ -21,7 +20,11 @@ jobs:
         run: chmod +x gradlew
 
       - name: Crear APK Debug
+        # --- AQUÍ ESTÁ EL CAMBIO ---
         run: ./gradlew assembleDebug
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+        # ---------------------------
 
       - name: Subir APK terminada
         uses: actions/upload-artifact@v4
