@@ -49,9 +49,38 @@
       const [edit, setEdit] = useState(null);
       const [tempTipo12h, setTempTipo12h] = useState("D");
 
-      useEffect(() => { localStorage.setItem("cuad_alfredo_v105", JSON.stringify(selected)); }, [selected]);
-      useEffect(() => { localStorage.setItem("user_alfredo_v105", JSON.stringify(user)); }, [user]);
+      useEffect(() => {
+        const saved = localStorage.getItem('user_cal_v3');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setUser({
+            ...parsed,
+            ap: parsed.ap || [],
+            hs: parsed.hs || [],
+            per: parsed.per || []
+          });
+        }
+      }, []);
 
+      useEffect(() => {
+        localStorage.setItem('user_cal_v3', JSON.stringify(user));
+      }, [user]);
+      useEffect(() => {
+        const saved = localStorage.getItem('user_cal_v3');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setUser({
+            ...parsed,
+            ap: parsed.ap || [],
+            hs: parsed.hs || [],
+            per: parsed.per || []
+          });
+        }
+      }, []);
+
+      useEffect(() => {
+        localStorage.setItem('user_cal_v3', JSON.stringify(user));
+      }, [user]);
       const isVacation = (dk) => user.periodos.some(p => {
         if(!p.mIni || !p.dIni || !p.mFin || !p.dFin) return false;
         const inicio = `${year}-${String(p.mIni).padStart(2,'0')}-${String(p.dIni).padStart(2,'0')}`;
