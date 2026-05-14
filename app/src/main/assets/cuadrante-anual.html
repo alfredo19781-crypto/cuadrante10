@@ -50,7 +50,18 @@
       const [tempTipo12h, setTempTipo12h] = useState("D");
 
       useEffect(() => { localStorage.setItem("cuad_alfredo_v105", JSON.stringify(selected)); }, [selected]);
-      useEffect(() => { localStorage.setItem("user_alfredo_v105", JSON.stringify(user)); }, [user]);
+      useEffect(() => {
+        localStorage.setItem("user_alfredo_v105", JSON.stringify(user));
+      }, [user]);
+      useEffect(() => {
+        const saved = localStorage.getItem("user_alfredo_v105");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (!parsed.per) {
+            setUser({ ...parsed, per: [] });
+          }
+        }
+      }, []);
       const isVacation = (dk) => user.periodos.some(p => {
         if(!p.mIni || !p.dIni || !p.mFin || !p.dFin) return false;
         const inicio = `${year}-${String(p.mIni).padStart(2,'0')}-${String(p.dIni).padStart(2,'0')}`;
@@ -356,6 +367,46 @@
                   ))}
                   <button className="btn-primary" style={{background:'var(--hs-color)'}} onClick={() => setUser({...user, hs: [...user.hs, {id:Date.now(), dia:null, mes:null, horas:null}]})}>+ AÑADIR HS</button>
                 </div>
+                {/* --- INICIO TARJETA PER --- */}
+<div style={{ marginBottom: '20px', padding: '15px', border: '1px solid #ddd', borderRadius: '10px', backgroundColor: '#ecfdf5' }}>
+  <label style={{ fontWeight: 'bold', color: '#065f46', display: 'block', marginBottom: '10px' }}>
+    📋 PER (Permisos Extraordinarios)
+  </label>
+  
+  {(user.per || []).map(p => (
+    <div key={p.id} style={{ display: 'flex', gap: '5px', marginTop: '10px', alignItems: 'center' }}>
+      <select 
+        style={{ flex: 1, padding: '5px' }}
+        value={p.mes || 1} 
+        onChange={e => setUser({...user, per: user.per.map(x => x.id === p.id ? {...x, mes: parseInt(e.target.value)} : x)})}
+      >
+        {["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"].map((m, i) => (
+          <option key={i} value={i+1}>{m}</option>
+        ))}
+      </select>
+      <input 
+        type="number" 
+        style={{ width: '50px', padding: '5px' }} 
+        placeholder="H"
+        value={p.horas || ''} 
+        onChange={e => setUser({...user, per: user.per.map(x => x.id === p.id ? {...x, horas: parseInt(e.target.value) || 0} : x)})} 
+      />
+      <button className="btn-del" onClick={() => setUser({...user, per: user.per.filter(x => x.id !== p.id)})}>🗑️</button>
+    </div>
+  ))}
+
+  <button 
+    className="btn-primary" 
+    style={{ marginTop: '10px', width: '100%', background: '#10b981' }}
+    onClick={() => {
+      const actual = user.per || [];
+      setUser({...user, per: [...actual, {id: Date.now(), mes: 1, horas: 0}]});
+    }}
+  >
+    + AÑADIR PER
+  </button>
+</div>
+{/* --- FIN TARJETA PER --- */}
                
                 <button className="btn-primary" onClick={() => setShowGear(false)} style={{background:'#64748B'}}>CERRAR</button>
               </div>
