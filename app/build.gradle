@@ -10,13 +10,19 @@ android {
         applicationId "com.cuadrante"
         minSdk 21
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        
+        // --- CAMBIO AQUÍ: Versión automática ---
+        def runNumber = System.getenv("GITHUB_RUN_NUMBER")?.toInteger() ?: 1
+        versionCode runNumber
+        versionName "1.0.${runNumber}"
+        // ---------------------------------------
     }
 
     buildTypes {
         release {
             minifyEnabled false
+            // Para que no te dé problemas de firma en el móvil al probar, 
+            // asegúrate de que usas la misma variante siempre.
         }
     }
 
