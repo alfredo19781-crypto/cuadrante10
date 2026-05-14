@@ -210,11 +210,11 @@
           </div>
 
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(290px, 1fr))', gap:'10px'}}>
-            {MESES_NOM.map((nombre, mi) => {
-              if (mi !== mesVisible) return null; 
-  
-              return (
-                <div key={mi} className="card">
+               {MESES_NOM.map((nombre, mi) => {
+                 if (mi !== mesVisible) return null;
+
+                 return (
+                 <div key={mi} className="card">
                 <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'5px'}}>
                   <h4 style={{color:'var(--primary)'}}>{nombre.toUpperCase()}</h4>
                   <span style={{fontSize:'10px', fontWeight:'bold', color: 'var(--hs-color)'}}>
