@@ -46,6 +46,7 @@
       const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v105") || "{}"));
       const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v105") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[],"hs":[]}'));
       const [showGear, setShowGear] = useState(false);
+      const [verDetalleAp, setVerDetalleAp] = useState(false);
       const [edit, setEdit] = useState(null);
       const [tempTipo12h, setTempTipo12h] = useState("D");
       const [mesVisible, setMesVisible] = useState(new Date().getMonth());
@@ -231,17 +232,100 @@
         <b style={{fontSize:'18px'}}>{(stats.real - stats.obj).toFixed(1)}</b>
       </div>
 
-    <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid var(--ap-color, #EAB308)'}}>
-  <label style={{fontSize:'8px', marginBottom:'4px'}}>ASUNTOS PROPIOS</label>
-  <b style={{fontSize:'18px'}}>
+{/* 4. ASUNTOS PROPIOS - PULSABLE */}
+<div 
+  className="card" 
+  onClick={() => {
+    setShowGear(false);       // Cerramos configuración si estuviera abierta
+    setVerDetalleAp(true);    // ¡Abrimos el desglose de días!
+  }}
+  style={{
+    margin: 0, 
+    textAlign: 'center', 
+    padding: '10px', 
+    borderTop: '4px solid var(--ap-color, #EAB308)',
+    cursor: 'pointer'         // Ponemos el cursor en forma de mano al pasar por encima
+  }}
+>
+  <label style={{ fontSize: '8px', marginBottom: '4px', cursor: 'pointer' }}>ASUNTOS PROPIOS</label>
+  <b style={{ fontSize: '18px' }}>
     {Array.isArray(user.ap) ? user.ap.length : 0} / {user.totalAp || user.apTotales || 8}
   </b>
 </div>
-
     </div>
   );
 })()}
+{verDetalleAp && (
+  <div style={{
+    backgroundColor: 'white', 
+    padding: '15px', 
+    borderRadius: '10px', 
+    marginBottom: '15px',
+    boxShadow: '0px 2px 5px rgba(0,0,0,0.1)',
+    border: '1px solid #E2E8F0'
+  }}>
+    {/* Cabecera con título y botón de volver */}
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+      <h3 style={{ margin: 0, color: '#1E293B', fontSize: '16px', fontWeight: 'bold' }}>
+        Historial Asuntos Propios ({year})
+      </h3>
+      <button 
+        onClick={() => setVerDetalleAp(false)}
+        style={{
+          padding: '6px 12px',
+          backgroundColor: '#EF4444',
+          color: 'white',
+          border: 'none',
+          borderRadius: '6px',
+          cursor: 'pointer',
+          fontWeight: 'bold',
+          fontSize: '12px'
+        }}
+      >
+        Volver
+      </button>
+    </div>
 
+    {/* Listado de días de Asuntos Propios */}
+    {Array.isArray(user.ap) && user.ap.length > 0 ? (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
+        {user.ap.map((item, index) => {
+          return (
+            <div key={index} style={{
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              padding: '10px', 
+              backgroundColor: '#FEF08A', 
+              borderRadius: '8px',
+              borderLeft: '5px solid var(--ap-color, #EAB308)'
+            }}>
+              <div>
+                <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#854D0E' }}>
+                  Día {item.dia} de {MESES_NOM[item.mes - 1] || `Mes ${item.mes}`}
+                </span>
+              </div>
+              <div style={{
+                backgroundColor: 'rgba(255,255,255,0.7)', 
+                padding: '2px 8px', 
+                borderRadius: '4px', 
+                fontSize: '12px', 
+                fontWeight: 'bold',
+                color: '#854D0E'
+              }}>
+                {item.turno || 'AP'}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    ) : (
+      <p style={{ textAlign: 'center', color: '#64748B', margin: '20px 0', fontSize: '14px' }}>
+        No hay asuntos propios registrados este año.
+      </p>
+    )}
+  </div>
+)}
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(290px, 1fr))', gap:'10px'}}>
                {MESES_NOM.map((nombre, mi) => {
                  if (mi !== mesVisible) return null;
