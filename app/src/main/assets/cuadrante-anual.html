@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cuadrante Alfredo Multianual V11.0</title>
+  <title>Cuadrante Alfredo Multianual V11.1</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -31,7 +31,7 @@
     .ap-line { position: absolute; left: 0; right: 0; height: 4px; background: var(--ap-color); z-index: 5; }
     .ap-M { top: 0; } .ap-T { top: calc(50% - 2px); } .ap-N { bottom: 0; }
     .hs-dot { position: absolute; top: 3px; right: 3px; width: 6px; height: 6px; background: var(--hs-color); border-radius: 50%; z-index: 6; }
-    .toggle-btn { background: #E2E8F0; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; }
+    .toggle-btn { background: #E2E8F0; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; flex-shrink: 0; }
     .toggle-btn.active { background: var(--primary); color: white; }
   </style>
 </head>
@@ -41,15 +41,13 @@
     const { useState, useMemo, useEffect } = React;
     const MESES_NOM = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
     const DIAS_L = ["L","M","X","J","V","S","D"];
-    
-    // Generar lista fija de años (2025 a 2045)
     const ANIOS_LISTA = Array.from({ length: 21 }, (_, i) => 2025 + i);
     const toDateKey = (y, m, d) => `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
 
     function App() {
       const [year, setYear] = useState(() => parseInt(localStorage.getItem("cuad_year_actual") || "2026"));
-      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v110_data") || "{}"));
-      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v110_config") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[],"hs":[],"excesos":[],"per":[]}'));
+      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v111_data") || "{}"));
+      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v111_config") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[],"hs":[],"excesos":[],"per":[]}'));
       
       const [showGear, setShowGear] = useState(false);
       const [verDetalleAp, setVerDetalleAp] = useState(false);
@@ -58,32 +56,11 @@
       const [tempTipo12h, setTempTipo12h] = useState("D");
       const [mesVisible, setMesVisible] = useState(new Date().getMonth());
 
-      useEffect(() => {
-        localStorage.setItem("cuad_year_actual", year);
-      }, [year]);
+      useEffect(() => { localStorage.setItem("cuad_year_actual", year); }, [year]);
+      useEffect(() => { localStorage.setItem("user_alfredo_v111_config", JSON.stringify(user)); }, [user]);
+      useEffect(() => { localStorage.setItem("cuad_alfredo_v111_data", JSON.stringify(selected)); }, [selected]);
 
-      useEffect(() => {
-        localStorage.setItem("user_alfredo_v110_config", JSON.stringify(user));
-      }, [user]);
-
-      useEffect(() => {
-        localStorage.setItem("cuad_alfredo_v110_data", JSON.stringify(selected));
-      }, [selected]);
-
-      // Saneamiento de seguridad de arrays
-      useEffect(() => {
-        if (user) {
-          let mod = false; let n = { ...user };
-          if (!Array.isArray(n.ap)) { n.ap = []; mod = true; }
-          if (!Array.isArray(n.excesos)) { n.excesos = []; mod = true; }
-          if (!Array.isArray(n.periodos)) { n.periodos = []; mod = true; }
-          if (!Array.isArray(n.hs)) { n.hs = []; mod = true; }
-          if (!Array.isArray(n.per)) { n.per = []; mod = true; }
-          if (mod) setUser(n);
-        }
-      }, []);
-
-      // Verificar si un día es vacación evaluando el año correspondiente
+      // Comprobar si un día está en periodo de vacaciones activo
       const checkVacation = (dk) => {
         const parts = dk.split("-");
         const dYear = parseInt(parts[0]);
@@ -93,30 +70,19 @@
         return (user.periodos || []).some(p => {
           if (!p.y || !p.mIni || !p.dIni || !p.mFin || !p.dFin) return false;
           
-          // Crear fechas absolutas de control
-          const fInicio = new Date(p.y, p.mIni - 1, p.dIni);
-          const fFin = new Date(p.mFin === 1 && p.mIni === 12 ? p.y + 1 : p.y, p.mFin - 1, p.dFin);
+          let effectiveYearStart = p.y;
+          let effectiveYearEnd = p.y;
+          
+          // Si está marcado como año anterior y es Enero, su lógica de visualización pertenece al año corriente
+          if (p.mIni === 1 && p.esProrroga) effectiveYearStart = p.y; 
+          if (p.mFin === 1 && p.esProrroga) effectiveYearEnd = p.y;
+
+          const fInicio = new Date(effectiveYearStart, p.mIni - 1, p.dIni);
+          const fFin = new Date(effectiveYearEnd, p.mFin - 1, p.dFin);
           const fActual = new Date(dYear, dMes - 1, dDia);
 
           return fActual >= fInicio && fActual <= fFin;
         });
-      };
-
-      // Retorna a qué año debe imputarse la vacación de ese día
-      const getVacationImputedYear = (dk) => {
-        const parts = dk.split("-");
-        const dYear = parseInt(parts[0]);
-        const dMes = parseInt(parts[1]);
-        const dDia = parseInt(parts[2]);
-
-        const pEncontrado = (user.periodos || []).find(p => {
-          if (!p.y || !p.mIni || !p.dIni || !p.mFin || !p.dFin) return false;
-          const fInicio = new Date(p.y, p.mIni - 1, p.dIni);
-          const fFin = new Date(p.mFin === 1 && p.mIni === 12 ? p.y + 1 : p.y, p.mFin - 1, p.dFin);
-          const fActual = new Date(dYear, dMes - 1, dDia);
-          return fActual >= fInicio && fActual <= fFin;
-        });
-        return pEncontrado ? pEncontrado.y : dYear;
       };
 
       const isFestivo = (dk) => {
@@ -145,27 +111,32 @@
         return false;
       };
 
-      // Cálculo Dinámico Estadísticas por Año Inteligente
+      // --- MOTOR DE ESTADÍSTICAS CORREGIDO ---
       const stats = useMemo(() => {
         let totalJ = 0;
         
-        // Calcular jornadas trabajadas imputables a este año específico
+        // Calcular jornadas trabajadas efectivas de este año
         Object.entries(selected).forEach(([dk, data]) => {
           if (data.jornada) {
-            const v = checkVacation(dk);
-            if (v) {
-              // Si es vacación prorrogada pero imputada al año anterior, no cuenta para este año.
-              // Si es vacación del año actual disfrutada en enero del siguiente, sumará en su año de origen.
-              const yImputado = getVacationImputedYear(dk);
-              if (yImputado === year) {
-                // Al ser vacación propia, no suma como jornada activa trabajada
-              }
-            } else {
-              // Validar si el día pertenece de forma natural o por prórroga a este año
-              const parts = dk.split("-");
-              if (parseInt(parts[0]) === year) {
-                totalJ += (data.jornada / 8);
-              }
+            const parts = dk.split("-");
+            const dYear = parseInt(parts[0]);
+            const dMes = parseInt(parts[1]);
+            const dDia = parseInt(parts[2]);
+
+            // Buscar si coincide con alguna vacación imputada a este año
+            const v = (user.periodos || []).some(p => {
+              if (!p.y || !p.mIni || !p.dIni || !p.mFin || !p.dFin) return false;
+              const targetYear = p.esProrroga ? p.y - 1 : p.y;
+              if (targetYear !== year) return false;
+              
+              const fInicio = new Date(p.y, p.mIni - 1, p.dIni);
+              const fFin = new Date(p.y, p.mFin - 1, p.dFin);
+              const fActual = new Date(dYear, dMes - 1, dDia);
+              return fActual >= fInicio && fActual <= fFin;
+            });
+
+            if (!v && dYear === year) {
+              totalJ += (data.jornada / 8);
             }
           }
         });
@@ -175,16 +146,21 @@
         const objetivo = 193 - extraVacas;
         const bolsaExcesos = Math.max(0, Math.round(totalJ - objetivo));
 
-        // Filtrar consumidos considerando los marcados como "Año Anterior" prorrogados
-        const pedidos = (user.excesos || []).filter(e => {
+        // Conteo de Excesos de este año (Normales del año + Prorrogados que vinieron del año siguiente)
+        const pedidosExc = (user.excesos || []).filter(e => {
           if (!e.dia || !e.mes || !e.turno || e.turno === "-") return false;
-          if (e.mes === 1 && e.esProrroga) {
-            return (e.y - 1) === year; // Computa en el año anterior
-          }
+          if (e.mes === 1 && e.esProrroga) return (e.y - 1) === year;
           return e.y === year;
         }).length;
 
-        return { real: totalJ, obj: objetivo, acumulados: bolsaExcesos, consumidos: pedidos };
+        // Conteo de APs de este año (Normales del año + Prorrogados que vinieron del año siguiente)
+        const pedidosAp = (user.ap || []).filter(a => {
+          if (!a.dia || !a.mes || !a.turno || a.turno === "-") return false;
+          if (a.mes === 1 && a.esProrroga) return (a.y - 1) === year;
+          return a.y === year;
+        }).length;
+
+        return { real: totalJ, obj: objetivo, acumulados: bolsaExcesos, consumidos: pedidosExc, apConsumidos: pedidosAp };
       }, [selected, user, year]);
 
       const aplicarPatron = () => {
@@ -235,24 +211,18 @@
         setEdit(null);
       };
 
-      // Render de listas con filtro dinámico por año activo
+      // Listas visuales filtradas por año de la pantalla principal
       const listaApFiltrada = useMemo(() => {
-        return (user.ap || []).filter(a => {
-          if (a.mes === 1 && a.esProrroga) return (a.y - 1) === year;
-          return a.y === year;
-        });
+        return (user.ap || []).filter(a => (a.mes === 1 && a.esProrroga ? (a.y - 1) === year : a.y === year));
       }, [user.ap, year]);
 
       const listaExcFiltrada = useMemo(() => {
-        return (user.excesos || []).filter(e => {
-          if (e.mes === 1 && e.esProrroga) return (e.y - 1) === year;
-          return e.y === year;
-        });
+        return (user.excesos || []).filter(e => (e.mes === 1 && e.esProrroga ? (e.y - 1) === year : e.y === year));
       }, [user.excesos, year]);
 
       return (
         <div>
-          {/* --- PANEL DE SELECCIÓN DE AÑO Y AJUSTES --- */}
+          {/* --- PANEL SELECCIÓN AÑO --- */}
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px', background:'white', padding:'10px', borderRadius:'12px', border:'1px solid #E2E8F0'}}>
             <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
               <h1 style={{fontSize:'16px'}}>📅 CUADRANTE:</h1>
@@ -263,33 +233,33 @@
             <button onClick={() => setShowGear(true)} style={{fontSize:'20px', background:'none', border:'none', color:'#475569'}}><i className="fa-solid fa-gear"></i></button>
           </div>
 
-          {/* --- NAVEGACIÓN MENSUAL --- */}
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px', background:'#fff', borderRadius:'12px', marginBottom:'12px', boxShadow:'0 2px 4px rgba(0,0,0,0.02)', border:'1px solid #E2E8F0' }}>
+          {/* --- NAVEGACIÓN MES --- */}
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px', background:'#fff', borderRadius:'12px', marginBottom:'12px', border:'1px solid #E2E8F0' }}>
             <button onClick={() => setMesVisible(prev => (prev > 0 ? prev - 1 : 11))} style={{ padding:'8px 14px', borderRadius:'8px', border:'none', background:'#F1F5F9', fontSize:'16px' }}>⬅️</button>
             <div style={{ textAlign:'center' }}>
-              <div style={{ fontWeight:'800', fontSize:'15px', color:'#1E293B', letterSpacing:'0.5px' }}>{MESES_NOM[mesVisible].toUpperCase()}</div>
+              <div style={{ fontWeight:'800', fontSize:'15px', color:'#1E293B' }}>{MESES_NOM[mesVisible].toUpperCase()}</div>
             </div>
             <button onClick={() => setMesVisible(prev => (prev < 11 ? prev + 1 : 0))} style={{ padding:'8px 14px', borderRadius:'8px', border:'none', background:'#F1F5F9', fontSize:'16px' }}>➡️</button>
           </div>
 
-          {/* --- TARJETAS ESTADÍSTICAS --- */}
+          {/* --- TARJETAS --- */}
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:'6px', marginBottom:'12px'}}>
             <div className="card" style={{margin:0, textAlign:'center', padding:'8px', borderTop:'4px solid var(--primary)'}}>
-              <label style={{fontSize:'8px', marginBottom:'2px'}}>JORNADAS TOTAL</label>
+              <label style={{fontSize:'8px'}}>JORNADAS TOTAL</label>
               <b style={{fontSize:'16px'}}>{stats.real.toFixed(1)}</b>
             </div>
             <div className="card" style={{margin:0, textAlign:'center', padding:'8px', borderTop:'4px solid #64748B'}}>
-              <label style={{fontSize:'8px', marginBottom:'2px'}}>OBJETIVO</label>
+              <label style={{fontSize:'8px'}}>OBJETIVO</label>
               <b style={{fontSize:'16px'}}>{stats.obj}</b>
             </div>
             <div className="card" onClick={() => { setVerDetalleAp(false); setVerDetalleExc(true); }} style={{margin:0, textAlign:'center', padding:'8px', borderTop:'4px solid #22C55E', cursor:'pointer'}}>
-              <label style={{fontSize:'8px', marginBottom:'2px'}}>EXCESOS</label>
+              <label style={{fontSize:'8px'}}>EXCESOS</label>
               <b style={{fontSize:'16px'}}>{stats.consumidos} / {stats.acumulados}</b>
             </div>
             <div className="card" onClick={() => { setVerDetalleExc(false); setVerDetalleAp(true); }} style={{margin:0, textAlign:'center', padding:'8px', borderTop:'4px solid var(--ap-color)', cursor:'pointer'}}>
-              <label style={{fontSize:'8px', marginBottom:'2px'}}>A. PROPIOS</label>
+              <label style={{fontSize:'8px'}}>A. PROPIOS</label>
               <b style={{fontSize:'16px'}}>
-                {(user.ap || []).filter(a => a.y === year && a.dia && a.mes && a.turno).length} / {(() => {
+                {stats.apConsumidos} / {(() => {
                   const ant = year - user.ingreso;
                   let base = 6;
                   if (ant >= 30) base += 5; else if (ant >= 27) base += 4; else if (ant >= 24) base += 3;
@@ -300,19 +270,19 @@
             </div>
           </div>
 
-          {/* --- DESGLOSES DE EXCESOS Y AP --- */}
+          {/* --- DESGLOSE VENTANAS --- */}
           {verDetalleExc && (
             <div className="card" style={{borderColor:'#22C55E'}}>
               <div style={{display:'flex', justifyContent:'space-between', marginBottom:'10px'}}>
-                <h4 style={{fontSize:'13px'}}>Historial Excesos Año {year}</h4>
+                <h4 style={{fontSize:'13px'}}>Historial Excesos {year}</h4>
                 <button onClick={() => setVerDetalleExc(false)} style={{border:'none', background:'var(--danger)', color:'white', padding:'2px 8px', borderRadius:'4px', fontSize:'11px'}}>X</button>
               </div>
               {listaExcFiltrada.length ? listaExcFiltrada.map((item, idx) => (
                 <div key={idx} style={{display:'flex', justifyContent:'space-between', padding:'6px', background:'#DCFCE7', borderRadius:'6px', marginBottom:'4px', fontSize:'12px'}}>
-                  <b>Día {item.dia} de {MESES_NOM[item.mes-1]} {item.esProrroga ? '(Prórroga)' : ''}</b>
+                  <b>Día {item.dia} de {MESES_NOM[item.mes-1]} {item.esProrroga ? '(Del Año Anterior)' : ''}</b>
                   <span>Turno: {item.turno}</span>
                 </div>
-              )) : <p style={{fontSize:'11px', color:'#64748B'}}>Ninguno registrado.</p>}
+              )) : <p style={{fontSize:'11px', color:'#64748B'}}>Ninguno.</p>}
             </div>
           )}
 
@@ -324,10 +294,10 @@
               </div>
               {listaApFiltrada.length ? listaApFiltrada.map((item, idx) => (
                 <div key={idx} style={{display:'flex', justifyContent:'space-between', padding:'6px', background:'#FEF08A', borderRadius:'6px', marginBottom:'4px', fontSize:'12px'}}>
-                  <b>Día {item.dia} de {MESES_NOM[item.mes-1]} {item.esProrroga ? '(Prórroga)' : ''}</b>
+                  <b>Día {item.dia} de {MESES_NOM[item.mes-1]} {item.esProrroga ? '(Del Año Anterior)' : ''}</b>
                   <span>Turno: {item.turno}</span>
                 </div>
-              )) : <p style={{fontSize:'11px', color:'#64748B'}}>Ninguno registrado.</p>}
+              )) : <p style={{fontSize:'11px', color:'#64748B'}}>Ninguno.</p>}
             </div>
           )}
 
@@ -349,8 +319,8 @@
                 const v = checkVacation(dk);
                 const fes = isFestivo(dk);
                 
-                // Comprobación de marcados e iconos
-                const aps = (user.ap || []).filter(a => a.y === year && a.mes === (mesVisible+1) && a.dia === d && a.turno);
+                // Cargar marcas
+                const aps = (user.ap || []).filter(a => a.y === year && a.mes === (mesVisible+1) && a.dia === d && a.turno && a.turno !== "-");
                 const excs = (user.excesos || []).filter(e => e.y === year && e.mes === (mesVisible+1) && e.dia === d && e.turno && e.turno !== "-");
                 const hasHS = (user.hs || []).some(h => h.y === year && h.mes === (mesVisible+1) && h.dia === d);
                 
@@ -431,6 +401,7 @@
                   <button className="btn-primary" onClick={aplicarPatron} style={{background:'#1E293B', marginTop:'8px'}}>GENERAR TURNO ANUAL</button>
                 </div>
 
+                {/* --- TARJETA VACACIONES CORREGIDA CON PRÓRROGA --- */}
                 <div className="card">
                   <label>🏖️ VACACIONES PERIODO ({year})</label>
                   {(user.periodos || []).filter(p => p.y === year).map(p => (
@@ -445,19 +416,25 @@
                         <span>al</span>
                         <select value={p.mFin || ""} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, mFin:parseInt(e.target.value)}:x)})}>
                           <option value="" disabled>Mes</option>
-                          <option value={1}>Ene (Prórroga)</option>
                           {MESES_NOM.map((m,i)=><option key={i} value={i+1}>{m.slice(0,3)}</option>)}
                         </select>
                         <select value={p.dFin || ""} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, dFin:parseInt(e.target.value)}:x)})}>
                           <option value="" disabled>Día</option>{Array.from({length:31},(_,i)=>i+1).map(d=><option key={d} value={d}>{d}</option>)}
                         </select>
+                        
+                        {(p.mIni === 1 || p.mFin === 1) && (
+                          <button className={`toggle-btn ${p.esProrroga ? 'active' : ''}`} onClick={() => setUser({...user, periodos: user.periodos.map(x => x.id === p.id ? {...x, esProrroga: !x.esProrroga} : x)})}>
+                            Año Ant.
+                          </button>
+                        )}
                       </div>
                       <button className="btn-del" onClick={() => setUser({...user, periodos: user.periodos.filter(x => x.id !== p.id)})}>🗑️</button>
                     </div>
                   ))}
-                  <button className="btn-primary" onClick={() => setUser({...user, periodos: [...(user.periodos || []), {id:Date.now(), y:year, dIni:null, mIni:null, dFin:null, mFin:null}]})}>+ ASIGNAR VACACIONES</button>
+                  <button className="btn-primary" onClick={() => setUser({...user, periodos: [...(user.periodos || []), {id:Date.now(), y:year, dIni:null, mIni:null, dFin:null, mFin:null, esProrroga:false}]})}>+ ASIGNAR VACACIONES</button>
                 </div>
 
+                {/* --- TARJETA EXCESOS CONTROLADA --- */}
                 <div className="card" style={{borderTop:'3px solid #22C55E'}}>
                   <label>🟢 EXCESOS ({year})</label>
                   {(user.excesos || []).filter(e => e.y === year).map(exc => (
@@ -470,7 +447,10 @@
                           <option value="" disabled>Día</option>{Array.from({length:31},(_,i)=>i+1).map(d=><option key={d} value={d}>{d}</option>)}
                         </select>
                         <select value={exc.turno || ""} onChange={e => setUser({...user, excesos: user.excesos.map(x => x.id === exc.id ? {...x, turno: e.target.value} : x)})}>
-                          <option value="-">-</option><option value="M">M</option><option value="T">T</option><option value="N">N</option>
+                          <option value="-">-</option>
+                          <option value="M" disabled={user.excesos.some(x => x.y === year && x.mes === exc.mes && x.dia === exc.dia && x.turno === 'M' && x.id !== exc.id)}>M</option>
+                          <option value="T" disabled={user.excesos.some(x => x.y === year && x.mes === exc.mes && x.dia === exc.dia && x.turno === 'T' && x.id !== exc.id)}>T</option>
+                          <option value="N" disabled={user.excesos.some(x => x.y === year && x.mes === exc.mes && x.dia === exc.dia && x.turno === 'N' && x.id !== exc.id)}>N</option>
                         </select>
                         {exc.mes === 1 && (
                           <button className={`toggle-btn ${exc.esProrroga ? 'active' : ''}`} onClick={() => setUser({...user, excesos: user.excesos.map(x => x.id === exc.id ? {...x, esProrroga: !x.esProrroga} : x)})}>
@@ -484,6 +464,7 @@
                   <button className="btn-primary" style={{background:'#22C55E'}} onClick={() => setUser({...user, excesos: [...(user.excesos || []), {id:Date.now(), y:year, dia:null, mes:null, turno:"-", esProrroga:false}]})}>+ AÑADIR EXCESO</button>
                 </div>
 
+                {/* --- TARJETA ASUNTOS PROPIOS CONTROLADA --- */}
                 <div className="card" style={{borderTop:'3px solid var(--ap-color)'}}>
                   <label>📂 ASUNTOS PROPIOS ({year})</label>
                   {(user.ap || []).filter(a => a.y === year).map(a => (
@@ -496,7 +477,10 @@
                           <option value="" disabled>Día</option>{Array.from({length:31},(_,i)=>i+1).map(d=><option key={d} value={d}>{d}</option>)}
                         </select>
                         <select value={a.turno || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, turno:e.target.value}:x)})}>
-                          <option value="M">M</option><option value="T">T</option><option value="N">N</option>
+                          <option value="-">-</option>
+                          <option value="M" disabled={user.ap.some(x => x.y === year && x.mes === a.mes && x.dia === a.dia && x.turno === 'M' && x.id !== a.id)}>M</option>
+                          <option value="T" disabled={user.ap.some(x => x.y === year && x.mes === a.mes && x.dia === a.dia && x.turno === 'T' && x.id !== a.id)}>T</option>
+                          <option value="N" disabled={user.ap.some(x => x.y === year && x.mes === a.mes && x.dia === a.dia && x.turno === 'N' && x.id !== a.id)}>N</option>
                         </select>
                         {a.mes === 1 && (
                           <button className={`toggle-btn ${a.esProrroga ? 'active' : ''}`} onClick={() => setUser({...user, ap: user.ap.map(x => x.id === a.id ? {...x, esProrroga: !x.esProrroga} : x)})}>
@@ -507,9 +491,10 @@
                       <button className="btn-del" onClick={() => setUser({...user, ap: user.ap.filter(x => x.id !== a.id)})}>🗑️</button>
                     </div>
                   ))}
-                  <button className="btn-primary" style={{background:'var(--ap-color)', color:'#1E293B'}} onClick={() => setUser({...user, ap: [...(user.ap || []), {id:Date.now(), y:year, dia:null, mes:null, turno:"M", esProrroga:false}]})}>+ AÑADIR AP</button>
+                  <button className="btn-primary" style={{background:'var(--ap-color)', color:'#1E293B'}} onClick={() => setUser({...user, ap: [...(user.ap || []), {id:Date.now(), y:year, dia:null, mes:null, turno:"-", esProrroga:false}]})}>+ AÑADIR AP</button>
                 </div>
 
+                {/* --- HORAS SINDICALES --- */}
                 <div className="card" style={{borderTop:'3px solid var(--hs-color)'}}>
                   <label>🔹 HORAS SINDICALES (HS - {year})</label>
                   {(user.hs || []).filter(h => h.y === year).map(h => (
@@ -529,6 +514,7 @@
                   <button className="btn-primary" style={{background:'var(--hs-color)'}} onClick={() => setUser({...user, hs: [...(user.hs || []), {id:Date.now(), y:year, dia:null, mes:null, horas:8}]})}>+ AÑADIR HS</button>
                 </div>
 
+                {/* --- PERMISOS --- */}
                 <div className="card" style={{borderTop:'3px solid #10B981'}}>
                   <label>🟢 PERMISOS (PER - {year})</label>
                   {(user.per || []).filter(p => p.y === year).map(p => (
