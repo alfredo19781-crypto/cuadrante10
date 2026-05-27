@@ -44,7 +44,7 @@
     function App() {
       const year = 2026;
       const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v105") || "{}"));
-      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v105") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[],"hs":[],"excesos":[]}'));
+      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v105") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[],"hs":[],"excesos":[],"per":[]}'));
       const [showGear, setShowGear] = useState(false);
       const [verDetalleAp, setVerDetalleAp] = useState(false);
       const [verDetalleExc, setVerDetalleExc] = useState(false);
@@ -516,6 +516,50 @@
                     </div>
                   ))}
                   <button className="btn-primary" onClick={() => setUser({...user, ap: [...(user.ap || []), {id:Date.now(), dia:null, mes:null, turno:""}]})}>+ AÑADIR AP</button>
+                </div>
+
+                {/* --- NUEVA TARJETA: HORAS SINDICALES (HS) --- */}
+                <div className="card" style={{ borderTop: '4px solid var(--hs-color)' }}>
+                  <label>🔹 HORAS SINDICALES (HS)</label>
+                  {Array.isArray(user.hs) && user.hs.map(h => (
+                    <div key={h.id} className="row-config">
+                      <div className="inputs-group">
+                        <select value={h.mes || ""} onChange={e => setUser({...user, hs: user.hs.map(x => x.id === h.id ? {...x, mes: parseInt(e.target.value)} : x)})}>
+                          <option value="" disabled>Mes</option>
+                          {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
+                        </select>
+                        <select value={h.dia || ""} onChange={e => setUser({...user, hs: user.hs.map(x => x.id === h.id ? {...x, dia: parseInt(e.target.value)} : x)})}>
+                          <option value="" disabled>Día</option>
+                          {Array.from({length:31}, (_,i) => i+1).map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                        <input type="number" value={h.horas || ""} placeholder="Horas" style={{padding: '8px'}} onChange={e => setUser({...user, hs: user.hs.map(x => x.id === h.id ? {...x, horas: parseInt(e.target.value) || 0} : x)})} />
+                      </div>
+                      <button className="btn-del" onClick={() => setUser({...user, hs: user.hs.filter(x => x.id !== h.id)})}>🗑️</button>
+                    </div>
+                  ))}
+                  <button className="btn-primary" style={{ background: 'var(--hs-color)' }} onClick={() => setUser({...user, hs: [...(user.hs || []), {id: Date.now(), dia: null, mes: null, horas: 8}]})}>+ AÑADIR HS</button>
+                </div>
+
+                {/* --- NUEVA TARJETA: PERMISOS (PER) --- */}
+                <div className="card" style={{ borderTop: '4px solid #10b981' }}>
+                  <label>🟢 PERMISOS (PER)</label>
+                  {Array.isArray(user.per) && user.per.map(p => (
+                    <div key={p.id} className="row-config">
+                      <div className="inputs-group">
+                        <select value={p.mes || ""} onChange={e => setUser({...user, per: user.per.map(x => x.id === p.id ? {...x, mes: parseInt(e.target.value)} : x)})}>
+                          <option value="" disabled>Mes</option>
+                          {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
+                        </select>
+                        <select value={p.dia || ""} onChange={e => setUser({...user, per: user.per.map(x => x.id === p.id ? {...x, dia: parseInt(e.target.value)} : x)})}>
+                          <option value="" disabled>Día</option>
+                          {Array.from({length:31}, (_,i) => i+1).map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                        <input type="number" value={p.horas || ""} placeholder="Horas" style={{padding: '8px'}} onChange={e => setUser({...user, per: user.per.map(x => x.id === p.id ? {...x, horas: parseInt(e.target.value) || 0} : x)})} />
+                      </div>
+                      <button className="btn-del" onClick={() => setUser({...user, per: user.per.filter(x => x.id !== p.id)})}>🗑️</button>
+                    </div>
+                  ))}
+                  <button className="btn-primary" style={{ background: '#10b981' }} onClick={() => setUser({...user, per: [...(user.per || []), {id: Date.now(), dia: null, mes: null, horas: 8}]})}>+ AÑADIR PER</button>
                 </div>
 
                 <button className="btn-danger" style={{width:'100%', marginTop:'15px'}} onClick={() => setShowGear(false)}>CERRAR</button>
