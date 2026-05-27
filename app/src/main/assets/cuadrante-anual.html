@@ -190,7 +190,7 @@
 </div>
 {/* -------------------------------------- */}
           
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px', marginBottom:'15px'}}>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:'8px', marginBottom:'15px'}}>
             <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid var(--primary)'}}>
               <label style={{fontSize:'8px', marginBottom:'4px'}}>JORNADAS TOTALES</label>
               <b style={{fontSize:'18px'}}>{stats.real.toFixed(1)}</b>
@@ -207,6 +207,12 @@
               <label style={{fontSize:'8px', marginBottom:'4px'}}>EXCESOS</label>
               <b style={{fontSize:'18px'}}>{(stats.real - stats.obj).toFixed(1)}</b>
             </div>
+            <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid var(--ap-color)'}}>
+              <label style={{fontSize:'8px', marginBottom:'4px'}}>ASUNTOS PROPIOS</label>
+              <b style={{fontSize:'18px'}}>
+              {user.ap?.filter(a => a.turno === 'AP').length || 0} / {user.maxAp || 6}
+              </b>
+          </div>
           </div>
 
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(290px, 1fr))', gap:'10px'}}>
