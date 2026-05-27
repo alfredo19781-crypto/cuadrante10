@@ -207,10 +207,10 @@
               <label style={{fontSize:'8px', marginBottom:'4px'}}>EXCESOS</label>
               <b style={{fontSize:'18px'}}>{(stats.real - stats.obj).toFixed(1)}</b>
             </div>
-            <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid var(--ap-color)'}}>
+          <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid var(--ap-color)'}}>
     <label style={{fontSize:'8px', marginBottom:'4px'}}>ASUNTOS PROPIOS</label>
     <b style={{fontSize:'18px'}}>
-      {Object.values(user.meses || {}).flatMap(dias => Object.values(dias || {})).filter(t => t === 'AP').length} / {user.totalAp || user.apTotales || 8}
+      {Object.values(user.meses || user.cuadrante || user.dias || {}).flatMap(mes => Object.values(mes || {})).filter(dia => (dia && dia.turno === 'AP') || dia === 'AP').length} / {user.totalAp || user.apTotales || 8}
     </b>
   </div>
           </div>
