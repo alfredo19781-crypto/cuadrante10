@@ -52,17 +52,16 @@
       const [tempTipo12h, setTempTipo12h] = useState("D");
       const [mesVisible, setMesVisible] = useState(new Date().getMonth());
 
-      // Guardar datos del usuario automáticamente cuando cambien
+      // Guardar datos automáticamente
       useEffect(() => {
         localStorage.setItem("user_alfredo_v105", JSON.stringify(user));
       }, [user]);
 
-      // Guardar cuadrante automáticamente cuando cambie
       useEffect(() => {
         localStorage.setItem("cuad_alfredo_v105", JSON.stringify(selected));
       }, [selected]);
 
-      // Saneamiento inicial de las listas para prevenir cuelgues
+      // Saneamiento de listas
       useEffect(() => {
         if (user) {
           let actualizado = false;
@@ -120,6 +119,7 @@
         return false;
       };
 
+      // Cálculo de estadísticas unificado
       const stats = useMemo(() => {
         let totalJ = 0;
         Object.entries(selected).forEach(([dk, data]) => {
@@ -127,7 +127,14 @@
         });
         const ant = year - user.ingreso;
         const extraVacas = ant >= 30 ? 4 : ant >= 25 ? 3 : ant >= 20 ? 2 : ant >= 15 ? 1 : 0;
-        return { real: totalJ, obj: 193 - extraVacas };
+        const objetivo = 193 - extraVacas;
+        
+        // Calcular la bolsa de excesos acumulados (si da negativo, se queda en 0)
+        const bolsaExcesos = Math.max(0, Math.round(totalJ - objetivo));
+        // Contar cuántos excesos válidos se han gastado/pedido
+        const pedidos = Array.isArray(user.excesos) ? user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").length : 0;
+
+        return { real: totalJ, obj: objetivo, acumulados: bolsaExcesos, consumidos: pedidos };
       }, [selected, user]);
 
       const aplicarPatron = () => {
@@ -231,15 +238,14 @@
               <b style={{fontSize:'18px'}}>{stats.obj}</b>
             </div>
 
+            {/* CONTADOR DE EXCESOS MEJORADO: Consumidos / Acumulados */}
             <div 
               className="card" 
               onClick={() => { setShowGear(false); setVerDetalleAp(false); setVerDetalleExc(true); }}
               style={{ margin: 0, textAlign: 'center', padding: '10px', borderTop: '4px solid #22C55E', cursor: 'pointer' }}
             >
               <label style={{ fontSize: '8px', marginBottom: '4px', cursor: 'pointer' }}>EXCESOS</label>
-              <b style={{ fontSize: '18px' }}>
-                {Array.isArray(user.excesos) ? user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").length : 0}
-              </b>
+              <b style={{ fontSize: '18px' }}>{stats.consumidos} / {stats.acumulados}</b>
             </div>
 
             <div 
@@ -342,7 +348,6 @@
                         <button key={dk} className="dia-btn" style={{background: bg}} onClick={() => setEdit({dk, data})}>
                           <span style={{ color: fes ? 'var(--danger)' : 'inherit', fontWeight: fes ? 'bold' : 'normal' }}>{d}</span>
                           
-                          {/* Líneas de AP en el día */}
                           {aps.map(a => (
                             <div key={a.id} className={`ap-line ap-${a.turno}`} style={{
                               position: 'absolute', left: 0, right: 0, height: '4px', background: 'var(--ap-color)', zIndex: 5,
@@ -351,7 +356,6 @@
                             }} />
                           ))}
 
-                          {/* Marcado de Excesos en el día (verde) */}
                           {excs.map(e => (
                             <div key={e.id} className={`ap-line ap-${e.turno}`} style={{
                               position: 'absolute', left: 0, right: 0, height: '4px', background: '#22C55E', zIndex: 5,
@@ -457,9 +461,9 @@
                   <button className="btn-primary" onClick={() => setUser({...user, periodos: [...(user.periodos || []), {id:Date.now(), dIni:null, mIni:null, dFin:null, mFin:null}]})}>+ AÑADIR</button>
                 </div>
 
-                {/* --- SECCIÓN EXCESOS --- */}
+                {/* --- SECCIÓN EXCESOS EN CONFIGURACIÓN --- */}
                 <div className="card" style={{ borderTop: '4px solid #22C55E' }}>
-                  <label>🟢 EXCESOS ({Array.isArray(user.excesos) ? user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").length : 0} Jornadas / {Array.isArray(user.excesos) ? user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").length * 8 : 0} Horas)</label>
+                  <label>🟢 EXCESOS GESTIONADOS ({stats.consumidos} / {stats.acumulados})</label>
                   {Array.isArray(user.excesos) && user.excesos.map((exc) => (
                     <div key={exc.id} className="row-config" style={{ marginBottom: '8px' }}>
                       <div className="inputs-group">
@@ -518,7 +522,7 @@
                   <button className="btn-primary" onClick={() => setUser({...user, ap: [...(user.ap || []), {id:Date.now(), dia:null, mes:null, turno:""}]})}>+ AÑADIR AP</button>
                 </div>
 
-                {/* --- NUEVA TARJETA: HORAS SINDICALES (HS) --- */}
+                {/* --- TARJETA: HORAS SINDICALES (HS) --- */}
                 <div className="card" style={{ borderTop: '4px solid var(--hs-color)' }}>
                   <label>🔹 HORAS SINDICALES (HS)</label>
                   {Array.isArray(user.hs) && user.hs.map(h => (
@@ -540,7 +544,7 @@
                   <button className="btn-primary" style={{ background: 'var(--hs-color)' }} onClick={() => setUser({...user, hs: [...(user.hs || []), {id: Date.now(), dia: null, mes: null, horas: 8}]})}>+ AÑADIR HS</button>
                 </div>
 
-                {/* --- NUEVA TARJETA: PERMISOS (PER) --- */}
+                {/* --- TARJETA: PERMISOS (PER) --- */}
                 <div className="card" style={{ borderTop: '4px solid #10b981' }}>
                   <label>🟢 PERMISOS (PER)</label>
                   {Array.isArray(user.per) && user.per.map(p => (
