@@ -208,11 +208,11 @@
               <b style={{fontSize:'18px'}}>{(stats.real - stats.obj).toFixed(1)}</b>
             </div>
             <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid var(--ap-color)'}}>
-              <label style={{fontSize:'8px', marginBottom:'4px'}}>ASUNTOS PROPIOS</label>
-              <b style={{fontSize:'18px'}}>
-              {user.ap?.filter(a => a.turno === 'AP').length || 0} / {user.maxAp || 6}
-              </b>
-          </div>
+    <label style={{fontSize:'8px', marginBottom:'4px'}}>ASUNTOS PROPIOS</label>
+    <b style={{fontSize:'18px'}}>
+      {Object.values(user.meses || {}).flatMap(dias => Object.values(dias || {})).filter(t => t === 'AP').length} / {user.totalAp || user.apTotales || 8}
+    </b>
+  </div>
           </div>
 
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(290px, 1fr))', gap:'10px'}}>
