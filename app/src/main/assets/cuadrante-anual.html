@@ -47,42 +47,36 @@
       const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v105") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[],"hs":[],"excesos":[]}'));
       const [showGear, setShowGear] = useState(false);
       const [verDetalleAp, setVerDetalleAp] = useState(false);
-      const [verDetalleExc, setVerDetalleExc] = useState(false); // <-- AÑADE ESTA LÍNEA AQUÍ
+      const [verDetalleExc, setVerDetalleExc] = useState(false);
       const [edit, setEdit] = useState(null);
       const [tempTipo12h, setTempTipo12h] = useState("D");
       const [mesVisible, setMesVisible] = useState(new Date().getMonth());
 
       // Guardar datos del usuario automáticamente cuando cambien
-  useEffect(() => {
-    localStorage.setItem("user_alfredo_v105", JSON.stringify(user));
-  }, [user]);
+      useEffect(() => {
+        localStorage.setItem("user_alfredo_v105", JSON.stringify(user));
+      }, [user]);
 
-  // Cargar datos iniciales del usuario al arrancar la app
-  useEffect(() => {
-    const saved = localStorage.getItem("user_alfredo_v105");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object') {
-          // Aseguramos que existan las listas para que no de errores
-          if (!parsed.ap) parsed.ap = [];
-          if (!parsed.excesos) parsed.excesos = [];
-          setUser(parsed);
-        }
-      } catch (e) {
-        console.error("Error al cargar usuario:", e);
-      }
-    }
-  }, []);
-        const saved = localStorage.getItem("user_alfredo_v105");
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (!parsed.per) {
-            setUser({ ...parsed, per: [] });
-          }
+      // Guardar cuadrante automáticamente cuando cambie
+      useEffect(() => {
+        localStorage.setItem("cuad_alfredo_v105", JSON.stringify(selected));
+      }, [selected]);
+
+      // Saneamiento inicial de las listas para prevenir cuelgues
+      useEffect(() => {
+        if (user) {
+          let actualizado = false;
+          let nuevoUser = { ...user };
+          if (!Array.isArray(nuevoUser.ap)) { nuevoUser.ap = []; actualizado = true; }
+          if (!Array.isArray(nuevoUser.excesos)) { nuevoUser.excesos = []; actualizado = true; }
+          if (!Array.isArray(nuevoUser.periodos)) { nuevoUser.periodos = []; actualizado = true; }
+          if (!Array.isArray(nuevoUser.hs)) { nuevoUser.hs = []; actualizado = true; }
+          if (!Array.isArray(nuevoUser.per)) { nuevoUser.per = []; actualizado = true; }
+          if (actualizado) setUser(nuevoUser);
         }
       }, []);
-      const isVacation = (dk) => user.periodos.some(p => {
+
+      const isVacation = (dk) => (user.periodos || []).some(p => {
         if(!p.mIni || !p.dIni || !p.mFin || !p.dFin) return false;
         const inicio = `${year}-${String(p.mIni).padStart(2,'0')}-${String(p.dIni).padStart(2,'0')}`;
         const fin = `${year}-${String(p.mFin).padStart(2,'0')}-${String(p.dFin).padStart(2,'0')}`;
@@ -95,11 +89,9 @@
         const mes = d.getMonth() + 1;
         const anio = d.getFullYear();
 
-        // 1. Festivos Fijos (Nacionales y San Juan)
         const fijos = ["1-1", "6-1", "1-5", "15-8", "8-9", "12-10", "1-11", "6-12", "8-12", "25-12", "24-6"];
         if (fijos.includes(`${dia}-${mes}`)) return true;
 
-        // 2. Virgen de Argeme: Lunes posterior al 2º domingo de Mayo
         let domingosMayo = 0; let diaArgeme = 0;
         for (let i = 1; i <= 14; i++) {
           if (new Date(anio, 4, i).getDay() === 0) {
@@ -109,7 +101,6 @@
         }
         if (mes === 5 && dia === diaArgeme) return true;
 
-        // 3. Semana Santa (Algoritmo de Gauss)
         const a = anio % 19; const b = anio % 4; const c = anio % 7;
         const d_g = (19 * a + 24) % 30;
         const e = (2 * b + 4 * c + 6 * d_g + 5) % 7;
@@ -119,7 +110,6 @@
         if (marzo > 31) { diaPascua = marzo - 31; mesPascua = 4; } 
         else { diaPascua = marzo; mesPascua = 3; }
 
-        // Calculamos Jueves y Viernes Santo (3 y 2 días antes del Domingo de Resurrección)
         const pascua = new Date(anio, mesPascua - 1, diaPascua);
         const viernesSanto = new Date(pascua); viernesSanto.setDate(pascua.getDate() - 2);
         const juevesSanto = new Date(pascua); juevesSanto.setDate(pascua.getDate() - 3);
@@ -168,340 +158,258 @@
         setShowGear(false);
       };
 
+      const guardarCeldaRapida = () => {
+        if (!edit) return;
+        const tipoModal = document.getElementById("modalTipo").value;
+        let newS = { ...selected };
+        
+        if (tipoModal === "libre") {
+          newS[edit.dk] = { descanso: true };
+        } else if (tipoModal === "24h") {
+          newS[edit.dk] = { jornada: 24, tipo: "24h" };
+        } else if (tipoModal === "12h-D") {
+          newS[edit.dk] = { jornada: 12, tipo: "12h-D" };
+        } else if (tipoModal === "12h-N") {
+          newS[edit.dk] = { jornada: 12, tipo: "12h-N" };
+        } else {
+          delete newS[edit.dk];
+        }
+        setSelected(newS);
+        setEdit(null);
+      };
+
       return (
         <div>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'15px'}}>
             <h1 style={{fontSize:'18px'}}>📅 CUADRANTE 2026</h1>
             <button onClick={() => setShowGear(true)} style={{fontSize:'22px', background:'none', border:'none'}}><i className="fa-solid fa-gear"></i></button>
           </div>
+
           {/* --- PANEL DE NAVEGACIÓN DE MESES --- */}
-<div style={{ 
-  display: 'flex', 
-  justifyContent: 'space-between', 
-  alignItems: 'center', 
-  padding: '12px', 
-  background: '#fff', 
-  borderRadius: '12px',
-  marginBottom: '15px',
-  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-  border: '1px solid #e5e7eb'
-}}>
-  <button 
-    onClick={() => setMesVisible(prev => (prev > 0 ? prev - 1 : 11))}
-    style={{ padding: '10px 18px', borderRadius: '8px', border: 'none', background: '#f3f4f6', fontSize: '18px', cursor: 'pointer' }}
-  >
-    ⬅️
-  </button>
-  
-  <div style={{ textAlign: 'center' }}>
-    <div style={{ fontWeight: '800', fontSize: '16px', color: '#111827', letterSpacing: '1px' }}>
-      {MESES_NOM[mesVisible].toUpperCase()}
-    </div>
-    <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>AÑO {year}</div>
-  </div>
-  
-  <button 
-    onClick={() => setMesVisible(prev => (prev < 11 ? prev + 1 : 0))}
-    style={{ padding: '10px 18px', borderRadius: '8px', border: 'none', background: '#f3f4f6', fontSize: '18px', cursor: 'pointer' }}
-  >
-    ➡️
-  </button>
-</div>
-{/* -------------------------------------- */}
-          
-          {(() => {
-  // 1. Calculamos los AP del año directamente desde el objeto user
-  const mesesDelUsuario = user.meses || user.cuadrante || user.dias || {};
-  let totalApGastados = 0;
-
-  Object.values(mesesDelUsuario).forEach(mes => {
-    if (mes && typeof mes === 'object') {
-      Object.values(mes).forEach(dia => {
-        // Comprobamos si el día tiene el turno 'AP' directamente o dentro de un objeto
-        if (dia === 'AP' || (dia && dia.turno === 'AP')) {
-          totalApGastados++;
-        }
-      });
-    }
-  });
-
-  return (
-    <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:'8px', marginBottom:'15px'}}>
-      
-      {/* 1. JORNADAS TOTALES */}
-      <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid var(--primary)'}}>
-        <label style={{fontSize:'8px', marginBottom:'4px'}}>JORNADAS TOTALES</label>
-        <b style={{fontSize:'18px'}}>{stats.real.toFixed(1)}</b>
-      </div>
-
-      {/* 2. JORNADAS */}
-      <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid #64748B'}}>
-        <label style={{fontSize:'8px', marginBottom:'4px'}}>JORNADAS</label>
-        <b style={{fontSize:'18px'}}>{stats.obj}</b>
-      </div>
-
-    {/* 3. EXCESOS - PULSABLE Y CON CONTADOR POR UNIDAD */}
-<div 
-  className="card" 
-  onClick={() => {
-    setShowGear(false);
-    setVerDetalleAp(false);
-    setVerDetalleExc(true); // ¡Abrimos el desglose de Excesos!
-  }}
-  style={{
-    margin: 0, 
-    textAlign: 'center', 
-    padding: '10px', 
-    borderTop: '4px solid #22C55E',
-    cursor: 'pointer'
-  }}
->
-  <label style={{ fontSize: '8px', marginBottom: '4px', cursor: 'pointer' }}>EXCESOS</label>
-  <b style={{ fontSize: '18px' }}>
-    {Array.isArray(user.excesos) ? user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").length : 0}
-  </b>
-</div>
-
-{/* 4. ASUNTOS PROPIOS - PULSABLE */}
-<div 
-  className="card" 
-  onClick={() => {
-    setShowGear(false);       // Cerramos configuración si estuviera abierta
-    setVerDetalleAp(true);    // ¡Abrimos el desglose de días!
-  }}
-  style={{
-    margin: 0, 
-    textAlign: 'center', 
-    padding: '10px', 
-    borderTop: '4px solid var(--ap-color, #EAB308)',
-    cursor: 'pointer'         // Ponemos el cursor en forma de mano al pasar por encima
-  }}
->
-  <label style={{ fontSize: '8px', marginBottom: '4px', cursor: 'pointer' }}>ASUNTOS PROPIOS</label>
-  <b style={{ fontSize: '18px' }}>
-    {Array.isArray(user.ap) ? user.ap.length : 0} / {user.totalAp || user.apTotales || 8}
-  </b>
-</div>
-    </div>
-  );
-})()}
-         </div>
-
-{/* --- PANTALLA DESGLOSE DE EXCESOS --- */}
-{verDetalleExc && (
-  <div style={{
-    backgroundColor: 'white', 
-    padding: '15px', 
-    borderRadius: '10px', 
-    marginBottom: '15px',
-    boxShadow: '0px 2px 5px rgba(0,0,0,0.1)',
-    border: '1px solid #E2E8F0'
-  }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-      <h3 style={{ margin: 0, color: '#1E293B', fontSize: '16px', fontWeight: 'bold' }}>
-        Historial de Excesos ({year})
-      </h3>
-      <button 
-        onClick={() => setVerDetalleExc(false)}
-        style={{
-          padding: '6px 12px',
-          backgroundColor: '#EF4444',
-          color: 'white',
-          border: 'none',
-          borderRadius: '6px',
-          cursor: 'pointer',
-          fontWeight: 'bold',
-          fontSize: '12px'
-        }}
-      >
-        Volver
-      </button>
-    </div>
-
-    {Array.isArray(user.excesos) && user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").length > 0 ? (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
-        {user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").map((item, index) => (
-          <div key={index} style={{
+          <div style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
-            alignItems: 'center',
-            padding: '10px', 
-            backgroundColor: '#DCFCE7', 
-            borderRadius: '8px',
-            borderLeft: '5px solid #22C55E'
+            alignItems: 'center', 
+            padding: '12px', 
+            background: '#fff', 
+            borderRadius: '12px',
+            marginBottom: '15px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+            border: '1px solid #e5e7eb'
           }}>
-            <div>
-              <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#15803D' }}>
-                Día {item.dia} de {MESES_NOM[item.mes - 1] || `Mes ${item.mes}`}
-              </span>
-            </div>
-            <div style={{
-              backgroundColor: 'rgba(255,255,255,0.7)', 
-              padding: '2px 8px', 
-              borderRadius: '4px', 
-              fontSize: '12px', 
-              fontWeight: 'bold',
-              color: '#15803D'
-                }}>
-                  {item.turno}
-                </div>
+            <button 
+              onClick={() => setMesVisible(prev => (prev > 0 ? prev - 1 : 11))}
+              style={{ padding: '10px 18px', borderRadius: '8px', border: 'none', background: '#f3f4f6', fontSize: '18px', cursor: 'pointer' }}
+            >
+              ⬅️
+            </button>
+            
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontWeight: '800', fontSize: '16px', color: '#111827', letterSpacing: '1px' }}>
+                {MESES_NOM[mesVisible].toUpperCase()}
               </div>
-            ))}
+              <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>AÑO {year}</div>
+            </div>
+            
+            <button 
+              onClick={() => setMesVisible(prev => (prev < 11 ? prev + 1 : 0))}
+              style={{ padding: '10px 18px', borderRadius: '8px', border: 'none', background: '#f3f4f6', fontSize: '18px', cursor: 'pointer' }}
+            >
+              ➡️
+            </button>
           </div>
-        ) : (
-          <p style={{ textAlign: 'center', color: '#64748B', margin: '20px 0', fontSize: '14px' }}>
-            No hay excesos registrados este año.
-          </p>
-        )}
-      </div>
-    )}
-{verDetalleAp && (
-  <div style={{
-    backgroundColor: 'white', 
-    padding: '15px', 
-    borderRadius: '10px', 
-    marginBottom: '15px',
-    boxShadow: '0px 2px 5px rgba(0,0,0,0.1)',
-    border: '1px solid #E2E8F0'
-  }}>
-    {/* Cabecera con título y botón de volver */}
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-      <h3 style={{ margin: 0, color: '#1E293B', fontSize: '16px', fontWeight: 'bold' }}>
-        Historial Asuntos Propios ({year})
-      </h3>
-      <button 
-        onClick={() => setVerDetalleAp(false)}
-        style={{
-          padding: '6px 12px',
-          backgroundColor: '#EF4444',
-          color: 'white',
-          border: 'none',
-          borderRadius: '6px',
-          cursor: 'pointer',
-          fontWeight: 'bold',
-          fontSize: '12px'
-        }}
-      >
-        Volver
-      </button>
-    </div>
 
-    {/* Listado de días de Asuntos Propios */}
-    {Array.isArray(user.ap) && user.ap.length > 0 ? (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
-        {user.ap.map((item, index) => {
-          return (
-            <div key={index} style={{
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              padding: '10px', 
-              backgroundColor: '#FEF08A', 
-              borderRadius: '8px',
-              borderLeft: '5px solid var(--ap-color, #EAB308)'
-            }}>
-              <div>
-                <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#854D0E' }}>
-                  Día {item.dia} de {MESES_NOM[item.mes - 1] || `Mes ${item.mes}`}
-                </span>
-              </div>
-              <div style={{
-                backgroundColor: 'rgba(255,255,255,0.7)', 
-                padding: '2px 8px', 
-                borderRadius: '4px', 
-                fontSize: '12px', 
-                fontWeight: 'bold',
-                color: '#854D0E'
-              }}>
-                {item.turno || 'AP'}
-              </div>
+          {/* --- BLOQUE DE TARJETAS SUPERIORES --- */}
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:'8px', marginBottom:'15px'}}>
+            <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid var(--primary)'}}>
+              <label style={{fontSize:'8px', marginBottom:'4px'}}>JORNADAS TOTAL</label>
+              <b style={{fontSize:'18px'}}>{stats.real.toFixed(1)}</b>
             </div>
-          );
-        })}
-      </div>
-    ) : (
-      <p style={{ textAlign: 'center', color: '#64748B', margin: '20px 0', fontSize: '14px' }}>
-        No hay asuntos propios registrados este año.
-      </p>
-    )}
-  </div>
-)}
+
+            <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid #64748B'}}>
+              <label style={{fontSize:'8px', marginBottom:'4px'}}>OBJETIVO</label>
+              <b style={{fontSize:'18px'}}>{stats.obj}</b>
+            </div>
+
+            <div 
+              className="card" 
+              onClick={() => { setShowGear(false); setVerDetalleAp(false); setVerDetalleExc(true); }}
+              style={{ margin: 0, textAlign: 'center', padding: '10px', borderTop: '4px solid #22C55E', cursor: 'pointer' }}
+            >
+              <label style={{ fontSize: '8px', marginBottom: '4px', cursor: 'pointer' }}>EXCESOS</label>
+              <b style={{ fontSize: '18px' }}>
+                {Array.isArray(user.excesos) ? user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").length : 0}
+              </b>
+            </div>
+
+            <div 
+              className="card" 
+              onClick={() => { setShowGear(false); setVerDetalleExc(false); setVerDetalleAp(true); }}
+              style={{ margin: 0, textAlign: 'center', padding: '10px', borderTop: '4px solid var(--ap-color, #EAB308)', cursor: 'pointer' }}
+            >
+              <label style={{ fontSize: '8px', marginBottom: '4px', cursor: 'pointer' }}>ASUNTOS PROPIOS</label>
+              <b style={{ fontSize: '18px' }}>
+                {Array.isArray(user.ap) ? user.ap.filter(a => a.dia && a.mes && a.turno).length : 0} / {(() => {
+                  const ant = year - user.ingreso;
+                  let base = 6;
+                  if (ant >= 30) base += 5; else if (ant >= 27) base += 4; else if (ant >= 24) base += 3;
+                  else if (ant >= 21) base += 2; else if (ant >= 18) base += 2;
+                  return base;
+                })()}
+              </b>
+            </div>
+          </div>
+
+          {/* --- PANTALLA DESGLOSE DE EXCESOS --- */}
+          {verDetalleExc && (
+            <div style={{ backgroundColor: 'white', padding: '15px', borderRadius: '10px', marginBottom: '15px', boxShadow: '0px 2px 5px rgba(0,0,0,0.1)', border: '1px solid #E2E8F0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h3 style={{ margin: 0, color: '#1E293B', fontSize: '16px', fontWeight: 'bold' }}>Historial de Excesos ({year})</h3>
+                <button onClick={() => setVerDetalleExc(false)} style={{ padding: '6px 12px', backgroundColor: '#EF4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>Volver</button>
+              </div>
+              {Array.isArray(user.excesos) && user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
+                  {user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").map((item, index) => (
+                    <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', backgroundColor: '#DCFCE7', borderRadius: '8px', borderLeft: '5px solid #22C55E' }}>
+                      <div><span style={{ fontWeight: 'bold', fontSize: '14px', color: '#15803D' }}>Día {item.dia} de {MESES_NOM[item.mes - 1]}</span></div>
+                      <div style={{ backgroundColor: 'rgba(255,255,255,0.7)', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', color: '#15803D' }}>{item.turno}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ textAlign: 'center', color: '#64748B', margin: '20px 0', fontSize: '14px' }}>No hay excesos registrados este año.</p>
+              )}
+            </div>
+          )}
+
+          {/* --- PANTALLA DESGLOSE DE ASUNTOS PROPIOS --- */}
+          {verDetalleAp && (
+            <div style={{ backgroundColor: 'white', padding: '15px', borderRadius: '10px', marginBottom: '15px', boxShadow: '0px 2px 5px rgba(0,0,0,0.1)', border: '1px solid #E2E8F0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h3 style={{ margin: 0, color: '#1E293B', fontSize: '16px', fontWeight: 'bold' }}>Historial Asuntos Propios ({year})</h3>
+                <button onClick={() => setVerDetalleAp(false)} style={{ padding: '6px 12px', backgroundColor: '#EF4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>Volver</button>
+              </div>
+              {Array.isArray(user.ap) && user.ap.filter(a => a.dia && a.mes && a.turno).length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
+                  {user.ap.filter(a => a.dia && a.mes && a.turno).map((item, index) => (
+                    <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', backgroundColor: '#FEF08A', borderRadius: '8px', borderLeft: '5px solid var(--ap-color, #EAB308)' }}>
+                      <div><span style={{ fontWeight: 'bold', fontSize: '14px', color: '#854D0E' }}>Día {item.dia} de {MESES_NOM[item.mes - 1]}</span></div>
+                      <div style={{ backgroundColor: 'rgba(255,255,255,0.7)', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', color: '#854D0E' }}>{item.turno}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ textAlign: 'center', color: '#64748B', margin: '20px 0', fontSize: '14px' }}>No hay asuntos propios registrados este año.</p>
+              )}
+            </div>
+          )}
+
+          {/* --- SECCIÓN CALENDARIO VISIBLE --- */}
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(290px, 1fr))', gap:'10px'}}>
-               {MESES_NOM.map((nombre, mi) => {
-                 if (mi !== mesVisible) return null;
+            {MESES_NOM.map((nombre, mi) => {
+              if (mi !== mesVisible) return null;
+              return (
+                <div key={mi} className="card">
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'5px'}}>
+                    <h4 style={{color:'var(--primary)'}}>{nombre.toUpperCase()}</h4>
+                    <span style={{fontSize:'10px', fontWeight:'bold', color: 'var(--hs-color)'}}>
+                      {Array.isArray(user.hs) ? user.hs.filter(h => h.mes === (mi + 1)).reduce((acc, curr) => acc + (curr.horas || 0), 0) : 0} / 20h HS
+                      <span style={{fontSize:'10px', fontWeight:'bold', color: '#10b981', marginLeft: '8px'}}>
+                        {Array.isArray(user.per) ? user.per.filter(p => p.mes === (mi + 1)).reduce((acc, curr) => acc + (curr.horas || 0), 0) : 0} PER
+                      </span>
+                    </span>
+                  </div>
+                  <div className="grid-cal">
+                    {DIAS_L.map(l => <div key={l} style={{fontSize:'10px', opacity:0.4, textAlign:'center'}}>{l}</div>)}
+                    {Array(new Date(year, mi, 1).getDay() === 0 ? 6 : new Date(year, mi, 1).getDay() - 1).fill(0).map((_, i) => <div key={i} />)}
+                    {Array.from({ length: new Date(year, mi + 1, 0).getDate() }, (_, i) => i + 1).map(d => {
+                      const dk = toDateKey(year, mi, d);
+                      const v = isVacation(dk);
+                      const fes = isFestivo(dk);
+                      const aps = Array.isArray(user.ap) ? user.ap.filter(a => a.dia === d && a.mes === (mi + 1) && a.turno) : [];
+                      const excs = Array.isArray(user.excesos) ? user.excesos.filter(e => e.dia === d && e.mes === (mi + 1) && e.turno && e.turno !== "-") : [];
+                      const hasHS = Array.isArray(user.hs) ? user.hs.some(h => h.dia === d && h.mes === (mi + 1)) : false;
+                      const data = selected[dk] || {};
+                      const is12h = data.tipo && data.tipo.startsWith('12h');
+                      
+                      let bg = "white";
+                      if (v) bg = "#FEF9C3";
+                      else if (is12h) bg = data.tipo === '12h-N' ? "#C2410C" : "#FB923C";
+                      else if (data.jornada) bg = "#FEE2E2";
+                      else if (data.descanso) bg = "#DCFCE7";
+                      
+                      return (
+                        <button key={dk} className="dia-btn" style={{background: bg}} onClick={() => setEdit({dk, data})}>
+                          <span style={{ color: fes ? 'var(--danger)' : 'inherit', fontWeight: fes ? 'bold' : 'normal' }}>{d}</span>
+                          
+                          {/* Líneas de AP en el día */}
+                          {aps.map(a => (
+                            <div key={a.id} className={`ap-line ap-${a.turno}`} style={{
+                              position: 'absolute', left: 0, right: 0, height: '4px', background: 'var(--ap-color)', zIndex: 5,
+                              top: a.turno === 'M' ? '0' : a.turno === 'T' ? 'calc(50% - 2px)' : 'auto',
+                              bottom: a.turno === 'N' ? '0' : 'auto'
+                            }} />
+                          ))}
 
-                 return (
-                 <div key={mi} className="card">
-                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'5px'}}>
-                  <h4 style={{color:'var(--primary)'}}>{nombre.toUpperCase()}</h4>
-                  <span style={{fontSize:'10px', fontWeight:'bold', color: 'var(--hs-color)'}}>
-                    {user.hs.filter(h => h.mes === (mi + 1)).reduce((acc, curr) => acc + (curr.horas || 0), 0)} / 20h HS
-                    {/* AQUÍ PEGAS EL CÓDIGO NUEVO DEL PER */}
-                  <span style={{fontSize:'10px', fontWeight:'bold', color: '#10b981', marginLeft: '8px'}}>
-                    {user.per?.filter(p => p.mes === (mi + 1)).reduce((acc, curr) => acc + (curr.horas || 0), 0)} PER
-                  </span>
-                  </span>
-                 
+                          {/* Marcado de Excesos en el día (verde) */}
+                          {excs.map(e => (
+                            <div key={e.id} className={`ap-line ap-${e.turno}`} style={{
+                              position: 'absolute', left: 0, right: 0, height: '4px', background: '#22C55E', zIndex: 5,
+                              top: e.turno === 'M' ? '0' : e.turno === 'T' ? 'calc(50% - 2px)' : 'auto',
+                              bottom: e.turno === 'N' ? '0' : 'auto'
+                            }} />
+                          ))}
+                          
+                          {hasHS && <div className="hs-dot" />}
+                          {data.jornada > 0 && !v && (
+                            <span style={{fontSize:'9px', color: is12h ? 'white' : 'red', fontWeight:'bold', zIndex:10}}>
+                              {is12h ? data.tipo.split('-')[1] : data.jornada + 'h'}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
-                <div className="grid-cal">
-                  {DIAS_L.map(l => <div key={l} style={{fontSize:'10px', opacity:0.4, textAlign:'center'}}>{l}</div>)}
-                  {Array(new Date(year, mi, 1).getDay() === 0 ? 6 : new Date(year, mi, 1).getDay() - 1).fill(0).map((_, i) => <div key={i} />)}
-                  {Array.from({ length: new Date(year, mi + 1, 0).getDate() }, (_, i) => i + 1).map(d => {
-                    const dk = toDateKey(year, mi, d);
-                    const v = isVacation(dk);
-                    const fes = isFestivo(dk);
-                    const aps = user.ap.filter(a => a.dia && a.mes && toDateKey(year, a.mes-1, a.dia) === dk);
-                    const hasHS = user.hs.some(h => h.dia && h.mes && toDateKey(year, h.mes-1, h.dia) === dk);
-                    const hasPER = user.per?.some(p => p.dia === d && p.mes === (mi + 1));
-                    const data = selected[dk] || {};
-                    const is12h = data.tipo && data.tipo.startsWith('12h');
-                    let bg = "white";
-                    if (v) bg = "#FEF9C3";
-                    else if (is12h) bg = data.tipo === '12h-N' ? "#C2410C" : "#FB923C";
-                    else if (data.jornada) bg = "#FEE2E2";
-                    else if (data.descanso) bg = "#DCFCE7";
-                    return (
-                      <button key={dk} className="dia-btn" style={{background: bg}} onClick={() => setEdit({dk, data})}>
-                        <span style={{ color: fes ? 'var(--danger)' : 'inherit', fontWeight: fes ? 'bold' : 'normal' }}>{d}</span>
-                        {user.ap.filter(a => a.dia && a.mes && a.turno && toDateKey(year, a.mes-1, a.dia) === dk).map(a => (
-  <div key={a.id} className={`ap-line ap-${a.turno}`} style={{
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: '4px',
-    background: 'var(--ap-color)',
-    zIndex: 5,
-    top: a.turno === 'M' ? '0' : a.turno === 'T' ? 'calc(50% - 2px)' : 'auto',
-    bottom: a.turno === 'N' ? '0' : 'auto'
-  }} />
-))}
-                        {aps.map(a => <div key={a.id} className={`ap-line ap-${a.turno}`} />)}
-                        {hasHS && <div className="hs-dot" />}
-                        {data.jornada > 0 && !v && (
-                          <span style={{fontSize:'9px', color: is12h ? 'white' : 'red', fontWeight:'bold', zIndex:10}}>
-                            {is12h ? data.tipo.split('-')[1] : data.jornada + 'h'}
-                          </span>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            ); })}
+              );
+            })}
           </div>
 
+          {/* --- MODAL EDICIÓN RÁPIDA DE DÍA --- */}
+          {edit && (
+            <div className="modal" onClick={() => setEdit(null)}>
+              <div className="modal-content" onClick={e => e.stopPropagation()}>
+                <h3 style={{marginBottom:'10px'}}>Editar Día</h3>
+                <p style={{fontSize:'12px', color:'#64748B', marginBottom:'15px'}}>Clave: {edit.dk}</p>
+                <label>Tipo de Jornada</label>
+                <select id="modalTipo" defaultValue={edit.data.descanso ? "libre" : edit.data.tipo || "ninguno"}>
+                  <option value="ninguno">Sin asignar (Vacío)</option>
+                  <option value="libre">Descanso / Libre</option>
+                  <option value="24h">Jornada 24h</option>
+                  <option value="12h-D">Jornada 12h - Día (D)</option>
+                  <option value="12h-N">Jornada 12h - Noche (N)</option>
+                </select>
+                <button className="btn-primary" onClick={guardarCeldaRapida}>GUARDAR</button>
+                <button className="btn-danger" style={{background:'#64748B'}} onClick={() => setEdit(null)}>CANCELAR</button>
+              </div>
+            </div>
+          )}
+
+          {/* --- MODAL CONFIGURACIÓN GENERAL --- */}
           {showGear && (
             <div className="modal" onClick={() => setShowGear(false)}>
               <div className="modal-content" onClick={e => e.stopPropagation()}>
                 <h2 style={{marginBottom:'15px'}}>Configuración</h2>
+                
                 <div className="card">
                   <label>👤 DATOS AGENTE</label>
                   <div style={{display:'flex', gap:'5px', marginBottom:'8px'}}>
                     <input type="text" value={user.nombre} onChange={e => setUser({...user, nombre: e.target.value})} placeholder="Nombre" />
-                    <input type="number" value={user.ingreso} onChange={e => setUser({...user, ingreso: parseInt(e.target.value)})} style={{width:'85px'}} />
+                    <input type="number" value={user.ingreso} onChange={e => setUser({...user, ingreso: parseInt(e.target.value) || 2008})} style={{width:'85px'}} />
                   </div>
                   <div style={{textAlign:'center', fontSize:'11px', color:'var(--primary)', fontWeight:'bold'}}>ANTIGÜEDAD: {year - user.ingreso} AÑOS</div>
                 </div>
+
                 <div className="card">
                   <label>🔄 PATRÓN TURNO</label>
                   <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'5px', margin:'8px 0'}}>
@@ -523,9 +431,10 @@
                   </div>
                   <button className="btn-primary" onClick={aplicarPatron} style={{background: '#1E293B'}}>APLICAR</button>
                 </div>
+
                 <div className="card">
                   <label>🏖️ VACACIONES</label>
-                  {user.periodos.map(p => (
+                  {Array.isArray(user.periodos) && user.periodos.map(p => (
                     <div key={p.id} className="row-config">
                       <div className="inputs-group">
                         <select value={p.mIni || ""} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, mIni:parseInt(e.target.value)}:x)})}>
@@ -545,280 +454,80 @@
                       <button className="btn-del" onClick={() => setUser({...user, periodos: user.periodos.filter(x => x.id !== p.id)})}>🗑️</button>
                     </div>
                   ))}
-                  <button className="btn-primary" onClick={() => setUser({...user, periodos: [...user.periodos, {id:Date.now(), dIni:null, mIni:null, dFin:null, mFin:null}]})}>+ AÑADIR</button>
-                </div>
-                <div className="card">
- {/* --- TARJETA EXCESOS EN CONFIGURACIÓN CORREGIDA --- */}
-<div className="card" style={{ borderTop: '4px solid #22C55E' }}>
-  <label>
-    🟢 EXCESOS ({
-      // Solo cuenta los excesos completamente rellenados (Mes, Día y Turno seleccionado)
-      Array.isArray(user.excesos) ? user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").length : 0
-    } Jornadas / {
-      (Array.isArray(user.excesos) ? user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").length * 8 : 0)
-    } Horas)
-  </label>
-  
-  {Array.isArray(user.excesos) && user.excesos.map((exc) => (
-    <div key={exc.id} className="row-config" style={{ marginBottom: '8px' }}>
-      <div className="inputs-group">
-        {/* Selector de Mes */}
-        <select 
-          value={exc.mes || ""} 
-          onChange={(e) => setUser({...user, excesos: user.excesos.map(x => x.id === exc.id ? {...x, mes: parseInt(e.target.value)} : x)})}
-        >
-          <option value="" disabled>Mes</option>
-          {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
-        </select>
-
-        {/* Selector de Día */}
-        <select 
-          value={exc.dia || ""} 
-          onChange={(e) => setUser({...user, excesos: user.excesos.map(x => x.id === exc.id ? {...x, dia: parseInt(e.target.value)} : x)})}
-        >
-          <option value="" disabled>Día</option>
-          {Array.from({length:31}, (_,i) => i+1).map(d => <option key={d} value={d}>{d}</option>)}
-        </select>
-
-        {/* Selector de Turno (Idéntico a AP con detección de Ocupado) */}
-        <select
-          value={exc.turno || ""}
-          onChange={(e) => setUser({...user, excesos: user.excesos.map(x => x.id === exc.id ? {...x, turno: e.target.value} : x)})}
-        >
-          <option value="" disabled>-</option>
-          <option value="-">-</option>
-          
-          {/* Opción M */}
-          <option 
-            value="M"
-            disabled={user.excesos.some(x => x.id !== exc.id && x.dia === exc.dia && x.mes === exc.mes && x.turno === 'M')}
-          >
-            M {user.excesos.some(x => x.id !== exc.id && x.dia === exc.dia && x.mes === exc.mes && x.turno === 'M') ? '(Ocupado)' : ''}
-          </option>
-
-          {/* Opción T */}
-          <option 
-            value="T"
-            disabled={user.excesos.some(x => x.id !== exc.id && x.dia === exc.dia && x.mes === exc.mes && x.turno === 'T')}
-          >
-            T {user.excesos.some(x => x.id !== exc.id && x.dia === exc.dia && x.mes === exc.mes && x.turno === 'T') ? '(Ocupado)' : ''}
-          </option>
-
-          {/* Opción N */}
-          <option 
-            value="N"
-            disabled={user.excesos.some(x => x.id !== exc.id && x.dia === exc.dia && x.mes === exc.mes && x.turno === 'N')}
-          >
-            N {user.excesos.some(x => x.id !== exc.id && x.dia === exc.dia && x.mes === exc.mes && x.turno === 'N') ? '(Ocupado)' : ''}
-          </option>
-        </select>
-      </div>
-
-      {/* Botón de Borrar Fila */}
-      <button 
-        className="btn-del" 
-        style={{ padding: '4px 8px' }}
-        onClick={() => setUser({...user, excesos: user.excesos.filter(x => x.id !== exc.id)})}
-      >
-        🗑️
-      </button>
-    </div>
-  ))}
-
-  {/* Botón de Añadir Nuevo Exceso */}
-  <button 
-    className="btn-primary" 
-    style={{ background: '#22C55E', marginTop: '5px' }}
-    onClick={() => setUser({
-      ...user, 
-      excesos: [...(user.excesos || []), { id: Date.now(), dia: null, mes: null, turno: "-" }]
-    })}
-  >
-    + AÑADIR EXCESO
-  </button>
-</div>
-  <label>📂 ASUNTOS PROPIOS ({user.ap.filter(a => a.dia && a.mes && a.turno).length}/{(() => {
-    const ant = year - user.ingreso;
-    let base = 6;
-    if (ant >= 30) base += 5; else if (ant >= 27) base += 4; else if (ant >= 24) base += 3;
-    else if (ant >= 21) base += 2; else if (ant >= 18) base += 2;
-    return base;
-  })()})</label>
-  {user.ap.map(a => (
-    <div key={a.id} className="row-config">
-      <div className="inputs-group">
-        <select value={a.mes || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, mes:parseInt(e.target.value)}:x)})}>
-          <option value="" disabled>Mes</option>
-          {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
-        </select>
-        <select value={a.dia || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, dia:parseInt(e.target.value)}:x)})}>
-          <option value="" disabled>Día</option>
-          {Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
-        </select>
-        <select 
-  value={a.turno || ""} 
-  onChange={e => setUser({...user, ap: user.ap.map(x => x.id === a.id ? {...x, turno: e.target.value} : x)})}
->
-  <option value="" disabled>-</option>
-  <option 
-    value="M" 
-    disabled={user.ap.some(x => x.id !== a.id && x.dia === a.dia && x.mes === a.mes && x.turno === 'M')}
-  >
-    M {user.ap.some(x => x.id !== a.id && x.dia === a.dia && x.mes === a.mes && x.turno === 'M') ? '(Ocupado)' : ''}
-  </option>
-  <option 
-    value="T" 
-    disabled={user.ap.some(x => x.id !== a.id && x.dia === a.dia && x.mes === a.mes && x.turno === 'T')}
-  >
-    T {user.ap.some(x => x.id !== a.id && x.dia === a.dia && x.mes === a.mes && x.turno === 'T') ? '(Ocupado)' : ''}
-  </option>
-  <option 
-    value="N" 
-    disabled={user.ap.some(x => x.id !== a.id && x.dia === a.dia && x.mes === a.mes && x.turno === 'N')}
-  >
-    N {user.ap.some(x => x.id !== a.id && x.dia === a.dia && x.mes === a.mes && x.turno === 'N') ? '(Ocupado)' : ''}
-  </option>
-</select>
-      </div>
-      <button className="btn-del" onClick={() => setUser({...user, ap: user.ap.filter(x => x.id !== a.id)})}>🗑️ Borrar AP</button>
-    </div>
-  ))}
-  <button className="btn-primary" style={{background:'#F59E0B'}} onClick={() => setUser({...user, ap: [...user.ap, {id:Date.now(), dia:null, mes:null, turno:null}]})}>+ AÑADIR AP</button>
+                  <button className="btn-primary" onClick={() => setUser({...user, periodos: [...(user.periodos || []), {id:Date.now(), dIni:null, mIni:null, dFin:null, mFin:null}]})}>+ AÑADIR</button>
                 </div>
 
-                <div className="card">
-                  <label>📢 HORAS SINDICALES (Máx 20h/mes)</label>
-                  {user.hs.map(h => (
-                    <div key={h.id} className="row-config">
+                {/* --- SECCIÓN EXCESOS --- */}
+                <div className="card" style={{ borderTop: '4px solid #22C55E' }}>
+                  <label>🟢 EXCESOS ({Array.isArray(user.excesos) ? user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").length : 0} Jornadas / {Array.isArray(user.excesos) ? user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").length * 8 : 0} Horas)</label>
+                  {Array.isArray(user.excesos) && user.excesos.map((exc) => (
+                    <div key={exc.id} className="row-config" style={{ marginBottom: '8px' }}>
                       <div className="inputs-group">
-                        <select value={h.mes || ""} onChange={e => {
-                          const val = parseInt(e.target.value);
-                          const suma = user.hs.filter(x => x.id !== h.id && x.mes === val).reduce((acc, curr) => acc + (curr.horas || 0), 0) + (h.horas || 0);
-                          if (suma > 20) return alert("Límite de 20h excedido en ese mes");
-                          setUser({...user, hs: user.hs.map(x => x.id === h.id ? {...x, mes: val} : x)});
-                        }}>
+                        <select value={exc.mes || ""} onChange={(e) => setUser({...user, excesos: user.excesos.map(x => x.id === exc.id ? {...x, mes: parseInt(e.target.value)} : x)})}>
                           <option value="" disabled>Mes</option>
                           {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
                         </select>
-                        <select value={h.dia || ""} onChange={e => setUser({...user, hs: user.hs.map(x => x.id === h.id ? {...x, dia: parseInt(e.target.value)} : x)})}>
+                        <select value={exc.dia || ""} onChange={(e) => setUser({...user, excesos: user.excesos.map(x => x.id === exc.id ? {...x, dia: parseInt(e.target.value)} : x)})}>
+                          <option value="" disabled>Día</option>
+                          {Array.from({length:31}, (_,i) => i+1).map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                        <select value={exc.turno || ""} onChange={(e) => setUser({...user, excesos: user.excesos.map(x => x.id === exc.id ? {...x, turno: e.target.value} : x)})}>
+                          <option value="" disabled>-</option>
+                          <option value="-">-</option>
+                          <option value="M" disabled={user.excesos.some(x => x.id !== exc.id && x.dia === exc.dia && x.mes === exc.mes && x.turno === 'M')}>M {user.excesos.some(x => x.id !== exc.id && x.dia === exc.dia && x.mes === exc.mes && x.turno === 'M') ? '(Ocupado)' : ''}</option>
+                          <option value="T" disabled={user.excesos.some(x => x.id !== exc.id && x.dia === exc.dia && x.mes === exc.mes && x.turno === 'T')}>T {user.excesos.some(x => x.id !== exc.id && x.dia === exc.dia && x.mes === exc.mes && x.turno === 'T') ? '(Ocupado)' : ''}</option>
+                          <option value="N" disabled={user.excesos.some(x => x.id !== exc.id && x.dia === exc.dia && x.mes === exc.mes && x.turno === 'N')}>N {user.excesos.some(x => x.id !== exc.id && x.dia === exc.dia && x.mes === exc.mes && x.turno === 'N') ? '(Ocupado)' : ''}</option>
+                        </select>
+                      </div>
+                      <button className="btn-del" style={{ padding: '4px 8px' }} onClick={() => setUser({...user, excesos: user.excesos.filter(x => x.id !== exc.id)})}>🗑️</button>
+                    </div>
+                  ))}
+                  <button className="btn-primary" style={{ background: '#22C55E', marginTop: '5px' }} onClick={() => setUser({...user, excesos: [...(user.excesos || []), { id: Date.now(), dia: null, mes: null, turno: "-" }]})}>+ AÑADIR EXCESO</button>
+                </div>
+
+                {/* --- SECCIÓN ASUNTOS PROPIOS --- */}
+                <div className="card" style={{ borderTop: '4px solid var(--ap-color)' }}>
+                  <label>📂 ASUNTOS PROPIOS ({Array.isArray(user.ap) ? user.ap.filter(a => a.dia && a.mes && a.turno).length : 0}/{(() => {
+                    const ant = year - user.ingreso;
+                    let base = 6;
+                    if (ant >= 30) base += 5; else if (ant >= 27) base += 4; else if (ant >= 24) base += 3;
+                    else if (ant >= 21) base += 2; else if (ant >= 18) base += 2;
+                    return base;
+                  })()})</label>
+                  {Array.isArray(user.ap) && user.ap.map(a => (
+                    <div key={a.id} className="row-config">
+                      <div className="inputs-group">
+                        <select value={a.mes || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, mes:parseInt(e.target.value)}:x)})}>
+                          <option value="" disabled>Mes</option>
+                          {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
+                        </select>
+                        <select value={a.dia || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, dia:parseInt(e.target.value)}:x)})}>
                           <option value="" disabled>Día</option>
                           {Array.from({length:31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
                         </select>
-                        <input type="number" value={h.horas || ""} placeholder="Hrs" style={{width:'65px'}} onChange={e => {
-                          const val = parseInt(e.target.value) || 0;
-                          const suma = user.hs.filter(x => x.id !== h.id && x.mes === h.mes).reduce((acc, curr) => acc + (curr.horas || 0), 0) + val;
-                          if (suma > 20) return alert("Límite de 20h excedido");
-                          setUser({...user, hs: user.hs.map(x => x.id === h.id ? {...x, horas: val} : x)});
-                        }} />
+                        <select value={a.turno || ""} onChange={e => setUser({...user, ap: user.ap.map(x => x.id === a.id ? {...x, turno: e.target.value} : x)})}>
+                          <option value="" disabled>-</option>
+                          <option value="M" disabled={user.ap.some(x => x.id !== a.id && x.dia === a.dia && x.mes === a.mes && x.turno === 'M')}>M {user.ap.some(x => x.id !== a.id && x.dia === a.dia && x.mes === a.mes && x.turno === 'M') ? '(Ocupado)' : ''}</option>
+                          <option value="T" disabled={user.ap.some(x => x.id !== a.id && x.dia === a.dia && x.mes === a.mes && x.turno === 'T')}>T {user.ap.some(x => x.id !== a.id && x.dia === a.dia && x.mes === a.mes && x.turno === 'T') ? '(Ocupado)' : ''}</option>
+                          <option value="N" disabled={user.ap.some(x => x.id !== a.id && x.dia === a.dia && x.mes === a.mes && x.turno === 'N')}>N {user.ap.some(x => x.id !== a.id && x.dia === a.dia && x.mes === a.mes && x.turno === 'N') ? '(Ocupado)' : ''}</option>
+                        </select>
                       </div>
-                      <button className="btn-del" onClick={() => setUser({...user, hs: user.hs.filter(x => x.id !== h.id)})}>🗑️</button>
+                      <button className="btn-del" onClick={() => setUser({...user, ap: user.ap.filter(x => x.id !== a.id)})}>🗑️</button>
                     </div>
                   ))}
-                  <button className="btn-primary" style={{background:'var(--hs-color)'}} onClick={() => setUser({...user, hs: [...user.hs, {id:Date.now(), dia:null, mes:null, horas:null}]})}>+ AÑADIR HS</button>
+                  <button className="btn-primary" onClick={() => setUser({...user, ap: [...(user.ap || []), {id:Date.now(), dia:null, mes:null, turno:""}]})}>+ AÑADIR AP</button>
                 </div>
-               {/* --- INICIO TARJETA PER (HORAS DE PERMISO) --- */}
-<div style={{ marginBottom: '20px', padding: '15px', border: '1px solid #ddd', borderRadius: '10px', backgroundColor: '#ecfdf5' }}>
-  <label style={{ fontWeight: 'bold', color: '#065f46', display: 'block', marginBottom: '10px', fontSize: '13px' }}>
-    📋 PER (HORAS DE PERMISO)
-  </label>
-  
-  {(user.per || []).map(p => (
-    <div key={p.id} style={{ backgroundColor: 'white', padding: '10px', borderRadius: '8px', marginBottom: '10px', border: '1px solid #c6f6d5' }}>
-      <div style={{ display: 'flex', gap: '5px', marginBottom: '8px' }}>
-        {/* Mes */}
-        <select 
-          style={{ flex: 1, padding: '8px', borderRadius: '5px', border: '1px solid #ddd', fontSize: '14px' }}
-          value={p.mes || ""} 
-          onChange={e => setUser({...user, per: user.per.map(x => x.id === p.id ? {...x, mes: parseInt(e.target.value)} : x)})}
-        >
-          <option value="" disabled>Mes</option>
-          {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
-        </select>
 
-        {/* Día */}
-        <select 
-          style={{ flex: 1, padding: '8px', borderRadius: '5px', border: '1px solid #ddd', fontSize: '14px' }}
-          value={p.dia || ""} 
-          onChange={e => setUser({...user, per: user.per.map(x => x.id === p.id ? {...x, dia: parseInt(e.target.value)} : x)})}
-        >
-          <option value="" disabled>Día</option>
-          {Array.from({ length: 31 }, (_, i) => (
-            <option key={i+1} value={i+1}>{i+1}</option>
-          ))}
-        </select>
-
-        {/* Hrs */}
-        <input 
-          type="number" 
-          placeholder="Hrs"
-          style={{ width: '60px', padding: '8px', borderRadius: '5px', border: '1px solid #ddd', fontSize: '14px' }} 
-          value={p.horas || ''} 
-          onChange={e => setUser({...user, per: user.per.map(x => x.id === p.id ? {...x, horas: parseInt(e.target.value) || 0} : x)})} 
-        />
-      </div>
-
-      {/* Botón Papelera Rojo Debajo */}
-      <button 
-        onClick={() => setUser({...user, per: user.per.filter(x => x.id !== p.id)})}
-        style={{ 
-          backgroundColor: '#ff4444', color: 'white', border: 'none', 
-          padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', width: 'fit-content'
-        }}
-      >
-        🗑️
-      </button>
-    </div>
-  ))}
-
-  <button 
-    className="btn-primary" 
-    style={{ marginTop: '5px', width: '100%', background: '#10b981' }}
-    onClick={() => {
-      const actual = user.per || [];
-      setUser({...user, per: [...actual, {id: Date.now(), dia: null, mes: null, horas: null}]});
-    }}
-  >
-    + AÑADIR PER
-  </button>
-</div>
-{/* --- FIN TARJETA PER --- */}
-               
-                <button className="btn-primary" onClick={() => setShowGear(false)} style={{background:'#64748B'}}>CERRAR</button>
-              </div>
-            </div>
-          )}
-
-          {edit && (
-            <div className="modal" onClick={() => setEdit(null)}>
-              <div className="modal-content" onClick={e => e.stopPropagation()}>
-                <h3>Día {edit.dk.split('-').reverse().join('/')}</h3>
-                <div style={{marginTop:'15px'}}>
-                  <label>Horas Jornada</label>
-                  <input type="number" value={edit.data.jornada || 0} onChange={e => {
-                    const h = parseInt(e.target.value) || 0;
-                    setEdit({...edit, data: {...edit.data, jornada: h, descanso: h === 0, tipo: h === 12 ? '12h-D' : (h === 24 ? '24h' : '')}});
-                  }} />
-                  {edit.data.jornada === 12 && (
-                    <div style={{marginTop:'10px'}}>
-                      <label>Tipo 12h</label>
-                      <select value={edit.data.tipo || "12h-D"} onChange={e => setEdit({...edit, data: {...edit.data, tipo: e.target.value}})}>
-                        <option value="12h-D">Día (D)</option><option value="12h-N">Noche (N)</option>
-                      </select>
-                    </div>
-                  )}
-                  <div style={{marginTop:'15px', padding:'10px', background:'#f8f9fa', borderRadius:'10px', textAlign:'center'}}>
-                    <label>¿Es descanso?</label>
-                    <input type="checkbox" checked={edit.data.descanso || false} onChange={e => setEdit({...edit, data:{...edit.data, descanso: e.target.checked, jornada: e.target.checked ? 0 : edit.data.jornada, tipo: ''}})} style={{width:'20px', height:'20px'}} />
-                  </div>
-                </div>
-                <button className="btn-primary" onClick={() => { setSelected({...selected, [edit.dk]: edit.data}); setEdit(null); }}>GUARDAR</button>
+                <button className="btn-danger" style={{width:'100%', marginTop:'15px'}} onClick={() => setShowGear(false)}>CERRAR</button>
               </div>
             </div>
           )}
         </div>
       );
     }
-    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
   </script>
 </body>
 </html>
