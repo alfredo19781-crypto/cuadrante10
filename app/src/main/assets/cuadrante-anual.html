@@ -47,6 +47,7 @@
       const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v105") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[],"hs":[],"excesos":[]}'));
       const [showGear, setShowGear] = useState(false);
       const [verDetalleAp, setVerDetalleAp] = useState(false);
+      const [verDetalleExc, setVerDetalleExc] = useState(false); // <-- Añadimos esta línea
       const [edit, setEdit] = useState(null);
       const [tempTipo12h, setTempTipo12h] = useState("D");
       const [mesVisible, setMesVisible] = useState(new Date().getMonth());
@@ -54,6 +55,51 @@
       useEffect(() => { localStorage.setItem("cuad_alfredo_v105", JSON.stringify(selected)); }, [selected]);
       useEffect(() => {
         localStorage.setItem("user_alfredo_v105", JSON.stringify(user));
+        React.useEffect(() => {
+  // Limpiamos barras de excesos anteriores para que no se dupliquen al cambiar de mes
+  document.querySelectorAll('.barra-exceso-dinamica').forEach(el => el.remove());
+
+  if (!user.excesos || !Array.isArray(user.excesos)) return;
+
+  // Recorremos los excesos válidos
+  user.excesos.forEach(exc => {
+    if (!exc.dia || !exc.mes || !exc.turno || exc.turno === '-') return;
+
+    // Buscamos la celda del día en el calendario de la pantalla
+    // Tu código usa botones o divs con el número del día. Buscamos el elemento que coincida.
+    const celdas = Array.from(document.querySelectorAll('div, button'));
+    const celdaDia = celdas.find(el => 
+      el.textContent.trim() === String(exc.dia) && 
+      el.offsetHeight > 20 && 
+      el.closest?.('div')?.innerHTML.includes(MESES_NOM[exc.mes - 1])
+    );
+
+    if (celdaDia) {
+      // Aseguramos que la celda tenga posición relativa para posicionar la barra
+      celdaDia.style.position = 'relative';
+
+      // Creamos la barrita verde de exceso
+      const barra = document.createElement('div');
+      barra.className = 'barra-exceso-dinamica';
+      barra.style.position = 'absolute';
+      barra.style.left = '0';
+      barra.style.right = '0';
+      barra.style.height = '4px';
+      barra.style.backgroundColor = '#22C55E';
+
+      // Posición según el turno (M: arriba, T: medio, N: abajo)
+      if (exc.turno === 'M') {
+        barra.style.top = '2px';
+      } else if (exc.turno === 'T') {
+        barra.style.top = 'calc(50% - 2px)';
+      } else if (exc.turno === 'N') {
+        barra.style.bottom = '2px';
+      }
+
+      celdaDia.appendChild(barra);
+    }
+  });
+}, [user.excesos, mesVisible]); // Se ejecuta al cambiar los excesos o cambiar de mes
       }, [user]);
       useEffect(() => {
         const saved = localStorage.getItem("user_alfredo_v105");
@@ -222,15 +268,27 @@
         <b style={{fontSize:'18px'}}>{stats.obj}</b>
       </div>
 
-      {/* 3. EXCESOS */}
-      <div className="card" style={{
-        margin:0, textAlign:'center', padding:'10px',
-        borderTop:'4px solid ' + (stats.real >= stats.obj ? 'var(--success)' : 'var(--danger)'),
-        background: stats.real >= stats.obj ? '#DCFCE7' : '#FEE2E2'
-      }}>
-        <label style={{fontSize:'8px', marginBottom:'4px'}}>EXCESOS</label>
-        <b style={{fontSize:'18px'}}>{(stats.real - stats.obj).toFixed(1)}</b>
-      </div>
+    {/* 3. EXCESOS - PULSABLE Y CON CONTADOR POR UNIDAD */}
+<div 
+  className="card" 
+  onClick={() => {
+    setShowGear(false);
+    setVerDetalleAp(false);
+    setVerDetalleExc(true); // ¡Abrimos el desglose de Excesos!
+  }}
+  style={{
+    margin: 0, 
+    textAlign: 'center', 
+    padding: '10px', 
+    borderTop: '4px solid #22C55E',
+    cursor: 'pointer'
+  }}
+>
+  <label style={{ fontSize: '8px', marginBottom: '4px', cursor: 'pointer' }}>EXCESOS</label>
+  <b style={{ fontSize: '18px' }}>
+    {Array.isArray(user.excesos) ? user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").length : 0}
+  </b>
+</div>
 
 {/* 4. ASUNTOS PROPIOS - PULSABLE */}
 <div 
@@ -255,6 +313,74 @@
     </div>
   );
 })()}
+          {/* --- PANTALLA DESGLOSE DE EXCESOS --- */}
+{verDetalleExc && (
+  <div style={{
+    backgroundColor: 'white', 
+    padding: '15px', 
+    borderRadius: '10px', 
+    marginBottom: '15px',
+    boxShadow: '0px 2px 5px rgba(0,0,0,0.1)',
+    border: '1px solid #E2E8F0'
+  }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+      <h3 style={{ margin: 0, color: '#1E293B', fontSize: '16px', fontWeight: 'bold' }}>
+        Historial de Excesos ({year})
+      </h3>
+      <button 
+        onClick={() => setVerDetalleExc(false)}
+        style={{
+          padding: '6px 12px',
+          backgroundColor: '#EF4444',
+          color: 'white',
+          border: 'none',
+          borderRadius: '6px',
+          cursor: 'pointer',
+          fontWeight: 'bold',
+          fontSize: '12px'
+        }}
+      >
+        Volver
+      </button>
+    </div>
+
+    {Array.isArray(user.excesos) && user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").length > 0 ? (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
+        {user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").map((item, index) => (
+          <div key={index} style={{
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            padding: '10px', 
+            backgroundColor: '#DCFCE7', 
+            borderRadius: '8px',
+            borderLeft: '5px solid #22C55E'
+          }}>
+            <div>
+              <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#15803D' }}>
+                Día {item.dia} de {MESES_NOM[item.mes - 1] || `Mes ${item.mes}`}
+              </span>
+            </div>
+            <div style={{
+              backgroundColor: 'rgba(255,255,255,0.7)', 
+              padding: '2px 8px', 
+              borderRadius: '4px', 
+              fontSize: '12px', 
+              fontWeight: 'bold',
+              color: '#15803D'
+            }}>
+              {item.turno}
+            </div>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <p style={{ textAlign: 'center', color: '#64748B', margin: '20px 0', fontSize: '14px' }}>
+        No hay excesos registrados este año.
+      </p>
+    )}
+  </div>
+)}
 {verDetalleAp && (
   <div style={{
     backgroundColor: 'white', 
