@@ -44,7 +44,7 @@
     function App() {
       const year = 2026;
       const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v105") || "{}"));
-      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v105") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[],"hs":[]}'));
+      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v105") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[],"hs":[],"excesos":[]}'));
       const [showGear, setShowGear] = useState(false);
       const [verDetalleAp, setVerDetalleAp] = useState(false);
       const [edit, setEdit] = useState(null);
@@ -448,6 +448,56 @@
                   <button className="btn-primary" onClick={() => setUser({...user, periodos: [...user.periodos, {id:Date.now(), dIni:null, mIni:null, dFin:null, mFin:null}]})}>+ AÑADIR</button>
                 </div>
                 <div className="card">
+                  {/* --- NUEVA TARJETA EXCESOS EN CONFIGURACIÓN --- */}
+<div className="card" style={{ borderTop: '4px solid #22C55E' }}>
+  <label>
+    🟢 EXCESOS GENERADOS ({Array.isArray(user.excesos) ? user.excesos.length : 0} Jornadas / {(Array.isArray(user.excesos) ? user.excesos.length * 8 : 0)} Horas)
+  </label>
+  
+  {Array.isArray(user.excesos) && user.excesos.map((exc) => (
+    <div key={exc.id} className="row-config" style={{ marginBottom: '8px' }}>
+      <div className="inputs-group">
+        {/* Selector de Mes */}
+        <select 
+          value={exc.mes || ""} 
+          onChange={(e) => setUser({...user, excesos: user.excesos.map(x => x.id === exc.id ? {...x, mes: parseInt(e.target.value)} : x)})}
+        >
+          <option value="" disabled>Mes</option>
+          {MESES_NOM.map((m, i) => <option key={i} value={i+1}>{m.slice(0,3)}</option>)}
+        </select>
+
+        {/* Selector de Día */}
+        <select 
+          value={exc.dia || ""} 
+          onChange={(e) => setUser({...user, excesos: user.excesos.map(x => x.id === exc.id ? {...x, dia: parseInt(e.target.value)} : x)})}
+        >
+          <option value="" disabled>Día</option>
+          {Array.from({length:31}, (_,i) => i+1).map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+      </div>
+
+      {/* Botón de Borrar Fila */}
+      <button 
+        className="btn-del" 
+        onClick={() => setUser({...user, excesos: user.excesos.filter(x => x.id !== exc.id)})}
+      >
+        🗑️
+      </button>
+    </div>
+  ))}
+
+  {/* Botón de Añadir Nuevo Exceso */}
+  <button 
+    className="btn-primary" 
+    style={{ background: '#22C55E', marginTop: '5px' }}
+    onClick={() => setUser({
+      ...user, 
+      excesos: [...(user.excesos || []), { id: Date.now(), dIni: null, mIni: null, dia: null, mes: null }]
+    })}
+  >
+    + AÑADIR EXCESO
+  </button>
+</div>
   <label>📂 ASUNTOS PROPIOS ({user.ap.filter(a => a.dia && a.mes && a.turno).length}/{(() => {
     const ant = year - user.ingreso;
     let base = 6;
