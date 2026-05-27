@@ -190,30 +190,58 @@
 </div>
 {/* -------------------------------------- */}
           
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:'8px', marginBottom:'15px'}}>
-            <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid var(--primary)'}}>
-              <label style={{fontSize:'8px', marginBottom:'4px'}}>JORNADAS TOTALES</label>
-              <b style={{fontSize:'18px'}}>{stats.real.toFixed(1)}</b>
-            </div>
-            <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid #64748B'}}>
-              <label style={{fontSize:'8px', marginBottom:'4px'}}>JORNADAS</label>
-              <b style={{fontSize:'18px'}}>{stats.obj}</b>
-            </div>
-            <div className="card" style={{
-              margin:0, textAlign:'center', padding:'10px', 
-              borderTop:'4px solid ' + (stats.real >= stats.obj ? 'var(--success)' : 'var(--danger)'),
-              background: stats.real >= stats.obj ? '#DCFCE7' : '#FEE2E2'
-            }}>
-              <label style={{fontSize:'8px', marginBottom:'4px'}}>EXCESOS</label>
-              <b style={{fontSize:'18px'}}>{(stats.real - stats.obj).toFixed(1)}</b>
-            </div>
-          <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid var(--ap-color)'}}>
-    <label style={{fontSize:'8px', marginBottom:'4px'}}>ASUNTOS PROPIOS</label>
-    <b style={{fontSize:'18px'}}>
-      {Object.values(user.meses || user.cuadrante || user.dias || {}).flatMap(mes => Object.values(mes || {})).filter(dia => (dia && dia.turno === 'AP') || dia === 'AP').length} / {user.totalAp || user.apTotales || 8}
-    </b>
-  </div>
-          </div>
+          {(() => {
+  // 1. Calculamos los AP del año directamente desde el objeto user
+  const mesesDelUsuario = user.meses || user.cuadrante || user.dias || {};
+  let totalApGastados = 0;
+
+  Object.values(mesesDelUsuario).forEach(mes => {
+    if (mes && typeof mes === 'object') {
+      Object.values(mes).forEach(dia => {
+        // Comprobamos si el día tiene el turno 'AP' directamente o dentro de un objeto
+        if (dia === 'AP' || (dia && dia.turno === 'AP')) {
+          totalApGastados++;
+        }
+      });
+    }
+  });
+
+  return (
+    <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:'8px', marginBottom:'15px'}}>
+      
+      {/* 1. JORNADAS TOTALES */}
+      <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid var(--primary)'}}>
+        <label style={{fontSize:'8px', marginBottom:'4px'}}>JORNADAS TOTALES</label>
+        <b style={{fontSize:'18px'}}>{stats.real.toFixed(1)}</b>
+      </div>
+
+      {/* 2. JORNADAS */}
+      <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid #64748B'}}>
+        <label style={{fontSize:'8px', marginBottom:'4px'}}>JORNADAS</label>
+        <b style={{fontSize:'18px'}}>{stats.obj}</b>
+      </div>
+
+      {/* 3. EXCESOS */}
+      <div className="card" style={{
+        margin:0, textAlign:'center', padding:'10px',
+        borderTop:'4px solid ' + (stats.real >= stats.obj ? 'var(--success)' : 'var(--danger)'),
+        background: stats.real >= stats.obj ? '#DCFCE7' : '#FEE2E2'
+      }}>
+        <label style={{fontSize:'8px', marginBottom:'4px'}}>EXCESOS</label>
+        <b style={{fontSize:'18px'}}>{(stats.real - stats.obj).toFixed(1)}</b>
+      </div>
+
+      {/* 4. ASUNTOS PROPIOS (Calculado localmente con éxito) */}
+      <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid var(--ap-color, #EAB308)'}}>
+        <label style={{fontSize:'8px', marginBottom:'4px'}}>ASUNTOS PROPIOS</label>
+        <b style={{fontSize:'18px'}}>
+          {totalApGastados} / {user.totalAp || user.apTotales || 8}
+        </b>
+      </div>
+
+    </div>
+  );
+})()}
 
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(290px, 1fr))', gap:'10px'}}>
                {MESES_NOM.map((nombre, mi) => {
