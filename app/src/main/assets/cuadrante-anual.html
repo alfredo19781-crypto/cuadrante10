@@ -232,12 +232,21 @@
       </div>
 
       {/* 4. ASUNTOS PROPIOS (Calculado localmente con éxito) */}
-      <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid var(--ap-color, #EAB308)'}}>
-        <label style={{fontSize:'8px', marginBottom:'4px'}}>ASUNTOS PROPIOS</label>
-        <b style={{fontSize:'18px'}}>
-          {totalApGastados} / {user.totalAp || user.apTotales || 8}
-        </b>
-      </div>
+     <div className="card" style={{margin:0, textAlign:'center', padding:'10px', borderTop:'4px solid var(--ap-color, #EAB308)'}}>
+  <label style={{fontSize:'8px', marginBottom:'4px'}}>ASUNTOS PROPIOS</label>
+  <b style={{fontSize:'18px'}}>
+    {(() => {
+      const turnos = user.turnos || user.cuadrante || user.historial || user.per || user.hs || [];
+      let totalAp = 0;
+      if (Array.isArray(turnos)) {
+        turnos.forEach(t => { if (t === 'AP' || t.turno === 'AP' || t.tipo === 'AP' || t.idTurno === 'AP') totalAp++; });
+      } else if (turnos && typeof turnos === 'object') {
+        Object.values(turnos).forEach(t => { if (t === 'AP' || t.turno === 'AP' || t.idTurno === 'AP') totalAp++; });
+      }
+      return totalAp;
+    })()} / {user.totalAp || user.apTotales || 8}
+  </b>
+</div>
 
     </div>
   );
