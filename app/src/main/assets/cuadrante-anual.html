@@ -285,74 +285,74 @@
     </div>
   );
 })()}
-          {/* --- PANTALLA DESGLOSE DE EXCESOS --- */}
-{verDetalleExc && (
-  <div style={{
-    backgroundColor: 'white', 
-    padding: '15px', 
-    borderRadius: '10px', 
-    marginBottom: '15px',
-    boxShadow: '0px 2px 5px rgba(0,0,0,0.1)',
-    border: '1px solid #E2E8F0'
-  }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-      <h3 style={{ margin: 0, color: '#1E293B', fontSize: '16px', fontWeight: 'bold' }}>
-        Historial de Excesos ({year})
-      </h3>
-      <button 
-        onClick={() => setVerDetalleExc(false)}
-        style={{
-          padding: '6px 12px',
-          backgroundColor: '#EF4444',
-          color: 'white',
-          border: 'none',
-          borderRadius: '6px',
-          cursor: 'pointer',
-          fontWeight: 'bold',
-          fontSize: '12px'
-        }}
-      >
-        Volver
-      </button>
-    </div>
-
-    {Array.isArray(user.excesos) && user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").length > 0 ? (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
-        {user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").map((item, index) => (
-          <div key={index} style={{
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            padding: '10px', 
-            backgroundColor: '#DCFCE7', 
-            borderRadius: '8px',
-            borderLeft: '5px solid #22C55E'
-          }}>
-            <div>
-              <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#15803D' }}>
-                Día {item.dia} de {MESES_NOM[item.mes - 1] || `Mes ${item.mes}`}
-              </span>
-            </div>
-            <div style={{
-              backgroundColor: 'rgba(255,255,255,0.7)', 
-              padding: '2px 8px', 
-              borderRadius: '4px', 
-              fontSize: '12px', 
-              fontWeight: 'bold',
-              color: '#15803D'
-            }}>
-              {item.turno}
-            </div>
+         {/* --- PANTALLA DESGLOSE DE EXCESOS --- */}
+      {verDetalleExc && (
+        <div style={{
+          backgroundColor: 'white', 
+          padding: '15px', 
+          borderRadius: '10px', 
+          marginBottom: '15px',
+          boxShadow: '0px 2px 5px rgba(0,0,0,0.1)',
+          border: '1px solid #E2E8F0'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <h3 style={{ margin: 0, color: '#1E293B', fontSize: '16px', fontWeight: 'bold' }}>
+              Historial de Excesos ({year})
+            </h3>
+            <button 
+              onClick={() => setVerDetalleExc(false)}
+              style={{
+                padding: '6px 12px',
+                backgroundColor: '#EF4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '12px'
+              }}
+            >
+              Volver
+            </button>
           </div>
-        ))}
-      </div>
-    ) : (
-      <p style={{ textAlign: 'center', color: '#64748B', margin: '20px 0', fontSize: '14px' }}>
-        No hay excesos registrados este año.
-      </p>
-    )}
-  </div>
-)}
+
+          {Array.isArray(user.excesos) && user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
+              {user.excesos.filter(e => e.dia && e.mes && e.turno && e.turno !== "-").map((item, index) => (
+                <div key={index} style={{
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  padding: '10px', 
+                  backgroundColor: '#DCFCE7', 
+                  borderRadius: '8px',
+                  borderLeft: '5px solid #22C55E'
+                }}>
+                  <div>
+                    <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#15803D' }}>
+                      Día {item.dia} de {MESES_NOM[item.mes - 1] || `Mes ${item.mes}`}
+                    </span>
+                  </div>
+                  <div style={{
+                    backgroundColor: 'rgba(255,255,255,0.7)', 
+                    padding: '2px 8px', 
+                    borderRadius: '4px', 
+                    fontSize: '12px', 
+                    fontWeight: 'bold',
+                    color: '#15803D'
+                  }}>
+                    {item.turno}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ textAlign: 'center', color: '#64748B', margin: '20px 0', fontSize: '14px' }}>
+              No hay excesos registrados este año.
+            </p>
+          )}
+        </div>
+      )}
 {verDetalleAp && (
   <div style={{
     backgroundColor: 'white', 
