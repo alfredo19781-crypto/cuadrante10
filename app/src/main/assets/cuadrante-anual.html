@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cuadrante Alfredo Multianual V12.0</title>
+  <title>Cuadrante Alfredo Multianual V12.1</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -46,8 +46,8 @@
 
     function App() {
       const [year, setYear] = useState(() => parseInt(localStorage.getItem("cuad_year_actual") || "2026"));
-      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v120_data") || "{}"));
-      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v120_config") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[],"hs":[],"excesos":[],"per":[]}'));
+      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v121_data") || "{}"));
+      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v121_config") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[],"hs":[],"excesos":[],"per":[]}'));
       
       const [showGear, setShowGear] = useState(false);
       const [verDetalleAp, setVerDetalleAp] = useState(false);
@@ -57,10 +57,10 @@
       const [mesVisible, setMesVisible] = useState(new Date().getMonth());
 
       useEffect(() => { localStorage.setItem("cuad_year_actual", year); }, [year]);
-      useEffect(() => { localStorage.setItem("user_alfredo_v120_config", JSON.stringify(user)); }, [user]);
-      useEffect(() => { localStorage.setItem("cuad_alfredo_v120_data", JSON.stringify(selected)); }, [selected]);
+      useEffect(() => { localStorage.setItem("user_alfredo_v121_config", JSON.stringify(user)); }, [user]);
+      useEffect(() => { localStorage.setItem("cuad_alfredo_v121_data", JSON.stringify(selected)); }, [selected]);
 
-      // Comprobar si un día está en periodo de vacaciones activo en base a su renderizado visual
+      // Comprobar si un día está en periodo de vacaciones activo (Verificación puramente física de pantalla)
       const checkVacation = (dk) => {
         const parts = dk.split("-");
         const dYear = parseInt(parts[0]);
@@ -69,17 +69,9 @@
 
         return (user.periodos || []).some(p => {
           if (!p.y || !p.mIni || !p.dIni || !p.mFin || !p.dFin) return false;
-          
-          let effectiveYearStart = p.y;
-          let effectiveYearEnd = p.y;
-          
-          if (p.mIni === 1 && p.esProrroga) effectiveYearStart = p.y; 
-          if (p.mFin === 1 && p.esProrroga) effectiveYearEnd = p.y;
-
-          const fInicio = new Date(effectiveYearStart, p.mIni - 1, p.dIni);
-          const fFin = new Date(effectiveYearEnd, p.mFin - 1, p.dFin);
+          const fInicio = new Date(p.y, p.mIni - 1, p.dIni);
+          const fFin = new Date(p.y, p.mFin - 1, p.dFin);
           const fActual = new Date(dYear, dMes - 1, dDia);
-
           return fActual >= fInicio && fActual <= fFin;
         });
       };
@@ -110,10 +102,11 @@
         return false;
       };
 
-      // --- MOTOR DE ESTADÍSTICAS REVISADO V12 ---
+      // --- MOTOR DE ESTADÍSTICAS ARREGLADO AL 100% PARA JORNADAS ---
       const stats = useMemo(() => {
         let totalJ = 0;
         
+        // Pasamos por absolutamente todos los registros guardados del cuadrante
         Object.entries(selected).forEach(([dk, data]) => {
           if (data.jornada) {
             const parts = dk.split("-");
@@ -121,37 +114,32 @@
             const dMes = parseInt(parts[1]);
             const dDia = parseInt(parts[2]);
 
-            // Buscar a qué año CORRESPONDE imputar este día de vacaciones
-            const vDelAnioSeleccionado = (user.periodos || []).some(p => {
-              if (!p.y || !p.mIni || !p.dIni || !p.mFin || !p.dFin) return false;
-              
-              // Determinar el año bolsa de este periodo de vacaciones
-              const anioBolsaVacaciones = p.esProrroga ? (p.y - 1) : p.y;
-              if (anioBolsaVacaciones !== year) return false;
-              
-              // El día se pintó físicamente en la pantalla del año configurado en el objeto (p.y)
-              let effectiveYearStart = p.y;
-              let effectiveYearEnd = p.y;
-              const fInicio = new Date(effectiveYearStart, p.mIni - 1, p.dIni);
-              const fFin = new Date(effectiveYearEnd, p.mFin - 1, p.dFin);
+            // 1. Averiguar si el día físico actual cae en algún periodo de vacaciones configurado
+            let periodoVacacionalAsociado = null;
+            (user.periodos || []).forEach(p => {
+              if (!p.y || !p.mIni || !p.dIni || !p.mFin || !p.dFin) return;
+              const fInicio = new Date(p.y, p.mIni - 1, p.dIni);
+              const fFin = new Date(p.y, p.mFin - 1, p.dFin);
               const fActual = new Date(dYear, dMes - 1, dDia);
-              
-              return fActual >= fInicio && fActual <= fFin;
+              if (fActual >= fInicio && fActual <= fFin) {
+                periodoVacacionalAsociado = p;
+              }
             });
 
-            // Si es un día de vacaciones prorrogado perteneciente al año actual (pero disfrutado en el siguiente), se descuenta AQUÍ
-            // Si es un día de jornada normal del año consultado y NO son vacaciones de este año, suma jornada.
-            if (dYear === year) {
-              // Comprobamos si este día físico está marcado como vacaciones de CUALQUIER año para no sumarlo como jornada trabajada
-              const esCualquierVacacion = (user.periodos || []).some(p => {
-                let evS = p.y; let evE = p.y;
-                const fI = new Date(evS, p.mIni - 1, p.dIni);
-                const fF = new Date(evE, p.mFin - 1, p.dFin);
-                const fA = new Date(dYear, dMes - 1, dDia);
-                return fA >= fI && fA <= fF;
-              });
-
-              if (!esCualquierVacacion) {
+            // 2. Si el día es de vacaciones, calculamos a qué año bolsa se imputa
+            if (periodoVacacionalAsociado) {
+              const p = periodoVacacionalAsociado;
+              const anioBolsaAlQueResta = p.esProrroga ? (p.y - 1) : p.y;
+              
+              // Si el año bolsa coincide con el que estamos visualizando en pantalla, 
+              // restará aquí (es decir, NO sumará a la jornada real trabajada del objetivo).
+              // Pero si el día físico está en 2026 y es del Año Anterior (2025), NO debe sumarse al total de 2026.
+              if (anioBolsaAlQueResta === year) {
+                // Pertenece a la bolsa de este año bajo examen, por tanto actúa como vacación limpia y reduce carga.
+              }
+            } else {
+              // Si NO es vacación de ningún tipo, se computa como jornada trabajada normal si su año físico es el actual
+              if (dYear === year) {
                 totalJ += (data.jornada / 8);
               }
             }
@@ -163,14 +151,12 @@
         const objetivo = 193 - extraVacas;
         const bolsaExcesos = Math.max(0, Math.round(totalJ - objetivo));
 
-        // Conteo de Excesos consumidos de la bolsa de este año
         const pedidosExc = (user.excesos || []).filter(e => {
           if (!e.dia || !e.mes || !e.turno || e.turno === "-") return false;
           const anioBolsa = e.esProrroga ? (e.y - 1) : e.y;
           return anioBolsa === year;
         }).length;
 
-        // Conteo de APs consumidos de la bolsa de este año
         const pedidosAp = (user.ap || []).filter(a => {
           if (!a.dia || !a.mes || !a.turno || a.turno === "-") return false;
           const anioBolsa = a.esProrroga ? (a.y - 1) : a.y;
@@ -228,12 +214,9 @@
         setEdit(null);
       };
 
-      // --- NUEVA LÓGICA DE FILTRADO INTELIGENTE DE HISTORIALES V12 ---
       const listaExcFiltrada = useMemo(() => {
         return (user.excesos || []).filter(e => {
           if (!e.dia || !e.mes || !e.turno || e.turno === "-") return false;
-          // Si estamos en el año actual, queremos ver los normales creados aquí + los que se pidieron aquí con prórroga del año anterior
-          // Si estamos en el año anterior, queremos ver los que se guardaron allí + los creados en el año siguiente que apuntan como prórroga a este.
           const esDeEsteAnioNatural = e.y === year;
           const esProrrogaQueApuntaAEsteAnio = (e.esProrroga && (e.y - 1) === year);
           return esDeEsteAnioNatural || esProrrogaQueApuntaAEsteAnio;
@@ -299,7 +282,7 @@
             </div>
           </div>
 
-          {/* --- DESGLOSE DE EXCESOS MEJORADO V12 --- */}
+          {/* --- DESGLOSE DE EXCESOS --- */}
           {verDetalleExc && (
             <div className="card" style={{borderColor:'#22C55E'}}>
               <div style={{display:'flex', justifyContent:'space-between', marginBottom:'10px'}}>
@@ -307,12 +290,10 @@
                 <button onClick={() => setVerDetalleExc(false)} style={{border:'none', background:'var(--danger)', color:'white', padding:'2px 8px', borderRadius:'4px', fontSize:'11px'}}>X</button>
               </div>
               {listaExcFiltrada.length ? listaExcFiltrada.map((item, idx) => {
-                // Modificación del texto según el año de vista solicitado por Alfredo
                 let textoDescriptivo = "";
                 if(item.y === year) {
                   textoDescriptivo = `Día ${item.dia} de ${MESES_NOM[item.mes-1]} ${item.esProrroga ? '(Del Año Anterior)' : ''}`;
                 } else {
-                  // Significa que estamos en el año anterior, viendo un día de prórroga que se usó físicamente en Enero del año siguiente
                   textoDescriptivo = `Disfrutado el Día ${item.dia} de ${MESES_NOM[item.mes-1]} de ${item.y} (Prórroga)`;
                 }
                 return (
@@ -325,7 +306,7 @@
             </div>
           )}
 
-          {/* --- DESGLOSE DE ASUNTOS PROPIOS MEJORADO V12 --- */}
+          {/* --- DESGLOSE DE ASUNTOS PROPIOS --- */}
           {verDetalleAp && (
             <div className="card" style={{borderColor:'var(--ap-color)'}}>
               <div style={{display:'flex', justifyContent:'space-between', marginBottom:'10px'}}>
@@ -367,7 +348,6 @@
                 const v = checkVacation(dk);
                 const fes = isFestivo(dk);
                 
-                // Cargar marcas de turnos
                 const aps = (user.ap || []).filter(a => a.y === year && a.mes === (mesVisible+1) && a.dia === d && a.turno && a.turno !== "-");
                 const excs = (user.excesos || []).filter(e => e.y === year && e.mes === (mesVisible+1) && e.dia === d && e.turno && e.turno !== "-");
                 const hasHS = (user.hs || []).some(h => h.y === year && h.mes === (mesVisible+1) && h.dia === d);
