@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cuadrante Alfredo Multianual V12.1</title>
+  <title>Cuadrante Alfredo Multianual V12.2</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -46,8 +46,8 @@
 
     function App() {
       const [year, setYear] = useState(() => parseInt(localStorage.getItem("cuad_year_actual") || "2026"));
-      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v121_data") || "{}"));
-      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v121_config") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[],"hs":[],"excesos":[],"per":[]}'));
+      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v122_data") || "{}"));
+      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v122_config") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[],"hs":[],"excesos":[],"per":[]}'));
       
       const [showGear, setShowGear] = useState(false);
       const [verDetalleAp, setVerDetalleAp] = useState(false);
@@ -57,10 +57,10 @@
       const [mesVisible, setMesVisible] = useState(new Date().getMonth());
 
       useEffect(() => { localStorage.setItem("cuad_year_actual", year); }, [year]);
-      useEffect(() => { localStorage.setItem("user_alfredo_v121_config", JSON.stringify(user)); }, [user]);
-      useEffect(() => { localStorage.setItem("cuad_alfredo_v121_data", JSON.stringify(selected)); }, [selected]);
+      useEffect(() => { localStorage.setItem("user_alfredo_v122_config", JSON.stringify(user)); }, [user]);
+      useEffect(() => { localStorage.setItem("cuad_alfredo_v122_data", JSON.stringify(selected)); }, [selected]);
 
-      // Comprobar si un día está en periodo de vacaciones activo (Verificación puramente física de pantalla)
+      // Comprobar si un día está en periodo de vacaciones activo en base a su renderizado visual físico
       const checkVacation = (dk) => {
         const parts = dk.split("-");
         const dYear = parseInt(parts[0]);
@@ -102,11 +102,11 @@
         return false;
       };
 
-      // --- MOTOR DE ESTADÍSTICAS ARREGLADO AL 100% PARA JORNADAS ---
+      // --- MOTOR DE ESTADÍSTICAS CORREGIDO AL DETALLE (V12.2) ---
       const stats = useMemo(() => {
         let totalJ = 0;
         
-        // Pasamos por absolutamente todos los registros guardados del cuadrante
+        // Recorremos todos los días del cuadrante con datos asignados
         Object.entries(selected).forEach(([dk, data]) => {
           if (data.jornada) {
             const parts = dk.split("-");
@@ -114,7 +114,7 @@
             const dMes = parseInt(parts[1]);
             const dDia = parseInt(parts[2]);
 
-            // 1. Averiguar si el día físico actual cae en algún periodo de vacaciones configurado
+            // Comprobamos si este día físico coincide con algún periodo vacacional
             let periodoVacacionalAsociado = null;
             (user.periodos || []).forEach(p => {
               if (!p.y || !p.mIni || !p.dIni || !p.mFin || !p.dFin) return;
@@ -126,19 +126,25 @@
               }
             });
 
-            // 2. Si el día es de vacaciones, calculamos a qué año bolsa se imputa
             if (periodoVacacionalAsociado) {
               const p = periodoVacacionalAsociado;
+              // Calculamos el año bolsa al que pertenecen estas vacaciones
               const anioBolsaAlQueResta = p.esProrroga ? (p.y - 1) : p.y;
-              
-              // Si el año bolsa coincide con el que estamos visualizando en pantalla, 
-              // restará aquí (es decir, NO sumará a la jornada real trabajada del objetivo).
-              // Pero si el día físico está en 2026 y es del Año Anterior (2025), NO debe sumarse al total de 2026.
+
+              // CASO A: Las vacaciones pertenecen a la bolsa del año analizado actualmente (ej: 2025)
+              // pero se disfrutan físicamente en otro (ej: Enero 2026). ¡Aquí es donde restan jornadas!
               if (anioBolsaAlQueResta === year) {
-                // Pertenece a la bolsa de este año bajo examen, por tanto actúa como vacación limpia y reduce carga.
+                // Al ser vacaciones de la bolsa bajo examen, NO sumamos esta jornada a la acumulada real del año.
+                // Es decir, al dejar de sumarla, efectivamente "descuenta" del total real de jornadas trabajadas de este año bolsa.
+              } 
+              
+              // CASO B: Las vacaciones se disfrutan en el año examinado físicamente, pero pertenecen a la bolsa anterior.
+              // En este caso, para el año examinado corriente (ej: 2026), la jornada debe computarse con normalidad si es su año físico.
+              else if (dYear === year) {
+                totalJ += (data.jornada / 8);
               }
             } else {
-              // Si NO es vacación de ningún tipo, se computa como jornada trabajada normal si su año físico es el actual
+              // Si no coincide con vacaciones, se suma de manera normal si pertenece al año consultado
               if (dYear === year) {
                 totalJ += (data.jornada / 8);
               }
@@ -571,7 +577,7 @@
     }
 
     const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
+    root.render(() => <App />);
   </script>
 </body>
 </html>
