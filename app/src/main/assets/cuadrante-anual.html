@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cuadrante Alfredo Multianual V12.13</title>
+  <title>Cuadrante Alfredo Multianual V12.15</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -20,7 +20,7 @@
     .grid-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 10px; }
     .modal-content { background: white; border-radius: 20px; padding: 15px; width: 100%; max-width: 420px; max-height: 85vh; overflow-y: auto; }
-    select, input { border-radius: 8px; border: 1px solid #CBD5E1; padding: 10px; font-size: 14px; width: 100%; background: white; }
+    select, input, textarea { border-radius: 8px; border: 1px solid #CBD5E1; padding: 10px; font-size: 14px; width: 100%; background: white; }
     label { font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; margin-bottom: 4px; display: block; }
     .btn-primary { background: var(--primary); color: white; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; border: none; margin-top: 5px; }
     .btn-danger { background: var(--danger); color: white; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; border: none; margin-top: 5px; }
@@ -33,7 +33,7 @@
     .hs-dot { position: absolute; top: 3px; right: 3px; width: 6px; height: 6px; background: var(--hs-color); border-radius: 50%; z-index: 6; }
     .toggle-btn { background: #E2E8F0; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; flex-shrink: 0; }
     .toggle-btn.active { background: var(--primary); color: white; }
-    .btn-backup { background: #475569; color: white; padding: 10px; border-radius: 8px; font-weight: bold; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; width: 100%; margin-bottom: 8px; cursor: pointer; }
+    .btn-backup { background: #475569; color: white; padding: 12px; border-radius: 10px; font-weight: bold; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; width: 100%; margin-bottom: 8px; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -64,48 +64,49 @@
       const [tempTipo12h, setTempTipo12h] = useState("D");
       const [mesVisible, setMesVisible] = useState(new Date().getMonth());
 
+      // Estados para las subventanas internas de backup
+      const [textoExportado, setTextoExportado] = useState("");
+      const [mostrarModalImportar, setMostrarModalImportar] = useState(false);
+      const [textoAImportar, setTextoAImportar] = useState("");
+
       useEffect(() => { localStorage.setItem("cuad_year_actual", year); }, [year]);
       useEffect(() => { localStorage.setItem("user_alfredo_v122_config", JSON.stringify(user)); }, [user]);
       useEffect(() => { localStorage.setItem("cuad_alfredo_v122_data", JSON.stringify(selected)); }, [selected]);
 
-      const exportarCopia = () => {
+      // MÓDULO EXPORTAR INMUNE A BLOQUEOS
+      const manejarExportar = () => {
         try {
           const datosCompletos = {
-            versionBackup: "12.13",
+            versionBackup: "12.15",
             userConfig: user,
             selectedData: selected
           };
-          const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(datosCompletos));
-          const downloadAnchorObj = document.createElement('a');
-          downloadAnchorObj.setAttribute("href", dataStr);
-          downloadAnchorObj.setAttribute("download", `copia_cuadrante_alfredo.json`);
-          document.body.appendChild(downloadAnchorObj);
-          downloadAnchorObj.click();
-          downloadAnchorObj.remove();
+          const textoCifrado = btoa(unescape(encodeURIComponent(JSON.stringify(datosCompletos))));
+          setTextoExportado(textoCifrado);
         } catch (error) {
-          alert("Error al exportar la copia: " + error.message);
+          alert("Error al generar la copia: " + error.message);
         }
       };
 
-      const importarCopia = (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          try {
-            const importado = JSON.parse(e.target.result);
-            if (importado.userConfig && importado.selectedData) {
-              setUser(importado.userConfig);
-              setSelected(importado.selectedData);
-              alert("🚀 ¡Copia de seguridad restaurada con éxito!");
-            } else {
-              alert("El archivo seleccionado no tiene el formato correcto.");
-            }
-          } catch (err) {
-            alert("Error al leer el archivo: " + err.message);
+      // MÓDULO IMPORTAR INMUNE A BLOQUEOS
+      const manejarImportar = () => {
+        if (!textoAImportar.trim()) return alert("Por favor, pega un código válido primero.");
+        try {
+          const textoDescifrado = decodeURIComponent(escape(atob(textoAImportar.trim())));
+          const importado = JSON.parse(textoDescifrado);
+          if (importado.userConfig && importado.selectedData) {
+            setUser(importado.userConfig);
+            setSelected(importado.selectedData);
+            alert("🚀 ¡Copia de seguridad restaurada con éxito!");
+            setMostrarModalImportar(false);
+            setTextoAImportar("");
+            setShowGear(false);
+          } else {
+            alert("El código introducido no contiene datos válidos.");
           }
-        };
-        reader.readAsText(file);
+        } catch (err) {
+          alert("Error al restaurar los datos. Comprueba que has pegado el texto completo sin alteraciones.");
+        }
       };
 
       const getVacationPeriod = (dk) => {
@@ -461,16 +462,15 @@
               <div className="modal-content" onClick={e => e.stopPropagation()}>
                 <h2>⚙️ Panel de Control ({year})</h2>
                 
-                {/* --- SECCIÓN NUEVA: COPIA DE SEGURIDAD --- */}
+                {/* --- SECCIÓN NUEVA: COPIA POR CAJA DE TEXTO INTERNA --- */}
                 <div className="card" style={{borderTop:'3px solid #475569', background:'#F8FAFC'}}>
                   <label>💾 COPIA DE SEGURIDAD (ANTIBORRADO)</label>
-                  <button className="btn-backup" onClick={exportarCopia}>
-                    <i className="fa-solid fa-download"></i> Exportar Copia de Seguridad
+                  <button className="btn-backup" onClick={manejarExportar}>
+                    <i className="fa-solid fa-key"></i> Generar Código de Copia
                   </button>
-                  <label className="btn-backup" style={{background:'#64748B', cursor:'pointer', margin:0}}>
-                    <i className="fa-solid fa-upload"></i> Importar desde Archivo
-                    <input type="file" accept=".json" onChange={importarCopia} style={{display:'none'}} />
-                  </label>
+                  <button className="btn-backup" style={{background:'#64748B'}} onClick={() => setMostrarModalImportar(true)}>
+                    <i className="fa-solid fa-file-import"></i> Restaurar desde Código
+                  </button>
                 </div>
 
                 <div className="card">
@@ -649,6 +649,42 @@
               </div>
             </div>
           )}
+
+          {/* --- SUBMODAL INTERNO: MOSTRAR CÓDIGO GENERADO (EXPORTAR) --- */}
+          {textoExportado && (
+            <div className="modal" style={{zIndex: 1100}}>
+              <div className="modal-content" style={{textAlign:'center'}}>
+                <h3>Tu Código de Seguridad</h3>
+                <p style={{fontSize:'12px', color:'#64748B', margin:'8px 0'}}>Mantén el dedo pulsado sobre las letras de abajo, dale a "Seleccionar todo" y luego a "Copiar".</p>
+                <textarea 
+                  readOnly 
+                  value={textoExportado} 
+                  style={{height:'140px', fontSize:'11px', background:'#F1F5F9', fontFamily:'monospace', wordBreak:'break-all'}} 
+                  onClick={(e) => e.target.select()}
+                />
+                <button className="btn-primary" onClick={() => setTextoExportado("")}>LISTO, YA LO HE COPIADO</button>
+              </div>
+            </div>
+          )}
+
+          {/* --- SUBMODAL INTERNO: PEGAR CÓDIGO GUARDADO (IMPORTAR) --- */}
+          {mostrarModalImportar && (
+            <div className="modal" style={{zIndex: 1100}}>
+              <div className="modal-content">
+                <h3>Restaurar Cuadrante</h3>
+                <p style={{fontSize:'12px', color:'#64748B', margin:'8px 0'}}>Mantén pulsado dentro del cuadro gris y dale a "Pegar" el código largo que guardaste:</p>
+                <textarea 
+                  value={textoAImportar} 
+                  onChange={(e) => setTextoAImportar(e.target.value)}
+                  placeholder="Pega el código aquí..." 
+                  style={{height:'140px', fontSize:'11px', background:'#FFF', fontFamily:'monospace'}}
+                />
+                <button className="btn-primary" style={{background:'var(--success)'}} onClick={manejarImportar}>RESTAURAR DATOS Now</button>
+                <button className="btn-danger" style={{background:'#64748B'}} onClick={() => { setMostrarModalImportar(false); setTextoAImportar(""); }}>CANCELAR</button>
+              </div>
+            </div>
+          )}
+
         </div>
       );
     }
