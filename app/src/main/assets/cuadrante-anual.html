@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cuadrante Alfredo Multianual V12.7</title>
+  <title>Cuadrante Alfredo Multianual V12.8</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -218,19 +218,18 @@
         setEdit(null);
       };
 
+      // --- FILTROS VISUALES CORREGIDOS PARA MOSTRAR TODO LO DE ESTE AÑO ---
       const listaExcFiltrada = useMemo(() => {
         return (user.excesos || []).filter(e => {
           if (!e || !e.dia || !e.mes || !e.turno || e.turno === "-") return false;
-          const anioBolsa = e.esProrroga ? (e.y - 1) : e.y;
-          return anioBolsa === year;
+          return e.y === year; // Muestra todo lo asignado físicamente en este año visualizado
         });
       }, [user.excesos, year]);
 
       const listaApFiltrada = useMemo(() => {
         return (user.ap || []).filter(a => {
           if (!a || !a.dia || !a.mes || !a.turno || a.turno === "-") return false;
-          const anioBolsa = a.esProrroga ? (a.y - 1) : a.y;
-          return anioBolsa === year;
+          return a.y === year; // Muestra todo lo asignado físicamente en este año visualizado
         });
       }, [user.ap, year]);
 
@@ -309,7 +308,7 @@
               </div>
               {listaExcFiltrada.length ? listaExcFiltrada.map((item, idx) => (
                 <div key={idx} style={{display:'flex', justifyContent:'space-between', padding:'6px', background:'#DCFCE7', borderRadius:'6px', marginBottom:'4px', fontSize:'12px'}}>
-                  <b>Día {item.dia} de {MESES_NOM[item.mes-1]} {item.esProrroga ? `(Prórroga ${item.y})` : `(${item.y})`}</b>
+                  <b>Día {item.dia} de {MESES_NOM[item.mes-1]} {item.esProrroga ? '(Del Año Anterior)' : `(${item.y})`}</b>
                   <span>Turno: {item.turno}</span>
                 </div>
               )) : <p style={{fontSize:'11px', color:'#64748B'}}>No hay excesos consumidos en esta bolsa.</p>}
@@ -325,7 +324,7 @@
               </div>
               {listaApFiltrada.length ? listaApFiltrada.map((item, idx) => (
                 <div key={idx} style={{display:'flex', justifyContent:'space-between', padding:'6px', background:'#FEF08A', borderRadius:'6px', marginBottom:'4px', fontSize:'12px'}}>
-                  <b>Día {item.dia} de {MESES_NOM[item.mes-1]} {item.esProrroga ? `(Prórroga ${item.y})` : `(${item.y})`}</b>
+                  <b>Día {item.dia} de {MESES_NOM[item.mes-1]} {item.esProrroga ? '(Del Año Anterior)' : `(${item.y})`}</b>
                   <span>Turno: {item.turno}</span>
                 </div>
               )) : <p style={{fontSize:'11px', color:'#64748B'}}>No hay asuntos propios consumidos en esta bolsa.</p>}
