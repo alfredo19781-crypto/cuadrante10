@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cuadrante Alfredo Multianual V12.6</title>
+  <title>Cuadrante Alfredo Multianual V12.7</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -75,7 +75,7 @@
 
         let periodoEncontrado = null;
         (user.periodos || []).forEach(p => {
-          if (!p.y || !p.mIni || !p.dIni || !p.mFin || !p.dFin) return;
+          if (!p || !p.y || !p.mIni || !p.dIni || !p.mFin || !p.dFin) return;
           const fInicio = new Date(p.y, p.mIni - 1, p.dIni);
           const fFin = new Date(p.y, p.mFin - 1, p.dFin);
           const fActual = new Date(dYear, dMes - 1, dDia);
@@ -112,11 +112,9 @@
         return false;
       };
 
-      // --- MOTOR DE CÓMPUTO CORREGIDO AL 100% V12.6 ---
       const stats = useMemo(() => {
         let totalJ = 0;
         
-        // 1. Calcular jornadas de los días físicos que pertenecen al año consultado
         Object.entries(selected).forEach(([dk, data]) => {
           if (data && data.jornada) {
             const parts = dk.split("-");
@@ -124,23 +122,18 @@
             
             if (dYear === year) {
               const pVacas = getVacationPeriod(dk);
-              // Si no tiene vacaciones o si las vacaciones son prórroga del año anterior, suma normal al total del año actual
               if (!pVacas || pVacas.esProrroga) {
                 totalJ += (data.jornada / 8);
               }
-              // Si tiene vacaciones del año actual puestas encima, NO suma (se queda a 0, haciendo el efecto de restar el día)
             }
           }
         });
 
-        // 2. Procesar las vacaciones que restan directamente a la bolsa del año consultado
         (user.periodos || []).forEach(p => {
-          if (!p.y || !p.mIni || !p.dIni || !p.mFin || !p.dFin) return;
+          if (!p || !p.y || !p.mIni || !p.dIni || !p.mFin || !p.dFin) return;
           
           const anioBolsaAfectada = p.esProrroga ? (p.y - 1) : p.y;
 
-          // ÚNICAMENTE si las vacaciones descuentan de la bolsa del año que estamos visualizando
-          // Y además es un caso de Prórroga (Año Ant.), calculamos los turnos pisados en enero y los restamos directamente
           if (anioBolsaAfectada === year && p.esProrroga) {
             let fInicio = new Date(p.y, p.mIni - 1, p.dIni);
             let fFin = new Date(p.y, p.mFin - 1, p.dFin);
@@ -160,16 +153,16 @@
         const ant = year - (user.ingreso || 2008);
         const extraVacas = ant >= 30 ? 4 : ant >= 25 ? 3 : ant >= 20 ? 2 : ant >= 15 ? 1 : 0;
         const objetivo = 193 - extraVacas;
-        const bolsaExcesos = Math.max(0, Math.round(totalJ - objective));
+        const bolsaExcesos = Math.max(0, Math.round(totalJ - objetivo));
 
         const pedidosExc = (user.excesos || []).filter(e => {
-          if (!e.dia || !e.mes || !e.turno || e.turno === "-") return false;
+          if (!e || !e.dia || !e.mes || !e.turno || e.turno === "-") return false;
           const anioBolsa = e.esProrroga ? (e.y - 1) : e.y;
           return anioBolsa === year;
         }).length;
 
         const pedidosAp = (user.ap || []).filter(a => {
-          if (!a.dia || !a.mes || !a.turno || a.turno === "-") return false;
+          if (!a || !a.dia || !a.mes || !a.turno || a.turno === "-") return false;
           const anioBolsa = a.esProrroga ? (a.y - 1) : a.y;
           return anioBolsa === year;
         }).length;
@@ -225,10 +218,9 @@
         setEdit(null);
       };
 
-      // --- FILTROS PARA LOS LISTADOS DE HISTORIAL (PANTALLA PRINCIPAL) ---
       const listaExcFiltrada = useMemo(() => {
         return (user.excesos || []).filter(e => {
-          if (!e.dia || !e.mes || !e.turno || e.turno === "-") return false;
+          if (!e || !e.dia || !e.mes || !e.turno || e.turno === "-") return false;
           const anioBolsa = e.esProrroga ? (e.y - 1) : e.y;
           return anioBolsa === year;
         });
@@ -236,7 +228,7 @@
 
       const listaApFiltrada = useMemo(() => {
         return (user.ap || []).filter(a => {
-          if (!a.dia || !a.mes || !a.turno || a.turno === "-") return false;
+          if (!a || !a.dia || !a.mes || !a.turno || a.turno === "-") return false;
           const anioBolsa = a.esProrroga ? (a.y - 1) : a.y;
           return anioBolsa === year;
         });
@@ -246,12 +238,12 @@
         if (!mes || !dia) return ["M", "T", "N"];
         let turnosCogidos = [];
         (user.excesos || []).forEach(e => {
-          if (e.id !== idActual && e.y === anio && e.mes === mes && e.dia === dia && e.turno !== "-") {
+          if (e && e.id !== idActual && e.y === anio && e.mes === mes && e.dia === dia && e.turno !== "-") {
             turnosCogidos.push(e.turno);
           }
         });
         (user.ap || []).forEach(a => {
-          if (a.id !== idActual && a.y === anio && a.mes === mes && a.dia === dia && a.turno !== "-") {
+          if (a && a.id !== idActual && a.y === anio && a.mes === mes && a.dia === dia && a.turno !== "-") {
             turnosCogidos.push(a.turno);
           }
         });
@@ -280,7 +272,7 @@
             <button onClick={() => setMesVisible(prev => (prev < 11 ? prev + 1 : 0))} style={{ padding:'8px 14px', borderRadius:'8px', border:'none', background:'#F1F5F9', fontSize:'16px' }}>➡️</button>
           </div>
 
-          {/* --- TARJETAS INDICADORAS CON EVENTO CLICK OPERATIVO --- */}
+          {/* --- TARJETAS INDICADORAS --- */}
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:'6px', marginBottom:'12px'}}>
             <div className="card" style={{margin:0, textAlign:'center', padding:'8px', borderTop:'4px solid var(--primary)'}}>
               <label style={{fontSize:'8px'}}>JORNADAS TOTAL</label>
@@ -308,7 +300,7 @@
             </div>
           </div>
 
-          {/* --- DESGLOSE EXCESOS DESPLEGABLE DESDE PRINCIPAL --- */}
+          {/* --- DESGLOSE EXCESOS DESPLEGABLE --- */}
           {verDetalleExc && (
             <div className="card" style={{borderColor:'#22C55E', background:'#F8FAFC'}}>
               <div style={{display:'flex', justifyContent:'space-between', marginBottom:'8px'}}>
@@ -317,14 +309,14 @@
               </div>
               {listaExcFiltrada.length ? listaExcFiltrada.map((item, idx) => (
                 <div key={idx} style={{display:'flex', justifyContent:'space-between', padding:'6px', background:'#DCFCE7', borderRadius:'6px', marginBottom:'4px', fontSize:'12px'}}>
-                  <b>Día {item.dia} de {MESES_NOM[item.mes-1]} {item.esProrroga ? `(Prórroga ${item.y})` : ''}</b>
+                  <b>Día {item.dia} de {MESES_NOM[item.mes-1]} {item.esProrroga ? `(Prórroga ${item.y})` : `(${item.y})`}</b>
                   <span>Turno: {item.turno}</span>
                 </div>
               )) : <p style={{fontSize:'11px', color:'#64748B'}}>No hay excesos consumidos en esta bolsa.</p>}
             </div>
           )}
 
-          {/* --- DESGLOSE ASUNTOS PROPIOS DESPLEGABLE DESDE PRINCIPAL --- */}
+          {/* --- DESGLOSE ASUNTOS PROPIOS DESPLEGABLE --- */}
           {verDetalleAp && (
             <div className="card" style={{borderColor:'var(--ap-color)', background:'#F8FAFC'}}>
               <div style={{display:'flex', justifyContent:'space-between', marginBottom:'8px'}}>
@@ -333,7 +325,7 @@
               </div>
               {listaApFiltrada.length ? listaApFiltrada.map((item, idx) => (
                 <div key={idx} style={{display:'flex', justifyContent:'space-between', padding:'6px', background:'#FEF08A', borderRadius:'6px', marginBottom:'4px', fontSize:'12px'}}>
-                  <b>Día {item.dia} de {MESES_NOM[item.mes-1]} {item.esProrroga ? `(Prórroga ${item.y})` : ''}</b>
+                  <b>Día {item.dia} de {MESES_NOM[item.mes-1]} {item.esProrroga ? `(Prórroga ${item.y})` : `(${item.y})`}</b>
                   <span>Turno: {item.turno}</span>
                 </div>
               )) : <p style={{fontSize:'11px', color:'#64748B'}}>No hay asuntos propios consumidos en esta bolsa.</p>}
@@ -345,8 +337,8 @@
             <div style={{display:'flex', justifyContent:'space-between', marginBottom:'6px'}}>
               <span style={{fontSize:'12px', fontWeight:'bold', color:'var(--primary)'}}>{MESES_NOM[mesVisible].toUpperCase()} {year}</span>
               <span style={{fontSize:'10px'}}>
-                <span style={{color:'var(--hs-color)', fontWeight:'bold'}}>{(user.hs || []).filter(h => h.y === year && h.mes === (mesVisible+1)).reduce((s,c)=>s+c.horas, 0)}h HS</span>
-                <span style={{color:'#10B981', fontWeight:'bold', marginLeft:'6px' }}>{(user.per || []).filter(p => p.y === year && p.mes === (mesVisible+1)).reduce((s,c)=>s+c.horas, 0)}h PER</span>
+                <span style={{color:'var(--hs-color)', fontWeight:'bold'}}>{(user.hs || []).filter(h => h && h.y === year && h.mes === (mesVisible+1)).reduce((s,c)=>s+c.horas, 0)}h HS</span>
+                <span style={{color:'#10B981', fontWeight:'bold', marginLeft:'6px' }}>{(user.per || []).filter(p => p && p.y === year && p.mes === (mesVisible+1)).reduce((s,c)=>s+c.horas, 0)}h PER</span>
               </span>
             </div>
 
@@ -358,9 +350,9 @@
                 const pVacas = getVacationPeriod(dk);
                 const fes = isFestivo(dk);
                 
-                const aps = (user.ap || []).filter(a => a.y === year && a.mes === (mesVisible+1) && a.dia === d && a.turno && a.turno !== "-");
-                const excs = (user.excesos || []).filter(e => e.y === year && e.mes === (mesVisible+1) && e.dia === d && e.turno && e.turno !== "-");
-                const hasHS = (user.hs || []).some(h => h.y === year && h.mes === (mesVisible+1) && h.dia === d);
+                const aps = (user.ap || []).filter(a => a && a.y === year && a.mes === (mesVisible+1) && a.dia === d && a.turno && a.turno !== "-");
+                const excs = (user.excesos || []).filter(e => e && e.y === year && e.mes === (mesVisible+1) && e.dia === d && e.turno && e.turno !== "-");
+                const hasHS = (user.hs || []).some(h => h && h.y === year && h.mes === (mesVisible+1) && h.dia === d);
                 
                 const data = selected[dk] || {};
                 const is12h = data.tipo && data.tipo.startsWith('12h');
@@ -442,7 +434,7 @@
                 {/* --- VACACIONES PERIODO --- */}
                 <div className="card">
                   <label>🏖️ VACACIONES PERIODO ({year})</label>
-                  {(user.periodos || []).filter(p => p.y === year).map(p => (
+                  {(user.periodos || []).filter(p => p && p.y === year).map(p => (
                     <div key={p.id} className="row-config">
                       <div className="inputs-group">
                         <select value={p.mIni || ""} onChange={e => setUser({...user, periodos: user.periodos.map(x=>x.id===p.id?{...x, mIni:parseInt(e.target.value)}:x)})}>
@@ -473,7 +465,7 @@
                 {/* --- EXCESOS --- */}
                 <div className="card" style={{borderTop:'3px solid #22C55E'}}>
                   <label>🟢 EXCESOS ({year})</label>
-                  {(user.excesos || []).filter(e => e.y === year).map(exc => {
+                  {(user.excesos || []).filter(e => e && e.y === year).map(exc => {
                     const disponibles = getTurnosDisponibles("exceso", exc.id, year, exc.mes, exc.dia);
                     return (
                       <div key={exc.id} className="row-config">
@@ -509,7 +501,7 @@
                 {/* --- ASUNTOS PROPIOS --- */}
                 <div className="card" style={{borderTop:'3px solid var(--ap-color)'}}>
                   <label>📂 ASUNTOS PROPIOS ({year})</label>
-                  {(user.ap || []).filter(a => a.y === year).map(a => {
+                  {(user.ap || []).filter(a => a && a.y === year).map(a => {
                     const disponibles = getTurnosDisponibles("ap", a.id, year, a.mes, a.dia);
                     return (
                       <div key={a.id} className="row-config">
@@ -545,7 +537,7 @@
                 {/* --- HORAS SINDICALES --- */}
                 <div className="card" style={{borderTop:'3px solid var(--hs-color)'}}>
                   <label>🔹 HORAS SINDICALES (HS - {year})</label>
-                  {(user.hs || []).filter(h => h.y === year).map(h => (
+                  {(user.hs || []).filter(h => h && h.y === year).map(h => (
                     <div key={h.id} className="row-config">
                       <div className="inputs-group">
                         <select value={h.mes || ""} onChange={e => setUser({...user, hs: user.hs.map(x=>x.id===h.id?{...x, mes:parseInt(e.target.value)}:x)})}>
@@ -565,7 +557,7 @@
                 {/* --- PERMISOS RETRIBUIDOS --- */}
                 <div className="card" style={{borderTop:'3px solid #10B981'}}>
                   <label>🟢 PERMISOS (PER - {year})</label>
-                  {(user.per || []).filter(p => p.y === year).map(p => (
+                  {(user.per || []).filter(p => p && p.y === year).map(p => (
                     <div key={p.id} className="row-config">
                       <div className="inputs-group">
                         <select value={p.mes || ""} onChange={e => setUser({...user, per: user.per.map(x=>x.id===p.id?{...x, mes:parseInt(e.target.value)}:x)})}>
