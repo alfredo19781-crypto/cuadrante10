@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cuadrante Alfredo Multianual V12.12</title>
+  <title>Cuadrante Alfredo Multianual V12.13</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -33,6 +33,7 @@
     .hs-dot { position: absolute; top: 3px; right: 3px; width: 6px; height: 6px; background: var(--hs-color); border-radius: 50%; z-index: 6; }
     .toggle-btn { background: #E2E8F0; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; flex-shrink: 0; }
     .toggle-btn.active { background: var(--primary); color: white; }
+    .btn-backup { background: #475569; color: white; padding: 10px; border-radius: 8px; font-weight: bold; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; width: 100%; margin-bottom: 8px; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -66,6 +67,46 @@
       useEffect(() => { localStorage.setItem("cuad_year_actual", year); }, [year]);
       useEffect(() => { localStorage.setItem("user_alfredo_v122_config", JSON.stringify(user)); }, [user]);
       useEffect(() => { localStorage.setItem("cuad_alfredo_v122_data", JSON.stringify(selected)); }, [selected]);
+
+      const exportarCopia = () => {
+        try {
+          const datosCompletos = {
+            versionBackup: "12.13",
+            userConfig: user,
+            selectedData: selected
+          };
+          const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(datosCompletos));
+          const downloadAnchorObj = document.createElement('a');
+          downloadAnchorObj.setAttribute("href", dataStr);
+          downloadAnchorObj.setAttribute("download", `copia_cuadrante_alfredo.json`);
+          document.body.appendChild(downloadAnchorObj);
+          downloadAnchorObj.click();
+          downloadAnchorObj.remove();
+        } catch (error) {
+          alert("Error al exportar la copia: " + error.message);
+        }
+      };
+
+      const importarCopia = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const importado = JSON.parse(e.target.result);
+            if (importado.userConfig && importado.selectedData) {
+              setUser(importado.userConfig);
+              setSelected(importado.selectedData);
+              alert("🚀 ¡Copia de seguridad restaurada con éxito!");
+            } else {
+              alert("El archivo seleccionado no tiene el formato correcto.");
+            }
+          } catch (err) {
+            alert("Error al leer el archivo: " + err.message);
+          }
+        };
+        reader.readAsText(file);
+      };
 
       const getVacationPeriod = (dk) => {
         const parts = dk.split("-");
@@ -420,6 +461,18 @@
               <div className="modal-content" onClick={e => e.stopPropagation()}>
                 <h2>⚙️ Panel de Control ({year})</h2>
                 
+                {/* --- SECCIÓN NUEVA: COPIA DE SEGURIDAD --- */}
+                <div className="card" style={{borderTop:'3px solid #475569', background:'#F8FAFC'}}>
+                  <label>💾 COPIA DE SEGURIDAD (ANTIBORRADO)</label>
+                  <button className="btn-backup" onClick={exportarCopia}>
+                    <i className="fa-solid fa-download"></i> Exportar Copia de Seguridad
+                  </button>
+                  <label className="btn-backup" style={{background:'#64748B', cursor:'pointer', margin:0}}>
+                    <i className="fa-solid fa-upload"></i> Importar desde Archivo
+                    <input type="file" accept=".json" onChange={importarCopia} style={{display:'none'}} />
+                  </label>
+                </div>
+
                 <div className="card">
                   <label>👤 CONFIGURACIÓN BASE AGENTE</label>
                   <div style={{display:'flex', gap:'5px'}}>
