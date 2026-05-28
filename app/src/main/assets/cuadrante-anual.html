@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cuadrante Alfredo Multianual V12.9</title>
+  <title>Cuadrante Alfredo Multianual V12.10</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -218,16 +218,11 @@
         setEdit(null);
       };
 
-      // --- LOGICA SIMÉTRICA DE HISTORIALES PARA AMBOS AÑOS (COMPLETO) ---
       const listaExcFiltrada = useMemo(() => {
         return (user.excesos || []).filter(e => {
           if (!e || !e.dia || !e.mes || !e.turno || e.turno === "-") return false;
-          
-          // Caso 1: Días creados en este mismo año visualizado
           const esDeEsteAnioVisual = (e.y === year);
-          // Caso 2: Días creados en el año siguiente pero marcados como Prórroga (restan a este año)
           const esProrrogaDelAnioSiguiente = (e.y === year + 1 && e.esProrroga);
-
           return esDeEsteAnioVisual || esProrrogaDelAnioSiguiente;
         });
       }, [user.excesos, year]);
@@ -235,12 +230,8 @@
       const listaApFiltrada = useMemo(() => {
         return (user.ap || []).filter(a => {
           if (!a || !a.dia || !a.mes || !a.turno || a.turno === "-") return false;
-          
-          // Caso 1: Días creados en este mismo año visualizado
           const esDeEsteAnioVisual = (a.y === year);
-          // Caso 2: Días creados en el año siguiente pero marcados como Prórroga (restan a este año)
           const esProrrogaDelAnioSiguiente = (a.y === year + 1 && a.esProrroga);
-
           return esDeEsteAnioVisual || esProrrogaDelAnioSiguiente;
         });
       }, [user.ap, year]);
@@ -332,7 +323,7 @@
             <div className="card" style={{borderColor:'var(--ap-color)', background:'#F8FAFC'}}>
               <div style={{display:'flex', justifyContent:'space-between', marginBottom:'8px'}}>
                 <h4 style={{fontSize:'12px', color:'#854D0E'}}>Historial Asuntos Propios - Bolsa {year}</h4>
-                <button onClick={() => setVerDetalleAp(false)} style={{border:'none', background(--danger), color:'white', padding:'2px 6px', borderRadius:'4px', fontSize:'10px'}}>Cerrar</button>
+                <button onClick={() => setVerDetalleAp(false)} style={{border:'none', background:'var(--danger)', color:'white', padding:'2px 6px', borderRadius:'4px', fontSize:'10px'}}>Cerrar</button>
               </div>
               {listaApFiltrada.length ? listaApFiltrada.map((item, idx) => (
                 <div key={idx} style={{display:'flex', justifyContent:'space-between', padding:'6px', background:'#FEF08A', borderRadius:'6px', marginBottom:'4px', fontSize:'12px'}}>
