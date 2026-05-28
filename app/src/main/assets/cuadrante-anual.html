@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cuadrante Alfredo Multianual V11.1</title>
+  <title>Cuadrante Alfredo Multianual V12.0</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -46,8 +46,8 @@
 
     function App() {
       const [year, setYear] = useState(() => parseInt(localStorage.getItem("cuad_year_actual") || "2026"));
-      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v111_data") || "{}"));
-      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v111_config") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[],"hs":[],"excesos":[],"per":[]}'));
+      const [selected, setSelected] = useState(() => JSON.parse(localStorage.getItem("cuad_alfredo_v120_data") || "{}"));
+      const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user_alfredo_v120_config") || '{"nombre":"Alfredo","ingreso":2008,"periodos":[],"ap":[],"hs":[],"excesos":[],"per":[]}'));
       
       const [showGear, setShowGear] = useState(false);
       const [verDetalleAp, setVerDetalleAp] = useState(false);
@@ -57,10 +57,10 @@
       const [mesVisible, setMesVisible] = useState(new Date().getMonth());
 
       useEffect(() => { localStorage.setItem("cuad_year_actual", year); }, [year]);
-      useEffect(() => { localStorage.setItem("user_alfredo_v111_config", JSON.stringify(user)); }, [user]);
-      useEffect(() => { localStorage.setItem("cuad_alfredo_v111_data", JSON.stringify(selected)); }, [selected]);
+      useEffect(() => { localStorage.setItem("user_alfredo_v120_config", JSON.stringify(user)); }, [user]);
+      useEffect(() => { localStorage.setItem("cuad_alfredo_v120_data", JSON.stringify(selected)); }, [selected]);
 
-      // Comprobar si un día está en periodo de vacaciones activo
+      // Comprobar si un día está en periodo de vacaciones activo en base a su renderizado visual
       const checkVacation = (dk) => {
         const parts = dk.split("-");
         const dYear = parseInt(parts[0]);
@@ -73,7 +73,6 @@
           let effectiveYearStart = p.y;
           let effectiveYearEnd = p.y;
           
-          // Si está marcado como año anterior y es Enero, su lógica de visualización pertenece al año corriente
           if (p.mIni === 1 && p.esProrroga) effectiveYearStart = p.y; 
           if (p.mFin === 1 && p.esProrroga) effectiveYearEnd = p.y;
 
@@ -111,11 +110,10 @@
         return false;
       };
 
-      // --- MOTOR DE ESTADÍSTICAS CORREGIDO ---
+      // --- MOTOR DE ESTADÍSTICAS REVISADO V12 ---
       const stats = useMemo(() => {
         let totalJ = 0;
         
-        // Calcular jornadas trabajadas efectivas de este año
         Object.entries(selected).forEach(([dk, data]) => {
           if (data.jornada) {
             const parts = dk.split("-");
@@ -123,20 +121,39 @@
             const dMes = parseInt(parts[1]);
             const dDia = parseInt(parts[2]);
 
-            // Buscar si coincide con alguna vacación imputada a este año
-            const v = (user.periodos || []).some(p => {
+            // Buscar a qué año CORRESPONDE imputar este día de vacaciones
+            const vDelAnioSeleccionado = (user.periodos || []).some(p => {
               if (!p.y || !p.mIni || !p.dIni || !p.mFin || !p.dFin) return false;
-              const targetYear = p.esProrroga ? p.y - 1 : p.y;
-              if (targetYear !== year) return false;
               
-              const fInicio = new Date(p.y, p.mIni - 1, p.dIni);
-              const fFin = new Date(p.y, p.mFin - 1, p.dFin);
+              // Determinar el año bolsa de este periodo de vacaciones
+              const anioBolsaVacaciones = p.esProrroga ? (p.y - 1) : p.y;
+              if (anioBolsaVacaciones !== year) return false;
+              
+              // El día se pintó físicamente en la pantalla del año configurado en el objeto (p.y)
+              let effectiveYearStart = p.y;
+              let effectiveYearEnd = p.y;
+              const fInicio = new Date(effectiveYearStart, p.mIni - 1, p.dIni);
+              const fFin = new Date(effectiveYearEnd, p.mFin - 1, p.dFin);
               const fActual = new Date(dYear, dMes - 1, dDia);
+              
               return fActual >= fInicio && fActual <= fFin;
             });
 
-            if (!v && dYear === year) {
-              totalJ += (data.jornada / 8);
+            // Si es un día de vacaciones prorrogado perteneciente al año actual (pero disfrutado en el siguiente), se descuenta AQUÍ
+            // Si es un día de jornada normal del año consultado y NO son vacaciones de este año, suma jornada.
+            if (dYear === year) {
+              // Comprobamos si este día físico está marcado como vacaciones de CUALQUIER año para no sumarlo como jornada trabajada
+              const esCualquierVacacion = (user.periodos || []).some(p => {
+                let evS = p.y; let evE = p.y;
+                const fI = new Date(evS, p.mIni - 1, p.dIni);
+                const fF = new Date(evE, p.mFin - 1, p.dFin);
+                const fA = new Date(dYear, dMes - 1, dDia);
+                return fA >= fI && fA <= fF;
+              });
+
+              if (!esCualquierVacacion) {
+                totalJ += (data.jornada / 8);
+              }
             }
           }
         });
@@ -146,18 +163,18 @@
         const objetivo = 193 - extraVacas;
         const bolsaExcesos = Math.max(0, Math.round(totalJ - objetivo));
 
-        // Conteo de Excesos de este año (Normales del año + Prorrogados que vinieron del año siguiente)
+        // Conteo de Excesos consumidos de la bolsa de este año
         const pedidosExc = (user.excesos || []).filter(e => {
           if (!e.dia || !e.mes || !e.turno || e.turno === "-") return false;
-          if (e.mes === 1 && e.esProrroga) return (e.y - 1) === year;
-          return e.y === year;
+          const anioBolsa = e.esProrroga ? (e.y - 1) : e.y;
+          return anioBolsa === year;
         }).length;
 
-        // Conteo de APs de este año (Normales del año + Prorrogados que vinieron del año siguiente)
+        // Conteo de APs consumidos de la bolsa de este año
         const pedidosAp = (user.ap || []).filter(a => {
           if (!a.dia || !a.mes || !a.turno || a.turno === "-") return false;
-          if (a.mes === 1 && a.esProrroga) return (a.y - 1) === year;
-          return a.y === year;
+          const anioBolsa = a.esProrroga ? (a.y - 1) : a.y;
+          return anioBolsa === year;
         }).length;
 
         return { real: totalJ, obj: objetivo, acumulados: bolsaExcesos, consumidos: pedidosExc, apConsumidos: pedidosAp };
@@ -211,14 +228,26 @@
         setEdit(null);
       };
 
-      // Listas visuales filtradas por año de la pantalla principal
-      const listaApFiltrada = useMemo(() => {
-        return (user.ap || []).filter(a => (a.mes === 1 && a.esProrroga ? (a.y - 1) === year : a.y === year));
-      }, [user.ap, year]);
-
+      // --- NUEVA LÓGICA DE FILTRADO INTELIGENTE DE HISTORIALES V12 ---
       const listaExcFiltrada = useMemo(() => {
-        return (user.excesos || []).filter(e => (e.mes === 1 && e.esProrroga ? (e.y - 1) === year : e.y === year));
+        return (user.excesos || []).filter(e => {
+          if (!e.dia || !e.mes || !e.turno || e.turno === "-") return false;
+          // Si estamos en el año actual, queremos ver los normales creados aquí + los que se pidieron aquí con prórroga del año anterior
+          // Si estamos en el año anterior, queremos ver los que se guardaron allí + los creados en el año siguiente que apuntan como prórroga a este.
+          const esDeEsteAnioNatural = e.y === year;
+          const esProrrogaQueApuntaAEsteAnio = (e.esProrroga && (e.y - 1) === year);
+          return esDeEsteAnioNatural || esProrrogaQueApuntaAEsteAnio;
+        });
       }, [user.excesos, year]);
+
+      const listaApFiltrada = useMemo(() => {
+        return (user.ap || []).filter(a => {
+          if (!a.dia || !a.mes || !a.turno || a.turno === "-") return false;
+          const esDeEsteAnioNatural = a.y === year;
+          const esProrrogaQueApuntaAEsteAnio = (a.esProrroga && (a.y - 1) === year);
+          return esDeEsteAnioNatural || esProrrogaQueApuntaAEsteAnio;
+        });
+      }, [user.ap, year]);
 
       return (
         <div>
@@ -252,11 +281,11 @@
               <label style={{fontSize:'8px'}}>OBJETIVO</label>
               <b style={{fontSize:'16px'}}>{stats.obj}</b>
             </div>
-            <div className="card" onClick={() => { setVerDetalleAp(false); setVerDetalleExc(true); }} style={{margin:0, textAlign:'center', padding:'8px', borderTop:'4px solid #22C55E', cursor:'pointer'}}>
+            <div className="card" onClick={() => { setVerDetalleAp(false); setVerDetalleExc(!verDetalleExc); }} style={{margin:0, textAlign:'center', padding:'8px', borderTop:'4px solid #22C55E', cursor:'pointer'}}>
               <label style={{fontSize:'8px'}}>EXCESOS</label>
               <b style={{fontSize:'16px'}}>{stats.consumidos} / {stats.acumulados}</b>
             </div>
-            <div className="card" onClick={() => { setVerDetalleExc(false); setVerDetalleAp(true); }} style={{margin:0, textAlign:'center', padding:'8px', borderTop:'4px solid var(--ap-color)', cursor:'pointer'}}>
+            <div className="card" onClick={() => { setVerDetalleExc(false); setVerDetalleAp(!verDetalleAp); }} style={{margin:0, textAlign:'center', padding:'8px', borderTop:'4px solid var(--ap-color)', cursor:'pointer'}}>
               <label style={{fontSize:'8px'}}>A. PROPIOS</label>
               <b style={{fontSize:'16px'}}>
                 {stats.apConsumidos} / {(() => {
@@ -270,34 +299,53 @@
             </div>
           </div>
 
-          {/* --- DESGLOSE VENTANAS --- */}
+          {/* --- DESGLOSE DE EXCESOS MEJORADO V12 --- */}
           {verDetalleExc && (
             <div className="card" style={{borderColor:'#22C55E'}}>
               <div style={{display:'flex', justifyContent:'space-between', marginBottom:'10px'}}>
-                <h4 style={{fontSize:'13px'}}>Historial Excesos {year}</h4>
+                <h4 style={{fontSize:'13px'}}>Historial Excesos (Bolsa o Vista {year})</h4>
                 <button onClick={() => setVerDetalleExc(false)} style={{border:'none', background:'var(--danger)', color:'white', padding:'2px 8px', borderRadius:'4px', fontSize:'11px'}}>X</button>
               </div>
-              {listaExcFiltrada.length ? listaExcFiltrada.map((item, idx) => (
-                <div key={idx} style={{display:'flex', justifyContent:'space-between', padding:'6px', background:'#DCFCE7', borderRadius:'6px', marginBottom:'4px', fontSize:'12px'}}>
-                  <b>Día {item.dia} de {MESES_NOM[item.mes-1]} {item.esProrroga ? '(Del Año Anterior)' : ''}</b>
-                  <span>Turno: {item.turno}</span>
-                </div>
-              )) : <p style={{fontSize:'11px', color:'#64748B'}}>Ninguno.</p>}
+              {listaExcFiltrada.length ? listaExcFiltrada.map((item, idx) => {
+                // Modificación del texto según el año de vista solicitado por Alfredo
+                let textoDescriptivo = "";
+                if(item.y === year) {
+                  textoDescriptivo = `Día ${item.dia} de ${MESES_NOM[item.mes-1]} ${item.esProrroga ? '(Del Año Anterior)' : ''}`;
+                } else {
+                  // Significa que estamos en el año anterior, viendo un día de prórroga que se usó físicamente en Enero del año siguiente
+                  textoDescriptivo = `Disfrutado el Día ${item.dia} de ${MESES_NOM[item.mes-1]} de ${item.y} (Prórroga)`;
+                }
+                return (
+                  <div key={idx} style={{display:'flex', justifyContent:'space-between', padding:'6px', background:'#DCFCE7', borderRadius:'6px', marginBottom:'4px', fontSize:'12px'}}>
+                    <b>{textoDescriptivo}</b>
+                    <span>Turno: {item.turno}</span>
+                  </div>
+                );
+              }) : <p style={{fontSize:'11px', color:'#64748B'}}>Ninguno.</p>}
             </div>
           )}
 
+          {/* --- DESGLOSE DE ASUNTOS PROPIOS MEJORADO V12 --- */}
           {verDetalleAp && (
             <div className="card" style={{borderColor:'var(--ap-color)'}}>
               <div style={{display:'flex', justifyContent:'space-between', marginBottom:'10px'}}>
-                <h4 style={{fontSize:'13px'}}>Historial Asuntos Propios {year}</h4>
+                <h4 style={{fontSize:'13px'}}>Historial Asuntos Propios (Bolsa o Vista {year})</h4>
                 <button onClick={() => setVerDetalleAp(false)} style={{border:'none', background:'var(--danger)', color:'white', padding:'2px 8px', borderRadius:'4px', fontSize:'11px'}}>X</button>
               </div>
-              {listaApFiltrada.length ? listaApFiltrada.map((item, idx) => (
-                <div key={idx} style={{display:'flex', justifyContent:'space-between', padding:'6px', background:'#FEF08A', borderRadius:'6px', marginBottom:'4px', fontSize:'12px'}}>
-                  <b>Día {item.dia} de {MESES_NOM[item.mes-1]} {item.esProrroga ? '(Del Año Anterior)' : ''}</b>
-                  <span>Turno: {item.turno}</span>
-                </div>
-              )) : <p style={{fontSize:'11px', color:'#64748B'}}>Ninguno.</p>}
+              {listaApFiltrada.length ? listaApFiltrada.map((item, idx) => {
+                let textoDescriptivo = "";
+                if(item.y === year) {
+                  textoDescriptivo = `Día ${item.dia} de ${MESES_NOM[item.mes-1]} ${item.esProrroga ? '(Del Año Anterior)' : ''}`;
+                } else {
+                  textoDescriptivo = `Disfrutado el Día ${item.dia} de ${MESES_NOM[item.mes-1]} de ${item.y} (Prórroga)`;
+                }
+                return (
+                  <div key={idx} style={{display:'flex', justifyContent:'space-between', padding:'6px', background:'#FEF08A', borderRadius:'6px', marginBottom:'4px', fontSize:'12px'}}>
+                    <b>{textoDescriptivo}</b>
+                    <span>Turno: {item.turno}</span>
+                  </div>
+                );
+              }) : <p style={{fontSize:'11px', color:'#64748B'}}>Ninguno.</p>}
             </div>
           )}
 
@@ -307,7 +355,7 @@
               <span style={{fontSize:'12px', fontWeight:'bold', color:'var(--primary)'}}>{MESES_NOM[mesVisible].toUpperCase()} {year}</span>
               <span style={{fontSize:'10px'}}>
                 <span style={{color:'var(--hs-color)', fontWeight:'bold'}}>{(user.hs || []).filter(h => h.y === year && h.mes === (mesVisible+1)).reduce((s,c)=>s+c.horas, 0)}h HS</span>
-                <span style={{color:'#10B981', fontWeight:'bold', marginLeft:'6px' }}>{(user.per || []).filter(p => p.y === year && p.mes === (mesVisible+1)).reduce((s,c)=>s+c.horas, 0)} PER</span>
+                <span style={{color:'#10B981', fontWeight:'bold', marginLeft:'6px' }}>{(user.per || []).filter(p => p.y === year && p.mes === (mesVisible+1)).reduce((s,c)=>s+c.horas, 0)}h PER</span>
               </span>
             </div>
 
@@ -319,7 +367,7 @@
                 const v = checkVacation(dk);
                 const fes = isFestivo(dk);
                 
-                // Cargar marcas
+                // Cargar marcas de turnos
                 const aps = (user.ap || []).filter(a => a.y === year && a.mes === (mesVisible+1) && a.dia === d && a.turno && a.turno !== "-");
                 const excs = (user.excesos || []).filter(e => e.y === year && e.mes === (mesVisible+1) && e.dia === d && e.turno && e.turno !== "-");
                 const hasHS = (user.hs || []).some(h => h.y === year && h.mes === (mesVisible+1) && h.dia === d);
@@ -401,7 +449,7 @@
                   <button className="btn-primary" onClick={aplicarPatron} style={{background:'#1E293B', marginTop:'8px'}}>GENERAR TURNO ANUAL</button>
                 </div>
 
-                {/* --- TARJETA VACACIONES CORREGIDA CON PRÓRROGA --- */}
+                {/* --- TARJETA VACACIONES --- */}
                 <div className="card">
                   <label>🏖️ VACACIONES PERIODO ({year})</label>
                   {(user.periodos || []).filter(p => p.y === year).map(p => (
@@ -434,7 +482,7 @@
                   <button className="btn-primary" onClick={() => setUser({...user, periodos: [...(user.periodos || []), {id:Date.now(), y:year, dIni:null, mIni:null, dFin:null, mFin:null, esProrroga:false}]})}>+ ASIGNAR VACACIONES</button>
                 </div>
 
-                {/* --- TARJETA EXCESOS CONTROLADA --- */}
+                {/* --- TARJETA EXCESOS --- */}
                 <div className="card" style={{borderTop:'3px solid #22C55E'}}>
                   <label>🟢 EXCESOS ({year})</label>
                   {(user.excesos || []).filter(e => e.y === year).map(exc => (
@@ -464,7 +512,7 @@
                   <button className="btn-primary" style={{background:'#22C55E'}} onClick={() => setUser({...user, excesos: [...(user.excesos || []), {id:Date.now(), y:year, dia:null, mes:null, turno:"-", esProrroga:false}]})}>+ AÑADIR EXCESO</button>
                 </div>
 
-                {/* --- TARJETA ASUNTOS PROPIOS CONTROLADA --- */}
+                {/* --- TARJETA ASUNTOS PROPIOS --- */}
                 <div className="card" style={{borderTop:'3px solid var(--ap-color)'}}>
                   <label>📂 ASUNTOS PROPIOS ({year})</label>
                   {(user.ap || []).filter(a => a.y === year).map(a => (
