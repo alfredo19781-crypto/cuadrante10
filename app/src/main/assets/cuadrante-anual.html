@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cuadrante Alfredo Multianual V12.5</title>
+  <title>Cuadrante Alfredo Multianual V12.6</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -112,35 +112,36 @@
         return false;
       };
 
-      // --- MOTOR DE CÓMPUTO MEJORADO V12.5 ---
+      // --- MOTOR DE CÓMPUTO CORREGIDO AL 100% V12.6 ---
       const stats = useMemo(() => {
         let totalJ = 0;
         
-        // 1. Sumar jornadas ordinarias del año físico consultado (ignorando si tienen vacaciones encima)
+        // 1. Calcular jornadas de los días físicos que pertenecen al año consultado
         Object.entries(selected).forEach(([dk, data]) => {
           if (data && data.jornada) {
             const parts = dk.split("-");
             const dYear = parseInt(parts[0]);
+            
             if (dYear === year) {
               const pVacas = getVacationPeriod(dk);
-              // Si el día tiene vacaciones puestas y NO es prórroga, se anula la jornada de este año.
-              // Si tiene vacaciones puestas pero ES prórroga (Año Ant), en este año se computa como jornada normal.
+              // Si no tiene vacaciones o si las vacaciones son prórroga del año anterior, suma normal al total del año actual
               if (!pVacas || pVacas.esProrroga) {
                 totalJ += (data.jornada / 8);
               }
+              // Si tiene vacaciones del año actual puestas encima, NO suma (se queda a 0, haciendo el efecto de restar el día)
             }
           }
         });
 
-        // 2. RESTAR VACACIONES DE FORMA DIRECTA DE SU BOLSA CORRESPONDIENTE
+        // 2. Procesar las vacaciones que restan directamente a la bolsa del año consultado
         (user.periodos || []).forEach(p => {
           if (!p.y || !p.mIni || !p.dIni || !p.mFin || !p.dFin) return;
           
-          // Determinamos a qué año bolsa afecta
           const anioBolsaAfectada = p.esProrroga ? (p.y - 1) : p.y;
 
-          // Si el periodo afecta al año que estamos visualizando en pantalla, calculamos cuántas jornadas laborables le quita
-          if (anioBolsaAfectada === year) {
+          // ÚNICAMENTE si las vacaciones descuentan de la bolsa del año que estamos visualizando
+          // Y además es un caso de Prórroga (Año Ant.), calculamos los turnos pisados en enero y los restamos directamente
+          if (anioBolsaAfectada === year && p.esProrroga) {
             let fInicio = new Date(p.y, p.mIni - 1, p.dIni);
             let fFin = new Date(p.y, p.mFin - 1, p.dFin);
             let aux = new Date(fInicio);
@@ -148,7 +149,6 @@
             while (aux <= fFin) {
               const dkAux = toDateKey(aux.getFullYear(), aux.getMonth(), aux.getDate());
               const dataDia = selected[dkAux] || {};
-              // Si en ese día tenías asignada una jornada de trabajo, se la descontamos a la bolsa
               if (dataDia.jornada) {
                 totalJ -= (dataDia.jornada / 8);
               }
@@ -160,7 +160,7 @@
         const ant = year - (user.ingreso || 2008);
         const extraVacas = ant >= 30 ? 4 : ant >= 25 ? 3 : ant >= 20 ? 2 : ant >= 15 ? 1 : 0;
         const objetivo = 193 - extraVacas;
-        const bolsaExcesos = Math.max(0, Math.round(totalJ - objetivo));
+        const bolsaExcesos = Math.max(0, Math.round(totalJ - objective));
 
         const pedidosExc = (user.excesos || []).filter(e => {
           if (!e.dia || !e.mes || !e.turno || e.turno === "-") return false;
@@ -225,44 +225,36 @@
         setEdit(null);
       };
 
+      // --- FILTROS PARA LOS LISTADOS DE HISTORIAL (PANTALLA PRINCIPAL) ---
       const listaExcFiltrada = useMemo(() => {
         return (user.excesos || []).filter(e => {
           if (!e.dia || !e.mes || !e.turno || e.turno === "-") return false;
-          const esDeEsteAnioNatural = e.y === year;
-          const esProrrogaQueApuntaAEsteAnio = (e.esProrroga && (e.y - 1) === year);
-          return esDeEsteAnioNatural || esProrrogaQueApuntaAEsteAnio;
+          const anioBolsa = e.esProrroga ? (e.y - 1) : e.y;
+          return anioBolsa === year;
         });
       }, [user.excesos, year]);
 
       const listaApFiltrada = useMemo(() => {
         return (user.ap || []).filter(a => {
           if (!a.dia || !a.mes || !a.turno || a.turno === "-") return false;
-          const esDeEsteAnioNatural = a.y === year;
-          const esProrrogaQueApuntaAEsteAnio = (a.esProrroga && (a.y - 1) === year);
-          return esDeEsteAnioNatural || esProrrogaQueApuntaAEsteAnio;
+          const anioBolsa = a.esProrroga ? (a.y - 1) : a.y;
+          return anioBolsa === year;
         });
       }, [user.ap, year]);
 
-      // --- HELPER PARA SABER QUÉ TURNOS QUEDAN DISPONIBLES EN UN DÍA ---
       const getTurnosDisponibles = (tipo, idActual, anio, mes, dia) => {
         if (!mes || !dia) return ["M", "T", "N"];
-        
         let turnosCogidos = [];
-        
-        // Ver excesos ocupados ese dia
         (user.excesos || []).forEach(e => {
           if (e.id !== idActual && e.y === anio && e.mes === mes && e.dia === dia && e.turno !== "-") {
             turnosCogidos.push(e.turno);
           }
         });
-        
-        // Ver asuntos propios ocupados ese dia
         (user.ap || []).forEach(a => {
           if (a.id !== idActual && a.y === anio && a.mes === mes && a.dia === dia && a.turno !== "-") {
             turnosCogidos.push(a.turno);
           }
         });
-
         return ["M", "T", "N"].filter(t => !turnosCogidos.includes(t));
       };
 
@@ -288,7 +280,7 @@
             <button onClick={() => setMesVisible(prev => (prev < 11 ? prev + 1 : 0))} style={{ padding:'8px 14px', borderRadius:'8px', border:'none', background:'#F1F5F9', fontSize:'16px' }}>➡️</button>
           </div>
 
-          {/* --- TARJETAS --- */}
+          {/* --- TARJETAS INDICADORAS CON EVENTO CLICK OPERATIVO --- */}
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:'6px', marginBottom:'12px'}}>
             <div className="card" style={{margin:0, textAlign:'center', padding:'8px', borderTop:'4px solid var(--primary)'}}>
               <label style={{fontSize:'8px'}}>JORNADAS TOTAL</label>
@@ -315,6 +307,38 @@
               </b>
             </div>
           </div>
+
+          {/* --- DESGLOSE EXCESOS DESPLEGABLE DESDE PRINCIPAL --- */}
+          {verDetalleExc && (
+            <div className="card" style={{borderColor:'#22C55E', background:'#F8FAFC'}}>
+              <div style={{display:'flex', justifyContent:'space-between', marginBottom:'8px'}}>
+                <h4 style={{fontSize:'12px', color:'#16A34A'}}>Historial Excesos - Bolsa {year}</h4>
+                <button onClick={() => setVerDetalleExc(false)} style={{border:'none', background:'var(--danger)', color:'white', padding:'2px 6px', borderRadius:'4px', fontSize:'10px'}}>Cerrar</button>
+              </div>
+              {listaExcFiltrada.length ? listaExcFiltrada.map((item, idx) => (
+                <div key={idx} style={{display:'flex', justifyContent:'space-between', padding:'6px', background:'#DCFCE7', borderRadius:'6px', marginBottom:'4px', fontSize:'12px'}}>
+                  <b>Día {item.dia} de {MESES_NOM[item.mes-1]} {item.esProrroga ? `(Prórroga ${item.y})` : ''}</b>
+                  <span>Turno: {item.turno}</span>
+                </div>
+              )) : <p style={{fontSize:'11px', color:'#64748B'}}>No hay excesos consumidos en esta bolsa.</p>}
+            </div>
+          )}
+
+          {/* --- DESGLOSE ASUNTOS PROPIOS DESPLEGABLE DESDE PRINCIPAL --- */}
+          {verDetalleAp && (
+            <div className="card" style={{borderColor:'var(--ap-color)', background:'#F8FAFC'}}>
+              <div style={{display:'flex', justifyContent:'space-between', marginBottom:'8px'}}>
+                <h4 style={{fontSize:'12px', color:'#854D0E'}}>Historial Asuntos Propios - Bolsa {year}</h4>
+                <button onClick={() => setVerDetalleAp(false)} style={{border:'none', background:'var(--danger)', color:'white', padding:'2px 6px', borderRadius:'4px', fontSize:'10px'}}>Cerrar</button>
+              </div>
+              {listaApFiltrada.length ? listaApFiltrada.map((item, idx) => (
+                <div key={idx} style={{display:'flex', justifyContent:'space-between', padding:'6px', background:'#FEF08A', borderRadius:'6px', marginBottom:'4px', fontSize:'12px'}}>
+                  <b>Día {item.dia} de {MESES_NOM[item.mes-1]} {item.esProrroga ? `(Prórroga ${item.y})` : ''}</b>
+                  <span>Turno: {item.turno}</span>
+                </div>
+              )) : <p style={{fontSize:'11px', color:'#64748B'}}>No hay asuntos propios consumidos en esta bolsa.</p>}
+            </div>
+          )}
 
           {/* --- CALENDARIO --- */}
           <div className="card">
