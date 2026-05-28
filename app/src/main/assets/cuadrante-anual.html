@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Cuadrante Alfredo Multianual V12.4</title>
+  <title>Cuadrante Alfredo Multianual V12.5</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -29,6 +29,7 @@
     .btn-del { background: var(--danger); color: white; padding: 10px; border-radius: 8px; border: none; flex: 1; }
     .dia-btn { aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 13px; border: 1px solid #F1F5F9; background: white; position: relative; overflow: hidden; }
     .ap-line { position: absolute; left: 0; right: 0; height: 4px; background: var(--ap-color); z-index: 5; }
+    .ap-M { top: 0; } .ap-T { top: calc(50% - 2px); } .ap-N { bottom: 0; }
     .hs-dot { position: absolute; top: 3px; right: 3px; width: 6px; height: 6px; background: var(--hs-color); border-radius: 50%; z-index: 6; }
     .toggle-btn { background: #E2E8F0; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; flex-shrink: 0; }
     .toggle-btn.active { background: var(--primary); color: white; }
@@ -66,7 +67,6 @@
       useEffect(() => { localStorage.setItem("user_alfredo_v122_config", JSON.stringify(user)); }, [user]);
       useEffect(() => { localStorage.setItem("cuad_alfredo_v122_data", JSON.stringify(selected)); }, [selected]);
 
-      // Función para saber si un día físico cualquiera tiene vacaciones asignadas en los ajustes
       const getVacationPeriod = (dk) => {
         const parts = dk.split("-");
         const dYear = parseInt(parts[0]);
@@ -112,40 +112,47 @@
         return false;
       };
 
-      // --- NUEVO MOTOR MATEMÁTICO CORREGIDO AL 100% (V12.4) ---
+      // --- MOTOR DE CÓMPUTO MEJORADO V12.5 ---
       const stats = useMemo(() => {
         let totalJ = 0;
         
-        // Recorremos absolutamente todos los días guardados en el cuadrante
+        // 1. Sumar jornadas ordinarias del año físico consultado (ignorando si tienen vacaciones encima)
         Object.entries(selected).forEach(([dk, data]) => {
           if (data && data.jornada) {
             const parts = dk.split("-");
             const dYear = parseInt(parts[0]);
-            const horasJornada = data.jornada;
-
-            // Buscamos si este día físico coincide con algún periodo vacacional configurado
-            const pVacas = getVacationPeriod(dk);
-
-            if (pVacas) {
-              // Si el periodo vacacional tiene marcado "Año Ant" (Prórroga), pertenece al año anterior
-              const anioBolsaAlQuePertenece = pVacas.esProrroga ? (pVacas.y - 1) : pVacas.y;
-
-              // CASO 1: Estamos viendo el año de la BOLSA (ej: 2025) y las vacaciones gastan de esta bolsa.
-              // Restamos la jornada restándosela al cómputo total de ese año.
-              if (anioBolsaAlQuePertenece === year) {
-                // Al pertenecer a la bolsa del año analizado, NO se añade al total trabajado.
-                // (Por tanto, el total baja respecto a los turnos que hubiera debajo de las vacaciones).
+            if (dYear === year) {
+              const pVacas = getVacationPeriod(dk);
+              // Si el día tiene vacaciones puestas y NO es prórroga, se anula la jornada de este año.
+              // Si tiene vacaciones puestas pero ES prórroga (Año Ant), en este año se computa como jornada normal.
+              if (!pVacas || pVacas.esProrroga) {
+                totalJ += (data.jornada / 8);
               }
-              // CASO 2: Estamos viendo el año físico actual (ej: 2026), pero pertenecen a la bolsa anterior.
-              // Al ser de la bolsa anterior, no deben interferir en las jornadas de 2026. Se suman con normalidad.
-              else if (dYear === year) {
-                totalJ += (horasJornada / 8);
+            }
+          }
+        });
+
+        // 2. RESTAR VACACIONES DE FORMA DIRECTA DE SU BOLSA CORRESPONDIENTE
+        (user.periodos || []).forEach(p => {
+          if (!p.y || !p.mIni || !p.dIni || !p.mFin || !p.dFin) return;
+          
+          // Determinamos a qué año bolsa afecta
+          const anioBolsaAfectada = p.esProrroga ? (p.y - 1) : p.y;
+
+          // Si el periodo afecta al año que estamos visualizando en pantalla, calculamos cuántas jornadas laborables le quita
+          if (anioBolsaAfectada === year) {
+            let fInicio = new Date(p.y, p.mIni - 1, p.dIni);
+            let fFin = new Date(p.y, p.mFin - 1, p.dFin);
+            let aux = new Date(fInicio);
+
+            while (aux <= fFin) {
+              const dkAux = toDateKey(aux.getFullYear(), aux.getMonth(), aux.getDate());
+              const dataDia = selected[dkAux] || {};
+              // Si en ese día tenías asignada una jornada de trabajo, se la descontamos a la bolsa
+              if (dataDia.jornada) {
+                totalJ -= (dataDia.jornada / 8);
               }
-            } else {
-              // Sin vacaciones de por medio: si el día pertenece al año que estamos consultando, suma normal.
-              if (dYear === year) {
-                totalJ += (horasJornada / 8);
-              }
+              aux.setDate(aux.getDate() + 1);
             }
           }
         });
@@ -236,6 +243,29 @@
         });
       }, [user.ap, year]);
 
+      // --- HELPER PARA SABER QUÉ TURNOS QUEDAN DISPONIBLES EN UN DÍA ---
+      const getTurnosDisponibles = (tipo, idActual, anio, mes, dia) => {
+        if (!mes || !dia) return ["M", "T", "N"];
+        
+        let turnosCogidos = [];
+        
+        // Ver excesos ocupados ese dia
+        (user.excesos || []).forEach(e => {
+          if (e.id !== idActual && e.y === anio && e.mes === mes && e.dia === dia && e.turno !== "-") {
+            turnosCogidos.push(e.turno);
+          }
+        });
+        
+        // Ver asuntos propios ocupados ese dia
+        (user.ap || []).forEach(a => {
+          if (a.id !== idActual && a.y === anio && a.mes === mes && a.dia === dia && a.turno !== "-") {
+            turnosCogidos.push(a.turno);
+          }
+        });
+
+        return ["M", "T", "N"].filter(t => !turnosCogidos.includes(t));
+      };
+
       return (
         <div>
           {/* --- PANEL SELECCIÓN AÑO --- */}
@@ -286,38 +316,6 @@
             </div>
           </div>
 
-          {/* --- DESGLOSE EXCESOS --- */}
-          {verDetalleExc && (
-            <div className="card" style={{borderColor:'#22C55E'}}>
-              <div style={{display:'flex', justifyContent:'space-between', marginBottom:'10px'}}>
-                <h4 style={{fontSize:'13px'}}>Historial Excesos (Bolsa {year})</h4>
-                <button onClick={() => setVerDetalleExc(false)} style={{border:'none', background:'var(--danger)', color:'white', padding:'2px 8px', borderRadius:'4px', fontSize:'11px'}}>X</button>
-              </div>
-              {listaExcFiltrada.length ? listaExcFiltrada.map((item, idx) => (
-                <div key={idx} style={{display:'flex', justifyContent:'space-between', padding:'6px', background:'#DCFCE7', borderRadius:'6px', marginBottom:'4px', fontSize:'12px'}}>
-                  <b>Día {item.dia} de {MESES_NOM[item.mes-1]} {item.y !== year || item.esProrroga ? `(${item.y})` : ''}</b>
-                  <span>Turno: {item.turno}</span>
-                </div>
-              )) : <p style={{fontSize:'11px', color:'#64748B'}}>Ninguno.</p>}
-            </div>
-          )}
-
-          {/* --- DESGLOSE ASUNTOS PROPIOS --- */}
-          {verDetalleAp && (
-            <div className="card" style={{borderColor:'var(--ap-color)'}}>
-              <div style={{display:'flex', justifyContent:'space-between', marginBottom:'10px'}}>
-                <h4 style={{fontSize:'13px'}}>Historial Asuntos Propios (Bolsa {year})</h4>
-                <button onClick={() => setVerDetalleAp(false)} style={{border:'none', background:'var(--danger)', color:'white', padding:'2px 8px', borderRadius:'4px', fontSize:'11px'}}>X</button>
-              </div>
-              {listaApFiltrada.length ? listaApFiltrada.map((item, idx) => (
-                <div key={idx} style={{display:'flex', justifyContent:'space-between', padding:'6px', background:'#FEF08A', borderRadius:'6px', marginBottom:'4px', fontSize:'12px'}}>
-                  <b>Día {item.dia} de {MESES_NOM[item.mes-1]} {item.y !== year || item.esProrroga ? `(${item.y})` : ''}</b>
-                  <span>Turno: {item.turno}</span>
-                </div>
-              )) : <p style={{fontSize:'11px', color:'#64748B'}}>Ninguno.</p>}
-            </div>
-          )}
-
           {/* --- CALENDARIO --- */}
           <div className="card">
             <div style={{display:'flex', justifyContent:'space-between', marginBottom:'6px'}}>
@@ -344,7 +342,7 @@
                 const is12h = data.tipo && data.tipo.startsWith('12h');
                 
                 let bg = "white";
-                if (pVacas) bg = "#FEF9C3"; // Amarillo Vacaciones
+                if (pVacas) bg = "#FEF9C3"; 
                 else if (is12h) bg = data.tipo === '12h-N' ? "#C2410C" : "#FB923C";
                 else if (data.jornada) bg = "#FEE2E2";
                 else if (data.descanso) bg = "#DCFCE7";
@@ -362,7 +360,7 @@
             </div>
           </div>
 
-          {/* --- MODAL EDICIÓN CELDA --- */}
+          {/* --- MODAL EDICIÓN CELDA RAPIDA --- */}
           {edit && (
             <div className="modal" onClick={() => setEdit(null)}>
               <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -382,7 +380,7 @@
             </div>
           )}
 
-          {/* --- MODAL AJUSTES --- */}
+          {/* --- MODAL AJUSTES COMPLETOS --- */}
           {showGear && (
             <div className="modal" onClick={() => setShowGear(false)}>
               <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -417,7 +415,7 @@
                   <button className="btn-primary" onClick={aplicarPatron} style={{background:'#1E293B', marginTop:'8px'}}>GENERAR TURNO ANUAL</button>
                 </div>
 
-                {/* --- VACACIONES --- */}
+                {/* --- VACACIONES PERIODO --- */}
                 <div className="card">
                   <label>🏖️ VACACIONES PERIODO ({year})</label>
                   {(user.periodos || []).filter(p => p.y === year).map(p => (
@@ -451,56 +449,72 @@
                 {/* --- EXCESOS --- */}
                 <div className="card" style={{borderTop:'3px solid #22C55E'}}>
                   <label>🟢 EXCESOS ({year})</label>
-                  {(user.excesos || []).filter(e => e.y === year).map(exc => (
-                    <div key={exc.id} className="row-config">
-                      <div className="inputs-group">
-                        <select value={exc.mes || ""} onChange={e => setUser({...user, excesos: user.excesos.map(x => x.id === exc.id ? {...x, mes: parseInt(e.target.value)} : x)})}>
-                          <option value="" disabled>Mes</option>{MESES_NOM.map((m,i)=><option key={i} value={i+1}>{m.slice(0,3)}</option>)}
-                        </select>
-                        <select value={exc.dia || ""} onChange={e => setUser({...user, excesos: user.excesos.map(x => x.id === exc.id ? {...x, dia: parseInt(e.target.value)} : x)})}>
-                          <option value="" disabled>Día</option>{Array.from({length:31},(_,i)=>i+1).map(d=><option key={d} value={d}>{d}</option>)}
-                        </select>
-                        <select value={exc.turno || ""} onChange={e => setUser({...user, excesos: user.excesos.map(x => x.id === exc.id ? {...x, turno: e.target.value} : x)})}>
-                          <option value="-">-</option>
-                          <option value="M">M</option><option value="T">T</option><option value="N">N</option>
-                        </select>
-                        {exc.mes === 1 && (
-                          <button className={`toggle-btn ${exc.esProrroga ? 'active' : ''}`} onClick={() => setUser({...user, excesos: user.excesos.map(x => x.id === exc.id ? {...x, esProrroga: !x.esProrroga} : x)})}>
-                            Año Ant.
-                          </button>
-                        )}
+                  {(user.excesos || []).filter(e => e.y === year).map(exc => {
+                    const disponibles = getTurnosDisponibles("exceso", exc.id, year, exc.mes, exc.dia);
+                    return (
+                      <div key={exc.id} className="row-config">
+                        <div className="inputs-group">
+                          <select value={exc.mes || ""} onChange={e => setUser({...user, excesos: user.excesos.map(x => x.id === exc.id ? {...x, mes: parseInt(e.target.value), turno:"-"} : x)})}>
+                            <option value="" disabled>Mes</option>{MESES_NOM.map((m,i)=><option key={i} value={i+1}>{m.slice(0,3)}</option>)}
+                          </select>
+                          <select value={exc.dia || ""} onChange={e => setUser({...user, excesos: user.excesos.map(x => x.id === exc.id ? {...x, dia: parseInt(e.target.value), turno:"-"} : x)})}>
+                            <option value="" disabled>Día</option>{Array.from({length:31},(_,i)=>i+1).map(d=><option key={d} value={d}>{d}</option>)}
+                          </select>
+                          
+                          <select value={exc.turno || ""} onChange={e => setUser({...user, excesos: user.excesos.map(x => x.id === exc.id ? {...x, turno: e.target.value} : x)})}>
+                            <option value="-">-</option>
+                            {["M","T","N"].map(t => {
+                              const deshabilitado = !disponibles.includes(t) && exc.turno !== t;
+                              return <option key={t} value={t} disabled={deshabilitado}>{t} {deshabilitado ? '(Ocupado)' : ''}</option>;
+                            })}
+                          </select>
+
+                          {exc.mes === 1 && (
+                            <button className={`toggle-btn ${exc.esProrroga ? 'active' : ''}`} onClick={() => setUser({...user, excesos: user.excesos.map(x => x.id === exc.id ? {...x, esProrroga: !x.esProrroga} : x)})}>
+                              Año Ant.
+                            </button>
+                          )}
+                        </div>
+                        <button className="btn-del" onClick={() => setUser({...user, excesos: user.excesos.filter(x => x.id !== exc.id)})}>🗑️</button>
                       </div>
-                      <button className="btn-del" onClick={() => setUser({...user, excesos: user.excesos.filter(x => x.id !== exc.id)})}>🗑️</button>
-                    </div>
-                  ))}
+                    );
+                  })}
                   <button className="btn-primary" style={{background:'#22C55E'}} onClick={() => setUser({...user, excesos: [...(user.excesos || []), {id:Date.now(), y:year, dia:null, mes:null, turno:"-", esProrroga:false}]})}>+ AÑADIR EXCESO</button>
                 </div>
 
                 {/* --- ASUNTOS PROPIOS --- */}
                 <div className="card" style={{borderTop:'3px solid var(--ap-color)'}}>
                   <label>📂 ASUNTOS PROPIOS ({year})</label>
-                  {(user.ap || []).filter(a => a.y === year).map(a => (
-                    <div key={a.id} className="row-config">
-                      <div className="inputs-group">
-                        <select value={a.mes || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, mes:parseInt(e.target.value)}:x)})}>
-                          <option value="" disabled>Mes</option>{MESES_NOM.map((m,i)=><option key={i} value={i+1}>{m.slice(0,3)}</option>)}
-                        </select>
-                        <select value={a.dia || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, dia:parseInt(e.target.value)}:x)})}>
-                          <option value="" disabled>Día</option>{Array.from({length:31},(_,i)=>i+1).map(d=><option key={d} value={d}>{d}</option>)}
-                        </select>
-                        <select value={a.turno || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, turno:e.target.value}:x)})}>
-                          <option value="-">-</option>
-                          <option value="M">M</option><option value="T">T</option><option value="N">N</option>
-                        </select>
-                        {a.mes === 1 && (
-                          <button className={`toggle-btn ${a.esProrroga ? 'active' : ''}`} onClick={() => setUser({...user, ap: user.ap.map(x => x.id === a.id ? {...x, esProrroga: !x.esProrroga} : x)})}>
-                            Año Ant.
-                          </button>
-                        )}
+                  {(user.ap || []).filter(a => a.y === year).map(a => {
+                    const disponibles = getTurnosDisponibles("ap", a.id, year, a.mes, a.dia);
+                    return (
+                      <div key={a.id} className="row-config">
+                        <div className="inputs-group">
+                          <select value={a.mes || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, mes:parseInt(e.target.value), turno:"-"}:x)})}>
+                            <option value="" disabled>Mes</option>{MESES_NOM.map((m,i)=><option key={i} value={i+1}>{m.slice(0,3)}</option>)}
+                          </select>
+                          <select value={a.dia || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, dia:parseInt(e.target.value), turno:"-"}:x)})}>
+                            <option value="" disabled>Día</option>{Array.from({length:31},(_,i)=>i+1).map(d=><option key={d} value={d}>{d}</option>)}
+                          </select>
+                          
+                          <select value={a.turno || ""} onChange={e => setUser({...user, ap: user.ap.map(x=>x.id===a.id?{...x, turno:e.target.value}:x)})}>
+                            <option value="-">-</option>
+                            {["M","T","N"].map(t => {
+                              const deshabilitado = !disponibles.includes(t) && a.turno !== t;
+                              return <option key={t} value={t} disabled={deshabilitado}>{t} {deshabilitado ? '(Ocupado)' : ''}</option>;
+                            })}
+                          </select>
+
+                          {a.mes === 1 && (
+                            <button className={`toggle-btn ${a.esProrroga ? 'active' : ''}`} onClick={() => setUser({...user, ap: user.ap.map(x => x.id === a.id ? {...x, esProrroga: !x.esProrroga} : x)})}>
+                              Año Ant.
+                            </button>
+                          )}
+                        </div>
+                        <button className="btn-del" onClick={() => setUser({...user, ap: user.ap.filter(x => x.id !== a.id)})}>🗑️</button>
                       </div>
-                      <button className="btn-del" onClick={() => setUser({...user, ap: user.ap.filter(x => x.id !== a.id)})}>🗑️</button>
-                    </div>
-                  ))}
+                    );
+                  })}
                   <button className="btn-primary" style={{background:'var(--ap-color)', color:'#1E293B'}} onClick={() => setUser({...user, ap: [...(user.ap || []), {id:Date.now(), y:year, dia:null, mes:null, turno:"-", esProrroga:false}]})}>+ AÑADIR AP</button>
                 </div>
 
@@ -524,7 +538,7 @@
                   <button className="btn-primary" style={{background:'var(--hs-color)'}} onClick={() => setUser({...user, hs: [...(user.hs || []), {id:Date.now(), y:year, dia:null, mes:null, horas:8}]})}>+ AÑADIR HS</button>
                 </div>
 
-                {/* --- PERMISOS --- */}
+                {/* --- PERMISOS RETRIBUIDOS --- */}
                 <div className="card" style={{borderTop:'3px solid #10B981'}}>
                   <label>🟢 PERMISOS (PER - {year})</label>
                   {(user.per || []).filter(p => p.y === year).map(p => (
